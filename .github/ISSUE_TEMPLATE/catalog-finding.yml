@@ -1,0 +1,93 @@
+# GENERATED from audit/schema.json by `python -m catalog.findings_schema --write-template` — do not edit by hand (R1-09/F2).
+# Site buttons open this form prefilled (…/issues/new?template=catalog-finding.yml&labels=finding&title=…&identifier=…&
+# current_state=…&release_tag=…). `date` and `source` are NOT asked: ingest_issues.py fills them from the Issue's
+# created_at and number. The form must be INSTALLED in the Issues repo (config/site.yaml github.issues.repo) — make install-workflows.
+name: Catalog finding
+description: "Report a wrong, missing or unsupported value, verdict or link in the Infant Gut Shotgun-Metagenome Catalog \u2014 or confirm a value is correct"
+title: "[finding] <identifier>: <field or verdict>"
+labels: ["finding"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every row of the catalog carries evidence; a finding needs evidence too (Rule 1 of the curation rules): a
+        source label and a verbatim quote of **at most 12 words**. Values without evidence are recorded but not applied.
+        For `confirmed_correct` (the "Confirm correct" button) no quote is needed — the confirmation becomes a truth-set row.
+  - type: input
+    id: identifier
+    attributes:
+      label: identifier
+      description: "Study accession (PRJ\u2026), sample key (SAMN\u2026/SAMEA\u2026/SAMD\u2026/run accession) or cohort id (COH\u2026)"
+      placeholder: PRJNA294605
+    validations: { required: true }
+  - type: dropdown
+    id: finding_type
+    attributes:
+      label: finding_type
+      description: "value_error = a committed value is wrong; coverage_gap = a value is recoverable from cited evidence but missing; missing_paper = an own-data paper is not linked; wrong_verdict = study included/excluded wrongly; triage_error = alias of wrong_verdict used by the Auditor profile; universe_miss = an in-scope study is absent from the universe; wrong_sample_unit = sample_unit (biosample / run / pooled) is wrong \u2014 needs a pipeline re-key, recorded as a study note; duplicate = mirror / reanalysis deposit; documentation = docs / dictionary / site text; confirmed_correct = a human checked the value and it is right (truth-set row; evidence optional); other = anything else"
+      options: ["value_error", "coverage_gap", "missing_paper", "wrong_verdict", "triage_error", "universe_miss", "wrong_sample_unit", "duplicate", "documentation", "confirmed_correct", "other"]
+    validations: { required: true }
+  - type: dropdown
+    id: action
+    attributes:
+      label: "action (what should the pipeline do)"
+      description: "add_determination: sample_determinations (+ wide table cell); supersede_determination: sample_determinations + superseded (+ wide table cell); study_verdict: study_metadata_wide + universe_studies_all catalog_status/decision_stage; excluded studies leave sample_metadata_wide; study_note: study_metadata_wide.note; paper_link: study note; link_papers.py re-run required; add_study: audit/candidates_<date>.csv for the next triage cycle (never a direct include); confirm: confirmations.parquet + <field_name>__verified = true in sample_metadata_wide (sample-level) or study_metadata_wide.verified_fields (study-level); note_only: log only"
+      options: ["add_determination", "supersede_determination", "study_verdict", "study_note", "paper_link", "add_study", "confirm", "note_only"]
+    validations: { required: true }
+  - type: input
+    id: sample_key
+    attributes:
+      label: "sample_key (for sample-level findings)"
+      placeholder: SAMN04161034
+  - type: dropdown
+    id: field_name
+    attributes:
+      label: "field_name (for sample-level findings; leave unselected for study-level findings)"
+      options: ["age_at_collection_days", "delivery_mode", "feeding_mode", "preterm_status", "gestational_age_weeks", "birth_weight_grams", "antibiotic_exposure", "maternal_antibiotics", "probiotic_exposure", "hmo_supplementation", "nec_status", "country", "health_condition", "multiple_birth", "sibling_in_study", "geo_subregion", "sex", "subject_id", "timepoint_label"]
+  - type: textarea
+    id: current_state
+    attributes:
+      label: current_state
+      description: "What the site shows now (value \u00b7 route \u00b7 confidence \u00b7 quote) \u2014 copied by the link when prefilled"
+    validations: { required: true }
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: proposed_change
+      description: For confirmed_correct write "confirmed".
+    validations: { required: true }
+  - type: input
+    id: new_value
+    attributes:
+      label: "new_value (normalised; ages in days, GA in weeks, controlled vocabularies; study_verdict: included|excluded|human_review)"
+  - type: dropdown
+    id: reason_code
+    attributes:
+      label: "reason_code (required when action = study_verdict and new_value = excluded)"
+      options: ["assay_amplicon", "assay_amplicon_misfiled", "assay_rna", "assay_isolate_genome", "assay_other_nonshotgun", "assay_assembly_only", "host_nonhuman", "host_environmental", "host_synthetic", "age_adult_only", "age_child_over_36m", "age_maternal_only", "age_unknown_no_evidence", "site_excluded", "site_unknown", "fp_salmonella_infantis", "fp_bifido_infantis", "fp_name_only", "access_controlled", "access_suppressed", "dup_mirror", "dup_reanalysis"]
+  - type: input
+    id: evidence_quote
+    attributes:
+      label: "evidence_quote (\u2264 12 words, verbatim; required unless finding_type = confirmed_correct)"
+  - type: input
+    id: evidence_source
+    attributes:
+      label: evidence_source
+      description: "Labelled source: paper.supp.<file>[sheet!column], paper.fulltext.methods, sample.attr.<key>, external_curation.human"
+      placeholder: external_curation.human
+  - type: dropdown
+    id: confidence
+    attributes:
+      label: "confidence (required unless finding_type = confirmed_correct)"
+      options: ["0.9", "0.8", "0.7", "0.6", "0.5"]
+  - type: dropdown
+    id: route
+    attributes:
+      label: route of the NEW evidence
+      description: "R1 = archive attributes; R2 = supplementary table; R3 = paper text; R4 = abstract / ENA description; H = human / external curation (default for external_curation.* sources)"
+      options: ["R1", "R2", "R3", "R4", "H"]
+  - type: input
+    id: release_tag
+    attributes:
+      label: "release_tag / page URL"
+      description: "Filled automatically by the site link (VERSION.json release_tag + page path)"

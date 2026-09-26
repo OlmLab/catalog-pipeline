@@ -1,0 +1,281 @@
+# RUNBOOK — the monthly catalog cycle (Reviewer A findings A4, A14; publishing per A1–A3, A9)
+
+Audience: a **fresh Claude Science session** (no memory of earlier runs) or the owner at a shell. Every stage names
+its inputs, outputs, expected volume, token budget, wall time, whether it needs LLM delegation, and its stop rule.
+Deterministic stages (0, 1, 5, 6, 7) can run anywhere with the conda env; LLM stages (2, 3) run only in a Claude
+Science **root** session with delegation switched on (sub-agents cannot delegate).
+
+Log the actuals of every cycle in `docs/CYCLE_LOG.md` (date, SINCE, candidates, includes, tokens, wall time, tag).
+
+## 0. Preconditions (every cycle, 10 min, no tokens)
+
+| check | command / action | expected |
+|---|---|---|
+| repo + env | `git -C ~/catalog/catalog-pipeline pull` · `pip install -e .` (once per env) · shell: `python bootstrap.py --no-env --only-required`; Claude kernel (artifact store reachable): `__file__='<repo>/bootstrap.py'; exec(open(__file__).read()); main(['--no-env','--only-required'])` | `missing_required: []`, `hash_mismatch: []`, exit 0 and tests green (hash, validator sync, model resolution, determinism). **Exit 4 = required inputs missing — tests were not run; do not proceed.** |
+| inputs present | `ls data/inputs/` | `data_package_v*.zip`, `catalog_studies.parquet`, `study_triage_v2.parquet` (from `~/catalog/data/` or the artifact store — ids below) |
+| harvest cache (stages 1–3 only) | `ls ~/catalog/cache/harvest_cache/http_cache.sqlite` — else untar `harvest_cache.tar.gz` (artifact, 9.7 GB → ≈ 25 GB) and `sha256sum -c harvest_cache.sha256` | present; ≥ 30 GB free disk |
+| skills (Claude session) | `skill("infant-curation-rules")`, `skill("infant-catalog-harvest")`; then `make sync-skills` recipe → `python -m pytest tests/test_validators_sync.py -q` | repo validators == skill kernel |
+| models | in a Claude kernel cell: `from catalog.models import set_host, main; set_host(host); main()` — or from a shell with `CATALOG_MODEL_<ROLE>` exported: `python -m catalog.models` | prints role → live id for all four roles and returns/exits 0; **exit 1 = a role is UNRESOLVED** (R1-01). No literal ids anywhere (`grep -rn "claude-" src` finds only comments) |
+| network grants | ENA, Europe PMC, NCBI, Crossref (default); `github.com`/`api.github.com` (publish); `olmlab.github.io` (post-deploy check); `zenodo.org`, `sandpiper.qut.edu.au` (Sandpiper module) | granted (Settings → Domain Allowlist) |
+| credentials (stage 7) | Customize → Credentials holds `GitHub` (fine-grained PAT, contents:write on the two repos; docs/SECURITY.md) | `git ls-remote` succeeds with the credential helper |
+| delegation (stages 2–3) | the session toggle "allow delegation" is ON; host.llm cap 2.0 M/frame | leaf workers can be dispatched |
+| version | `cat config/version.txt` → bump **before** stage 5 (`1.2.0` → `1.3.0` for a monthly data update; patch for fixes only) | semver; CHANGELOG entry started |
+
+Key artifact ids (latest versions at 2026-09-26; the authoritative list with sha256 is `config/inputs.json`):
+
+| input | artifact_id | version_id (latest) | size | sha256 (first 12) |
+|---|---|---|---:|---|
+| `data_package_v1.zip` | `3c54a664-0afe-46f3-9dcd-14575cbe9911` | `b3689a6a-8b35-4093-8a4a-a5a307c705f7` | 26.0 MB | `acf018317868` |
+| `site_generator.zip` | `fed8f96a-3664-4e51-8de9-e2d1290f5975` | `48832759-2daf-461f-b96c-8c329bf881de` | 0.0 MB | `b20781381a36` |
+| `release_bundle.tar.gz` | `e26d789c-599d-4908-b5bf-050252504dc2` | `1ed50ad8-6476-456f-a5c8-7d6c6dc31e3e` | 69.3 MB | `5464b037f9f7` |
+| `catalog_studies.parquet` | `4e770407-a41a-4c38-86b5-977a05a5ec50` | `caf0360d-398e-4c5e-b7c2-d21781f5a7b1` | 1.1 MB | `25fd7f26a8a6` |
+| `study_triage_v2.parquet` | `843218d6-2dc5-43ee-a706-cb5af88e13f6` | `6a2af383-b9ef-4c31-b2df-935ba5eb8401` | 1.0 MB | `108232fe4a42` |
+| `harvest_cache.tar.gz` | `75b88127-b830-47c2-bdd1-19b2a09eeb96` | `1651f99b-eae3-40de-8674-585632ed39fb` | 9,751.4 MB | `n/a` |
+| `infant_catalog.sqlite` | `9eb19bd1-f41c-4cdf-9d65-5eab9618df7e` | `76e57aaa-2c7f-487c-bed2-8fa57d7979ef` | 202.8 MB | `675404e79a75` |
+| `auditor_findings.csv` | `3d100e7c-2e4f-4247-b574-1d696e948ced` | `fbdf361f-5cb4-4ee4-b69c-2cc5426460cc` | 0.0 MB | `5d0a4a55935a` |
+| `site.zip` | `c99f6f6e-5fbc-4cba-9d8f-0ed37abe4ba3` | `95ff2ef5-fdb4-4777-b47e-7873d0e578d7` | 72.9 MB | `fd4f6c151682` |
+| `harvest_lib.py` (code) | `23624e52-e5d3-46ba-8e4e-718f29ede141` | `b5eefacd-1a3b-4f48-a931-3b732fbad09e` | 18 kB | `94bec7791f3b` |
+| `resweep_universe.py` (code) | `8f67afb0-0521-4201-8b3e-fc49606e4068` | `fdc86797-5a3a-4a32-bb74-a164d9de5a88` | 30 kB | `2a904a16c9a6` |
+| `llm_batch_common.py` (code) | `bfe20c88-0384-44f5-ba8f-2f1e41163ae8` | `083873f8-557b-4f65-bc80-651c9f7ce527` | 4 kB | `815a37e19e94` |
+| `run_sonnet_confirm.py` (code) | `aa54d394-b5e6-4462-868f-723e8e17ba15` | `f838c86e-a5d9-40a3-bcc0-c9851bccc390` | 11 kB | `7066bdb61bd3` |
+| `curation_kernel_ext.py` (code) | `0bacc0dd-e051-45e0-b99c-373436e6f7d0` | `558bee32-ccbc-4cc3-a31a-ab2011fbc92b` | 8 kB | `7bd412cb0248` |
+| `build_wide.py` (code) | `cc60f35d-7d16-482e-aed8-395cebe013f8` | `7c23cf00-5cde-4aa0-9366-8a063cf3018d` | 2 kB | `5b2f8704a3f5` |
+
+## 0a. Owner bootstrap (once, ~45 min, no tokens) — R1-05
+
+**Status 2026-09-26 (evening): DONE.** All three repos exist and are public with an active `protect-main` ruleset;
+Pages source on `infant-gut-catalog` = GitHub Actions; the PAT is stored as credential `GitHub` (env `GITHUB_TOKEN`);
+`~/catalog/` is granted rw and holds the three clones. Steps 2–4 and 8 below were executed by the agent (the owner
+authorised the first pushes to `main` of the two new repos and the `.github/` install on the site repo). Kept for reference:
+
+State probed 2026-09-26 morning (Reviewer 1): `OlmLab/infant-gut-catalog` exists (main only, no `.github/`, pre-1.2.0 site);
+`OlmLab/catalog-pipeline` and `OlmLab/infant-gut-catalog-data` do **not** exist. Nothing in stage 7 works until:
+
+1. **Create the two missing repositories** (GitHub UI, org OlmLab): `catalog-pipeline` (private or public, empty, no
+   README) and `infant-gut-catalog-data` (public, empty). Enable Issues on `infant-gut-catalog` (the Issues repo,
+   `config/site.yaml` → `github.issues.repo`).
+2. **First push of the pipeline repo** (owner shell):
+   ```
+   cd ~/catalog && unzip -q pipeline_repo_v3.zip && cd catalog-pipeline      # or the artifact of the current cycle
+   git init -b main && git add -A && git commit -m "catalog-pipeline v1.2.1 (repo fix wave)"
+   git remote add origin https://github.com/OlmLab/catalog-pipeline.git && git push -u origin main
+   ```
+   `verify.yml` runs on that push (unit tests only — no site in this repo).
+3. **Clone the site and data repos** to the paths in `config/site.yaml` (`~/catalog/infant-gut-catalog`,
+   `~/catalog/infant-gut-catalog-data`; the data repo may be empty — `git clone` still works).
+4. **Install the workflows and the Issue form where GitHub needs them** (they are authored here but must live in the
+   repo they act on): `make install-workflows` copies `verify.yml` + `deploy-pages.yml` + `ISSUE_TEMPLATE/catalog-finding.yml`
+   into the site clone and `release.yml` into the data clone. Commit and push `.github/` in both clones **to main**
+   (owner — the agent never pushes main). Without the template in the Issues repo every "Flag an issue" link opens a
+   blank issue and the prefilled fields are lost.
+5. **Pages source = GitHub Actions** on `infant-gut-catalog` (Settings → Pages → Build and deployment → Source:
+   GitHub Actions). Until this is switched, `deploy-pages.yml` cannot deploy and generated HTML would have to be
+   committed to `main` (the legacy path via `~/Downloads/site`, RUNBOOK §7 last line).
+6. **Rulesets** on `main` of all three repos (docs/SECURITY.md §2 item 2) and **Zenodo ↔ GitHub** on the data repo.
+7. **PAT**: fine-grained, resource owner OlmLab, repositories `infant-gut-catalog` + `infant-gut-catalog-data`
+   (+ `catalog-pipeline` if the agent is to push `cycle/*` branches), permissions Contents: read/write, Issues:
+   read/write (for `make ingest-issues`), Metadata: read. Store it under Customize → Credentials as `github`
+   (SECURITY §2 item 5, §3). Record the injected env-var name in SECURITY §3 after the first successful
+   `git ls-remote` (R1-15).
+8. Re-run `make install-workflows` whenever a workflow or the Issue form changes in this repo (the site repo's copies
+   are excluded from `publish-branch`'s rsync so they are never overwritten by a site build).
+
+## 1. Re-sweep — find new candidate studies (deterministic, network; 20–40 min; 0 tokens)
+
+```
+make resweep SINCE=$(date -v-35d +%F)        # or: python src/catalog/enumeration/resweep_universe.py --since YYYY-MM-DD \
+                                             #        --catalog data/inputs/catalog_studies.parquet --out build/resweep_<cycle>
+```
+Inputs: `catalog_studies.parquet` (current verdicts), harvest cache. Slices: S1 frame-free METAGENOMIC WGS/WXS,
+S2 misfiled GENOMIC on primary taxa, S3/S3b OTHER/Targeted-Capture with host or tax 9606 — all `first_public >= SINCE`
+(overlap the previous cycle by ≥ 1 week; ENA `offset` paging is unreliable, so each slice is one `limit=0` stream
+checked against the ENA count endpoint). Output: `build/resweep_<cycle>/candidates.parquet` (+ slice parquet, counts,
+`resweep_report.md`). Expected: **≈ 146 new human-signal studies/month (111–180)**, of which ≈ 38 auto-excluded
+deterministically (host taxon / isolate / amplicon) → **≈ 108 to judge**; ≈ 6 will end up included (2–11).
+Every count mismatch vs the ENA count endpoint is printed — re-run the slice, do not proceed with a partial slice.
+
+**Stop rule:** > 300 candidates after deterministic exclusion (or any slice count off by > 5 %) → stop and ask the
+owner (an ENA schema change or a broken cache is more likely than a real surge).
+
+Superset check (quarterly): `python src/catalog/enumeration/enumerate_universe_v3.py --audit-only` — taxon frames
+must be a subset of the frame-free universe; `verify_taxa()` refuses to run on a taxid/label mismatch.
+
+### 1b. Sandpiper delta — Curator (deterministic; ≈ 40 min; 0 tokens; runs after 1 when new runs entered the catalog) — R1-14
+
+```
+make sandpiper-delta                     # ZENODO_RECORD=20419175 SANDPIPER_VERSION=2.0.0 (current snapshot); needs the bulk file
+```
+Reads the snapshot bulk file from `~/catalog/external/sandpiper/<version>/` (or restore it from the snapshot artifact listed
+in `config/inputs.json` → `sandpiper2.0.0.gtdb.csv.gz`, 3.7 GB, sha256 `4732c4e1…`), `data/inputs/sandpiper/
+catalog_runs_sandpiper_match.parquet` (re-derive it first when runs were added: membership = run accession present in
+`per_acc_summary`) and the unpacked package. Steps: `prepare_inputs.py` (reconstruction — see `src/catalog/sandpiper/README.md`)
+→ `filter_bulk.py` (one streaming pass, ≈ 25 min) → `build_sandpiper_tables.py` (DuckDB, ≈ 10 min). Output
+`build/sandpiper_<record>/sp/sandpiper_*` → `make package-merge` copies them into the package. Owner: **Curator** (not the
+Release Engineer — it is a data-derivation step). Stop rule: `filter_log.json` runs_kept < 95 % of matched runs → the
+bulk file or the match table is stale.
+
+### 1c. Sandpiper snapshot refresh — when a NEW Zenodo version appears (deterministic, network; ≈ 70 min; 0 tokens) — R3-4
+
+```
+make sandpiper-refresh ZENODO_RECORD=<new record id> SANDPIPER_VERSION=<x.y.z>
+```
+Monthly check of the concept DOI 10.5281/zenodo.10547493. `download_bulk.py` streams the new bulk file (resumable, md5
+checked against Zenodo), then 1b runs against it. Afterwards: store the bulk file under `~/catalog/external/sandpiper/<version>/`
+**and** save it once as a snapshot artifact (`docs/DATA_LAYOUT.md`: one snapshot artifact per Zenodo version + the host copy);
+add its artifact id + sha256 to `config/inputs.json` (group `sandpiper`); bump `taxonomy_version` if GTDB changed
+(`SANDPIPER_TAXVER`). Requests: 1 record lookup + 1 streamed download (+ Range resumes).
+
+### 1d. Author index rebuild (deterministic, network; ≈ 25 min; 0 tokens; quarterly or when > 50 new studies) — R3-4
+
+```
+make authors                             # src/catalog/authors/harvest_bioproject_authors.py <catalog_studies.parquet>
+```
+NCBI eutils esearch (100 accessions/request) + efetch BioProject XML → `bioproject_records.parquet` (checkpoint every
+≈ 2,000 studies) via `harvest_lib` cache-through; ≈ 60 + 60 requests per 6 k studies (≈ 3 requests/s with an NCBI key).
+The downstream tables (`authors.parquet`, `study_authors_summary.csv`, `authors_index.json`, `organisations.parquet`) are
+rebuilt by the Data-fix track's builder in the package step (`make package-merge --authors`); inputs are listed in
+`config/inputs.json` group `authors`.
+
+## 2. Triage — LLM verdicts for new candidates (Claude root session; ≈ 1.5 h; ≈ 0.4–0.6 M tokens)
+
+Load `skill("infant-curation-rules")` (rules, traps, validators). Cascade, all batched through
+`src/catalog/triage/llm_batch_common.py` (JSON-schema tool output, `validate_row` on every row, checkpoint every
+200, missing ids → sentinel + re-run at batch 10 with 2× max_tokens):
+
+1. Haiku screen — 40 studies/request, role `screen` (only if > 150 candidates; below that go straight to 2).
+2. Sonnet rubric ×2 — 4 studies/request, role `rubric`, `run_sonnet_confirm.py` (set `SLICE`, `OUT_PREFIX`,
+   `REPLICATE` globals, then `exec`); ≈ 1.15 k tokens/study + 4.9 k/request.
+3. Opus adjudication — non-unanimous or `unsure` studies, role `adjudicate`, `adjudicate.py`; typically 15–25 %.
+4. Literature check for includes/unsure: `run_paper_screen.py` (25 papers/request, ≈ 775 tok/paper) on Europe PMC
+   hits for the accession; deterministic + Sonnet linking (`link_papers.py`); supplementary-table rescue rule 15.
+
+Dispatch: from the root session, one leaf worker per ≤ 0.3 M projected tokens (`platform.leaf_worker_soft_cap_tokens`
+in `config/budgets.yaml`; the platform hard cap is 2.0 M/frame — never plan a leaf above the soft cap); the worker
+copies `src/catalog/triage/*.py` + `curation_kernel*.py` flat into its cwd (or `pip install -e .` the repo), sets the
+globals and execs. Never impute a verdict for a missing id; `uncertain` after Opus is the human queue.
+
+Outputs: `build/triage_<cycle>/verdicts.parquet` → merge into `catalog_studies.parquet` / `study_triage_v2.parquet`
+with `decision_stage = 'cycle_<YYYY-MM>'`, append the new rows to `universe_studies_all`. Expected tokens:
+108 studies × (2 × 1.15 k) + 27 requests × 4.9 k ≈ 0.38 M; + Opus (≈ 25 × 3 k) ≈ 0.08 M; + literature ≈ 0.1 M.
+
+**Stop rules:** > 30 includes in one month (5× the historical max) → ask the owner before extraction; any batch
+with > 10 % validator-rejected rows → fix the prompt (quote length) before continuing; a worker error rate > 5 % →
+stop, the model id or schema changed.
+
+## 3. Extraction — per-sample metadata for NEW included studies (Claude root session; ≈ 3 h; ≈ 50 k tokens/study)
+
+Load `skill("infant-curation-rules")` (per-sample extraction rules §"Per-sample extraction rules"). Per new study:
+* R1 archive attributes + sample-name conventions: `r1_prime.py`, `r1_title_parser.py`, `r1_ext.py`
+  (Haiku normalisation role `screen`) — deterministic first, cheapest, precedence 1.
+* R2 supplementary tables: `r2_supp_extract_v2.py` (column classification, role `screen`; prompt
+  `prompts/r2_column_classify_system.txt`), `supp_parse.py`, `col_reader.py`, `re_gate.py` (ID gate ≥ 50 % / ≥ 20 rows
+  pooled), `r2_rescue_map.py` for non-archive IDs.
+* R3 paper prose (group scope): `r3_prose_extract.py` (Sonnet ×2, role `rubric`; prompt `prompts/r3_prose_system.txt`).
+* R4 abstract / ENA description: `r4_abstract_extract.py` (role `screen`; conf ≤ 0.5, `evidence_limited_to_abstract=1`).
+* Merge: `merge_routes.py` (precedence R1 > R2 > R3 > R4; conflicts adjudicated per pattern by role `adjudicate`;
+  every group statement Opus-audited) → `subject_resolution.py` → `build_wide.py` (+ `build_fix.py` sample-unit
+  criteria; `re_gate.py`).
+Inputs: the new studies' ENA sample attributes (harvest cache), linked papers' full text + supplements
+(`fetch_papers.py`, Europe PMC; ≈ 15 % of fullTextXML calls return HTTP 500 — record, do not loop).
+Outputs: `build/extraction_<cycle>/sample_determinations_new.parquet` (+ rejected, candidates), merged into the
+package tables. Expected: 6 studies × ≈ 50 k = **0.3 M tokens**; 2–3 h wall time dominated by supplement fetches.
+
+**Stop rule:** a study with > 5,000 samples or > 3 own-data papers → run it as its own leaf worker and check the
+mixed-age banner logic (B1) before merging.
+
+## 4. Findings — apply audit results (deterministic; 5 min; 0 tokens)
+
+```
+make findings        # python -m catalog.apply_findings --package data/inputs/data_package --findings audit/findings --out build/applied
+```
+Inputs: `audit/findings/YYYY-MM-DD_<source>.csv` — Auditor session output, or GitHub Issues labelled `finding` pulled by
+`make ingest-issues` (`src/catalog/ingest_issues.py`: parses the issue-form body; `date` = created_at, `source` = `issue#N`).
+**`audit/schema.json` is the single source** of columns, finding types, actions and their allowed pairs (R1-09/F2): the
+Issue form is generated from it (`python -m catalog.findings_schema --write-template`, checked by
+`tests/test_apply_findings.py::test_template_matches_schema`), `apply_findings` validates against it, and the Auditor
+profile's finding_type list is `python -m catalog.findings_schema --auditor-vocab`.
+Each row is re-validated with the kernel validators; rejected rows stay in `APPLY_FINDINGS_DIFF.md` with the message.
+Applied rows carry `decision_stage='auditor_review'`, `src_track='auditor_review:<source>'`, route `H` for human evidence;
+superseded rows move to `sample_determinations_superseded.parquet`. **The wide tables are rewritten in step** (R1-06):
+`sample_metadata_wide` cells (+ `__confidence`, `__route`), `universe_studies_all.catalog_status`, and the samples of a
+study turned `excluded` leave the wide table (kept in `sample_metadata_wide_excluded_by_review.parquet`).
+`action = confirm` (the site's "Confirm correct" button, finding_type `confirmed_correct`, no quote needed) appends to
+`confirmations.parquet` and sets `<field>__verified = true` on the sample row — the human truth set. `action = add_study`
+(`universe_miss`) writes `candidates_<date>.csv` for the next triage cycle and never includes directly.
+Tables are emitted only when ≥ 1 row applied (`build/applied_<version>/APPLIED`); `make package` re-runs `findings` and
+copies them only then. Review the diff before stage 5.
+
+## 5. Package (deterministic; 5 min; 0 tokens)
+
+```
+vi config/version.txt                        # bump semver; add the CHANGELOG entry
+make package BUILD_DATE=YYYY-MM-DD           # rsync tables → build/package, copy build/applied/*.parquet, VERSION.json, zip
+```
+`make_version --check` fails if README.md's "data package vX.Y.Z" ≠ `config/version.txt` (the package README is regenerated by
+the package builder with the new version — never relabel old content) and if any table file is not listed in VERSION.json.
+Outputs: `build/package/` (+ `VERSION.json` with per-table sha256 and row counts, written last), the **deterministic**
+`build/data_package_v<semver>.zip` (fixed timestamps; byte-identical across rebuilds), `…zip.sha256` and a sidecar
+`build/VERSION.json` carrying `package_zip.sha256` (R1-11). `make unpack PKG_ZIP=…` takes an explicit zip and flattens a
+nested top-level directory.
+
+## 6. Site + verify (deterministic; 1 min build + Actions; 0 tokens)
+
+```
+make site        # check-reports (fails when a report the site links to is missing, R1-08) → build_site.py …
+make verify      # check_links.py (0 broken required) + DuckDB reads every parquet + make_version --check
+```
+The Playwright explorer smoke (loads `samples/index.html?study=PRJEB32631`, waits for "samples match", clicks a row,
+expects the Evidence table) runs in GitHub Actions (`verify.yml`) — the sandbox has no browser. `REPORTS_DIR` needs
+`CATALOG_REPORT.md`, `EXTRACTION_REPORT.md`, `NEXT_STAGE.md`, `SCALE_UP_PLAN.md`, `field_coverage.png` — all provisioned by bootstrap
+from `config/inputs.json` group `reports` into `data/inputs/reports/`; the PNG is regenerated by `make plot-coverage`
+(`scripts/plot_field_coverage.py` from `field_coverage_summary.csv`), not by the notebook.
+
+## 7. Publish (Release Engineer profile; 10 min; 0 tokens) — the agent pushes branches + tags, Actions deploys
+
+```
+make publish-branch                          # release/<semver> in both clones; tags site-v<semver>, data-v<semver>
+git -C ~/catalog/infant-gut-catalog      -c credential.helper='!f(){ echo "username=x-access-token"; echo "password=$GITHUB_TOKEN"; }; f' push origin release/<semver> site-v<semver>
+git -C ~/catalog/infant-gut-catalog-data -c credential.helper='!f(){ echo "username=x-access-token"; echo "password=$GITHUB_TOKEN"; }; f' push origin release/<semver> data-v<semver>
+```
+(declare `credentials=["GitHub"]` on the cell; `GITHUB_TOKEN` is read from the environment, never printed.)
+Then: `verify.yml` runs on the branch/tag → `deploy-pages.yml` deploys the `site-v*` tag to
+https://olmlab.github.io/infant-gut-catalog/ → `release.yml` builds `data_package_v<semver>.zip` +
+`infant_catalog_v<semver>.sqlite` and attaches them to the `data-v<semver>` Release (Zenodo mints the DOI).
+Post-check (needs the `olmlab.github.io` grant): fetch `/data/VERSION.json` and compare `release_tag`.
+The owner merges `release/<semver>` → `main` at leisure (or `main` is left as the last-known-good pointer).
+**Rollback:** Actions → deploy-pages → Run workflow with `ref = site-v<previous>`; data: the previous Release stays.
+**Never:** push `main`, force-push, delete tags, embed the token in a URL (docs/SECURITY.md §4).
+Until a credential exists: `rsync -a --delete --exclude .git build/site/ ~/Downloads/site/` and the owner pushes.
+
+## 8. Per-cycle budget summary (A14)
+
+Same numbers as NEXT_STAGE.md §7 and `config/budgets.yaml` (`python scripts/budget_calc.py` recomputes both; R1-12). Triage per judged
+study is 4.0–7.2 k tokens (measured aggregate vs component build-up), i.e. 0.43–1.03 M for 108–143 studies — the 0.4–0.6 M below is the
+measured-aggregate end of that range.
+
+| stage | LLM tokens | wall time | delegation | stop rule |
+|---|---:|---|---|---|
+| 0 preconditions | 0 | 10 min | no | any hash mismatch / red test |
+| 1 re-sweep | 0 | 20–40 min | no | > 300 candidates; slice count off > 5 % |
+| 2 triage (≈ 108 studies) | 0.4–0.6 M | 1.5 h | **yes** (leaf workers) | > 30 includes; > 10 % validator-rejected |
+| 3 extraction (≈ 6 studies) | ≈ 0.3 M (50 k/study) | 2–3 h | **yes** | study > 5 k samples or > 3 papers → own worker |
+| 4 findings | 0 | 5 min | no | any `rejected` row needs a curator look |
+| 5 package | 0 | 5 min | no | README/VERSION mismatch |
+| 6 site + verify | 0 | 5 min + Actions ≈ 10 min | no | broken links > 0; Playwright fail |
+| 7 publish | 0 | 10 min | no | verify-failed Issue opened |
+| **cycle** | **≈ 0.8 M (≤ 1.5 M high)** | **≈ 5 h agent time** | | |
+
+Contrast: building the catalog cost ≈ 47.3 M tokens (CHANGELOG); a monthly cycle is ≈ 2 % of that.
+
+## 9. Running a stage in a fresh Claude session — checklist
+
+1. Start from the profile (Curator for 1–4 incl. 1b–1d Sandpiper/authors, Release Engineer for 5–7, Auditor for read-only review).
+2. `skill("infant-curation-rules")`; for 1–3 also `skill("infant-catalog-harvest")`.
+3. Environment `infantcat` (or `python bootstrap.py` to create it from `environment.yml`). `cd ~/catalog/catalog-pipeline`.
+4. In a python cell (env `infantcat`): `__file__ = '<repo>/bootstrap.py'; exec(open(__file__).read()); main(['--no-env', '--only-required'])`
+   — the kernel form reaches the artifact store through the kernel `host` global (`make bootstrap-kernel` prints it); the shell
+   form `python bootstrap.py --no-env --only-required` only sees `~/catalog/data/`. Exit 4 (required input missing) or 3 (hash
+   mismatch) = stop; tests are not run then.
+5. Run the stage's `make` target; LLM stages: dispatch leaf workers from the root with `SLICE`/`OUT_PREFIX` and the
+   budget caps in `config/budgets.yaml`; save every output as an artifact as soon as it exists (workspaces are wiped).
+6. Append the actuals to `docs/CYCLE_LOG.md`; commit code/doc changes to `catalog-pipeline` on a `cycle/<YYYY-MM>` branch.

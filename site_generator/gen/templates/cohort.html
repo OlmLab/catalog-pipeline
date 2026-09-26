@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ c.cohort_name }} ({{ c.cohort_id }}) — {{ site.title }}{% endblock %}
+{% block content %}
+<h1>{{ c.cohort_name }} <span class="small mono">{{ c.cohort_id }}</span></h1>
+<div class="btns"><a class="btn flag" href="{{ flag_url }}" title="Opens a prefilled GitHub issue">Flag an issue</a> <a class="btn confirm" href="{{ confirm_url }}">Confirm correct</a></div>
+<div class="grid2">
+<div>
+<h2>Summary</h2>
+<table class="tbl kv">
+<tr><td>Studies (in cluster / included)</td><td>{{ c.n_studies|numint }} / {{ c.n_included_studies|numint }}</td></tr>
+<tr><td>Papers</td><td>{{ c.n_papers|numint }}{% if c.paper_years %} <span class="small">({{ c.paper_years|replace('|', ', ') }})</span>{% endif %}</td></tr>
+<tr><td>Countries</td><td>{{ c.countries or '—' }}</td></tr>
+<tr><td>Body sites</td><td>{{ c.body_sites or '—' }}</td></tr>
+<tr><td>Samples in catalog</td><td>{{ n_samples|fmt }}</td></tr>
+<tr><td>First public</td><td>{{ c.first_public_min or '—' }}</td></tr>
+<tr><td>Controlled access</td><td>{{ c.controlled_access if c.controlled_access is not none else '—' }}</td></tr>
+<tr><td>Cluster decision</td><td>{{ c.decision or '—' }} (confidence {{ c.confidence|num2 }})</td></tr>
+</table>
+</div>
+<div>
+<h2>Unique infants</h2>
+<table class="tbl kv">
+<tr><td>Estimate</td><td>{{ c.unique_infants_display or ('unknown' if c.unique_infants_outcome == 'sentinel_no_evidence' or c.unique_infants_est is none else c.unique_infants_est|numint) }} <span class="small">(source: {{ c.unique_infants_display_source or c.unique_infants_est_source or '—' }}{% if c.unique_infants_outcome %}; outcome {{ c.unique_infants_outcome }}{% endif %}; single-study cohorts take the study page's value, multi-study cohorts a rule-based estimate)</span></td></tr>
+{% if c.index_publication_pmid %}<tr><td>Index publication</td><td><a href="https://europepmc.org/article/MED/{{ c.index_publication_pmid }}">PMID {{ c.index_publication_pmid }}</a></td></tr>{% endif %}
+</table>
+{% if evidence %}<ul>{% for k,e in evidence.items() %}<li><b>{{ k }}</b>: <span class="quote">“{{ e.quote }}”</span> <span class="small mono">{{ e.source }}</span></li>{% endfor %}</ul>{% endif %}
+</div>
+</div>
+
+<h2>Member studies ({{ members|length }})</h2>
+<table class="tbl"><thead><tr><th>Accession</th><th>Title</th><th class="num">Samples</th><th>Status</th><th>Links</th></tr></thead>
+<tbody>{% for m in members %}<tr>
+<td class="mono">{% if m.included %}<a href="../studies/{{ m.acc }}.html">{{ m.acc }}</a>{% else %}{{ m.acc }}{% endif %}</td>
+<td>{{ m.title or '' }}</td>
+<td class="num">{{ m.n_samples|numint }}</td>
+<td><span class="tag {{ m.status }}">{{ m.status }}</span></td>
+<td class="small"><a href="https://www.ebi.ac.uk/ena/browser/view/{{ m.acc }}">ENA</a> · <a href="https://www.ncbi.nlm.nih.gov/bioproject/{{ m.acc }}">NCBI</a></td>
+</tr>{% endfor %}</tbody></table>
+
+<h2>Member papers ({{ papers|length }})</h2>
+{% if papers %}<table class="tbl"><thead><tr><th>PMID</th><th>Title</th><th>PMCID</th><th>DOI</th><th>Linked studies</th></tr></thead>
+<tbody>{% for p in papers %}<tr>
+<td><a href="https://europepmc.org/article/MED/{{ p.pmid }}">{{ p.pmid }}</a></td>
+<td>{{ p.title or '' }}</td>
+<td>{% if p.pmcid %}<a href="https://europepmc.org/article/PMC/{{ p.pmcid }}">{{ p.pmcid }}</a>{% endif %}</td>
+<td>{% if p.doi %}<a href="https://doi.org/{{ p.doi }}">{{ p.doi }}</a>{% endif %}</td>
+<td class="small">{% for a in p.studies %}<a href="../studies/{{ a }}.html">{{ a }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</td>
+</tr>{% endfor %}</tbody></table>{% else %}<p class="small">No papers recorded for this cohort.</p>{% endif %}
+
+<h2>Downloads</h2>
+{% if n_samples and dl %}<div class="btns">
+<a class="btn sec" href="../data/cohorts/{{ c.cohort_id }}.csv.gz" download>All samples in this cohort (CSV.gz, {{ dl.csv_size }})</a>
+<a class="btn sec" href="../data/cohorts/{{ c.cohort_id }}.parquet" download>parquet ({{ dl.parquet_size }})</a>
+<a class="btn" href="../samples/index.html?study={{ c.included_list|join(',') }}">Open in sample explorer</a>
+</div>{% elif n_samples %}<div class="btns">
+{% for m in members if m.included %}<a class="btn sec" href="../data/studies/{{ m.acc }}.csv.gz" download>{{ m.acc }} samples (CSV.gz)</a> <a class="btn sec" href="../data/studies/{{ m.acc }}.parquet" download>parquet</a>{% endfor %}
+<a class="btn" href="../samples/index.html?study={{ c.included_list|join(',') }}">Open in sample explorer</a>
+</div>{% else %}<p class="small">No included samples are assigned to this cohort in the catalog.</p>{% endif %}
+{% endblock %}

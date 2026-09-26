@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Fields and data dictionary — {{ site.title }}{% endblock %}
+{% block content %}
+<h1>Fields and data dictionary</h1>
+<p class="lead">Each metadata field in <span class="mono">sample_metadata_wide</span> comes with a companion <span class="mono">&lt;field&gt;__confidence</span> (tier, 0–1), <span class="mono">&lt;field&gt;__route</span> (R1–R4) and, for the {{ scope_cols|length }} coverage fields, <span class="mono">&lt;field&gt;__scope</span> (sample / subject / biosample / group). Coverage counts body-site infant-scope samples (primary or unknown; the package's <span class="mono">field_coverage_summary</span> denominator) and, in the next column, age-scope infant samples ({{ stats.n_age_scope_infant|fmt }} with infant age evidence).</p>
+<p class="note"><b>Definition caveats.</b> <span class="mono">antibiotic_exposure</span> = <i>any</i> antibiotics to the infant before or at sampling (sources that record only current use disagree; precision 0.87 against that definition). <span class="mono">feeding_mode</span> categories differ between sources (precision 0.89). Exposure fields (probiotic, HMO, NEC, birth weight, maternal antibiotics) have no external truth set and were audited by blind model re-judgement only. Extension fields (health_condition, multiple_birth, sibling_in_study, geo_subregion) were added in one pass and are less audited. R3/R4 values are group statements applied to samples — use them only at confidence ≥ 0.5 (the explorer's default <b>README rule</b>).</p>
+
+<h2 id="confidence">Confidence is a tier, not a probability</h2>
+<div class="md">{{ conf_para_html|safe }}</div>
+<h3>Engine tiers (confidence_tiers.csv)</h3>
+<table class="tbl compact"><thead><tr><th>Route</th><th>Determined by</th><th>Scope</th><th class="num">Rows</th><th>Confidence values emitted</th><th class="num">Fields</th></tr></thead><tbody>
+{% for t in tiers %}<tr><td><span class="tag {{ t.route }}">{{ t.route }}</span></td><td class="mono small">{{ t.determined_by }}</td><td>{{ t.scope }}</td><td class="num">{{ t.n_rows|fmt }}</td><td class="mono">{{ t.conf_values }}</td><td class="num">{{ t.n_fields }}</td></tr>{% endfor %}
+</tbody></table>
+<h3>Empirical precision per route × tier against the cMD gold join (tier_field_precision.csv, hi-res set)</h3>
+<table class="tbl compact"><thead><tr><th>Field</th><th>Route</th><th class="num">Tier</th><th class="num">Covered</th><th class="num">Correct</th><th class="num">Precision</th></tr></thead><tbody>
+{% for p in prec %}<tr><td class="mono">{{ p.field }}</td><td><span class="tag {{ p.route }}">{{ p.route }}</span></td><td class="num">{{ p.confidence_tier }}</td><td class="num">{{ p.n_covered|fmt }}</td><td class="num">{{ p.n_correct|fmt }}</td><td class="num">{{ p.precision|num2 }}</td></tr>{% endfor %}
+{% for p in prec_all %}<tr class="final"><td class="mono">{{ p.field }}</td><td>all routes</td><td class="num"></td><td class="num">{{ p.n_covered|fmt }}</td><td class="num">{{ p.n_correct|fmt }}</td><td class="num">{{ p.precision|num2 }} <span class="small">(recall {{ p.recall|num2 }})</span></td></tr>{% endfor %}
+</tbody></table>
+<p class="small">Only fields with gold coverage appear; exposure fields have no external truth set. Group-scope (R3/R4) values are audited by model only.</p>
+
+<h2>Coverage, route mix and definition per field</h2>
+<table class="tbl">
+<thead><tr><th>Field</th><th>Vocabulary / unit · definition caveat</th><th class="num">Samples</th><th class="num">% body-site scope</th><th class="num">Age-scope samples</th><th class="num">Studies</th><th>Route mix (R1 / R2 / R3 / R4; body-site scope determinations) · scopes</th></tr></thead>
+<tbody>{% for f in fields %}<tr id="{{ f.name }}">
+<td class="mono"><b>{{ f.name }}</b><br><span class="small">{{ f.label }}</span></td>
+<td class="small">{{ f.vocab }}{% if f.caveat %}<br><i>{{ f.caveat }}</i>{% endif %}</td>
+<td class="num">{{ f.samples|fmt }}</td>
+<td class="num">{{ f.frac|pct }}</td>
+<td class="num">{{ f.n_age_scope|fmt }} <span class="small">({{ f.frac_age_scope|pct }})</span></td>
+<td class="num">{{ f.studies|fmt }} <span class="small">({{ f.frac_studies|pct }})</span></td>
+<td><div class="bar" style="width:160px">{% for seg in f.route_segs %}<span style="left:{{ seg.left }}%;width:{{ seg.w }}%;background:var(--{{ seg.r|lower }})" title="{{ seg.r }}: {{ seg.n|fmt }}"></span>{% endfor %}</div> <span class="small">{{ f.n_R1|fmt }} / {{ f.n_R2|fmt }} / {{ f.n_R3|fmt }} / {{ f.n_R4|fmt }}</span>{% if f.scopes %}<br><span class="small">scope: {% for k,n in f.scopes %}{{ k }} {{ n|fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</span>{% endif %}</td>
+</tr>{% endfor %}</tbody></table>
+<p class="small">Route colours: <span class="tag R1">R1 archive attribute</span> <span class="tag R2">R2 supplementary table</span> <span class="tag R3">R3 paper text</span> <span class="tag R4">R4 abstract / description</span>.</p>
+<h3>Sex and free-text identifier fields</h3>
+<table class="tbl"><thead><tr><th>Field</th><th>Vocabulary · caveat</th><th class="num">Samples</th><th class="num">% body-site scope</th><th class="num">Studies</th><th>R1 / R2 / R3 / R4 determinations (body-site scope)</th></tr></thead><tbody>
+{% for f in extra %}<tr id="{{ f.name }}"><td class="mono"><b>{{ f.name }}</b></td><td class="small">{{ f.vocab }}{% if f.caveat %}<br><i>{{ f.caveat }}</i>{% endif %}</td><td class="num">{{ f.samples|fmt }}</td><td class="num">{{ f.frac|pct }}</td><td class="num">{{ f.studies|fmt }}</td><td class="small">{{ f.n_R1|fmt }} / {{ f.n_R2|fmt }} / {{ f.n_R3|fmt }} / {{ f.n_R4|fmt }}</td></tr>{% endfor %}
+</tbody></table>
+
+<h2>Full data dictionary</h2>
+<h2 id="sandpiper-flags">Sandpiper QC flag vocabulary</h2>
+<p class="small">One table, one source (<span class="mono">sandpiper_flag_table.csv</span>): every <span class="mono">sp_flag*</span> / class column in <span class="mono">sandpiper_run_qc.parquet</span> and the sample table, with the label used on this site.</p>
+<table class="tbl compact small"><thead><tr><th>Column</th><th>Level</th><th>Site label</th><th>Definition</th><th>Used</th></tr></thead><tbody>
+{% for fr in flag_rows %}<tr><td class="mono">{{ fr.field }}</td><td>{{ fr.level }}</td><td>{{ fr.site_label }}</td><td class="small">{{ fr.definition }}</td><td>{{ 'yes' if fr.used else 'no' }}</td></tr>{% endfor %}
+</tbody></table>
+<h2 id="dictionary">Data dictionary</h2>
+<div class="md">{{ dictionary_html|safe }}</div>
+{% endblock %}

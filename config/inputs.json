@@ -1,0 +1,1442 @@
+{
+ "generated": "2026-09-26",
+ "generator": "build_repo.py (frame 7003fc44)",
+ "note": "version_id = latest_version_id at generation time; sha256 = artifact bytes; sha256_repo = file as placed in the repo (after the import shim / model-resolver rewrite). | 2026-09-26 v3 (R1-03/R1-08/R1-14): groups sandpiper, authors, reports added; every group except code is materialised by bootstrap.py into data/inputs/<group>/ (data group at data/inputs/ root); sha256 = artifact bytes at fix time.",
+ "inputs": {
+  "code": [
+   {
+    "filename": "scope_constants_v3.py",
+    "repo_path": "src/catalog/enumeration/scope_constants_v3.py",
+    "group": "enumeration",
+    "artifact_id": "6ebb7ae9-8ed4-4bf4-b3c1-18499b166d7a",
+    "version_id": "d3c81688-f712-4420-92b1-17788f6cd30b",
+    "sha256": "8264a264c248c0688175b610db6b9f2155b17b9b893a9932cdcab8e5d6132fa9",
+    "size_bytes": 21068,
+    "task_named": true,
+    "changes": [],
+    "sha256_repo": "8264a264c248c0688175b610db6b9f2155b17b9b893a9932cdcab8e5d6132fa9"
+   },
+   {
+    "filename": "enumerate_universe_v3.py",
+    "repo_path": "src/catalog/enumeration/enumerate_universe_v3.py",
+    "group": "enumeration",
+    "artifact_id": "bb4b1e69-39ea-4074-a18a-438f6b6f31eb",
+    "version_id": "cdfd880a-3635-4819-8564-59beba1b1d1a",
+    "sha256": "33ab909e30e2982e52f4a181f8f17acdf1c1623fa693851e6062f9b02217a97e",
+    "size_bytes": 15964,
+    "task_named": true,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "f2295319aeb3d3063d8f46da61ee902fd819d1496bcea8d83d24384eec11a3d6"
+   },
+   {
+    "filename": "resweep_universe.py",
+    "repo_path": "src/catalog/enumeration/resweep_universe.py",
+    "group": "enumeration",
+    "artifact_id": "8f67afb0-0521-4201-8b3e-fc49606e4068",
+    "version_id": "fdc86797-5a3a-4a32-bb74-a164d9de5a88",
+    "sha256": "2a904a16c9a6089e1f1ad5a869a50533278544433eaad0b316b6e55c29e19b5c",
+    "size_bytes": 29549,
+    "task_named": true,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "3602a15bd37a946b620edb00d4a76e53d8d89441a9dfb80455c9c9eb6a31c2b0"
+   },
+   {
+    "filename": "infant_rule.py",
+    "repo_path": "src/catalog/enumeration/infant_rule.py",
+    "group": "enumeration",
+    "artifact_id": "4048e5c2-93c5-4158-93e6-aa57234fc90a",
+    "version_id": "a2dce23d-2f4b-490e-be74-8ec186066ef4",
+    "sha256": "606ec4ff1c65c60572ed17ac82dfeace2fac3f706bae3c1686dd8126b50bcded",
+    "size_bytes": 5319,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "6a8e47601eb55f0318e2233bb46ae76458fdf8e75d313f8f13f959b347d65e7f"
+   },
+   {
+    "filename": "biosample_sweep_ena.py",
+    "repo_path": "src/catalog/enumeration/biosample_sweep_ena.py",
+    "group": "enumeration",
+    "artifact_id": "eefda5c6-de36-4061-96be-004525efaba0",
+    "version_id": "b454529e-6e81-4b0e-a9da-867dd39c9fc2",
+    "sha256": "11daa723b6d1d8cccec6f54f0834a7e58c85b666bab13276863940a0cdf21fd9",
+    "size_bytes": 4090,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "6feb1c908bfe741602ca266ab7a92232b9ae54e124e47f268626e917accb0c3a"
+   },
+   {
+    "filename": "biosample_sweep_ncbi.py",
+    "repo_path": "src/catalog/enumeration/biosample_sweep_ncbi.py",
+    "group": "enumeration",
+    "artifact_id": "f8594695-8470-4c45-bf10-b960666eb3a2",
+    "version_id": "d5a0b64a-e699-4371-b3fe-6f411a6d973d",
+    "sha256": "a00541bb5c9819a050a8e8c5c80454c6c9e46149fa6225ed3c1b710a3d49711f",
+    "size_bytes": 7103,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "bd7fce176cc331568e52565556276b70cb3360496aed25715265807c2cc73ac9"
+   },
+   {
+    "filename": "pull_run_sample_index.py",
+    "repo_path": "src/catalog/enumeration/pull_run_sample_index.py",
+    "group": "enumeration",
+    "artifact_id": "70dcb6dc-109b-4041-9d59-76f1961e9f42",
+    "version_id": "f49e3b87-fcb8-4f85-a528-db44caaa3fe4",
+    "sha256": "37cbce9b2c628d22d511d7f7006ece2030169236c04cd5ab10c1a7c4a3a4f01e",
+    "size_bytes": 2288,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "29b0172dd811a8f4f27084b23e4bd60725d5bdca16ccfe3cf3466af8b9e06a75"
+   },
+   {
+    "filename": "pull_xwalk_runs.py",
+    "repo_path": "src/catalog/enumeration/pull_xwalk_runs.py",
+    "group": "enumeration",
+    "artifact_id": "354b11f0-8b6d-4a48-9930-b6427b200593",
+    "version_id": "640114f6-56bc-4a34-b0ce-2c56f0e00001",
+    "sha256": "e60d125c3fee28eb095d5a04e36ef0f269663ad8d346bf09a22f57ddecead52f",
+    "size_bytes": 1526,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "532c4e1e60d5b5a0a0798164b349677adc1b7a209bcfa8030f8cc98372a61154"
+   },
+   {
+    "filename": "search_xwalk_studies.py",
+    "repo_path": "src/catalog/enumeration/search_xwalk_studies.py",
+    "group": "enumeration",
+    "artifact_id": "8aaafc4b-0c96-4dea-820b-9abd8768fe06",
+    "version_id": "341cc6ba-d474-4ca0-8477-c05cc6254e5f",
+    "sha256": "9f30b3f80e8dd62ffb177391422452e7fbd2d69f1bfcc6e452a17e30e540fa4b",
+    "size_bytes": 1564,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "35c706c8719e47d97528cfd4e90ecd13a46a6087813240a9dea3149895d449fd"
+   },
+   {
+    "filename": "search_xwalk_studies_shard.py",
+    "repo_path": "src/catalog/enumeration/search_xwalk_studies_shard.py",
+    "group": "enumeration",
+    "artifact_id": "c900c517-25b1-4a7e-bd70-d4f58ca09bbf",
+    "version_id": "3021df3f-179c-4d43-af67-9e3e8539b2a4",
+    "sha256": "b77e710c3120bb32c4d84df544e36e2ab1ef2355486f71d066c7fb12460a568c",
+    "size_bytes": 1685,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "2a930383df28c0c26e5b41352d4c4f96dc1595cbe774194163b545fa87e3b090"
+   },
+   {
+    "filename": "harvest_lib.py",
+    "repo_path": "src/catalog/harvest/harvest_lib.py",
+    "group": "harvest",
+    "artifact_id": "23624e52-e5d3-46ba-8e4e-718f29ede141",
+    "version_id": "b5eefacd-1a3b-4f48-a931-3b732fbad09e",
+    "sha256": "94bec7791f3befcb6eabecaecb0d927022aef948a49e14e9fae4c1a64ba1cc4a",
+    "size_bytes": 17973,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)",
+     "lazy cache dir CATALOG_CACHE_DIR (R1-17, 2026-09-26)"
+    ],
+    "sha256_repo": "93a76364a75b13d19d9211da87e4534f561ab2c4730f39365a4bf3e5d092c7a6"
+   },
+   {
+    "filename": "aggregate_studies.py",
+    "repo_path": "src/catalog/harvest/aggregate_studies.py",
+    "group": "harvest",
+    "artifact_id": "0844c00d-ac7c-4f31-8cef-050e672b4a95",
+    "version_id": "27ed4e7e-4aba-4d70-bd82-b53aa13a9e16",
+    "sha256": "32b1a8e6195f14d439fb0d23522e41f0263f24f8603e48e9a6ec529660a058b8",
+    "size_bytes": 7733,
+    "task_named": true,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "d69724d6f60f641392495fcfe5947b266e71223a3c253d739d84e83667ac3030"
+   },
+   {
+    "filename": "harvest_literature.py",
+    "repo_path": "src/catalog/harvest/harvest_literature.py",
+    "group": "harvest",
+    "artifact_id": "4b204ddb-4781-4318-96aa-c567eaff40c7",
+    "version_id": "0e7ede11-fabc-43a6-8ed3-0c4d4f69b60b",
+    "sha256": "c43d987c225094a842124669e49f8087501cdfaef24d7335b8948f27079503bc",
+    "size_bytes": 7472,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "82ee2f548921f3f18c6b930d56e45b45ae60e564bc893d4792cf465973e054f9"
+   },
+   {
+    "filename": "harvest_samples.py",
+    "repo_path": "src/catalog/harvest/harvest_samples.py",
+    "group": "harvest",
+    "artifact_id": "30f7f3d3-fbb0-4cb0-9d67-741c05af2828",
+    "version_id": "f962f76d-2797-4fbb-b26a-d0e379151eeb",
+    "sha256": "a26eaa994b108553452f2bcf0fdd32bd9ea613ca1daa31ff1ef32e14983558c7",
+    "size_bytes": 5996,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "9805b20279e221558da6030ac15d25939734bca0599bff513ce8e233f2159cd1"
+   },
+   {
+    "filename": "fetch_papers.py",
+    "repo_path": "src/catalog/harvest/fetch_papers.py",
+    "group": "harvest",
+    "artifact_id": "5a8a3503-7f09-4b92-b134-1cde3856aaf5",
+    "version_id": "797dfa0a-3c54-4d20-a6b8-aa8052108e52",
+    "sha256": "05e09ec6499ad1114f1ef3b6aaf51c866bfdb9e7d0496907e9735ffccc11812c",
+    "size_bytes": 1389,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "a44e4cbc091f4a3542b83cfa10c020abbaffa51689dfd69852bcfb146eb79c3d"
+   },
+   {
+    "filename": "mine_accessions.py",
+    "repo_path": "src/catalog/harvest/mine_accessions.py",
+    "group": "harvest",
+    "artifact_id": "ef896664-d11e-4810-bb58-5c8d110967f6",
+    "version_id": "30e5eec1-d42f-46ee-a723-44f090fa10ef",
+    "sha256": "ad0b79da7222adacc688874b06d2e868c459ea48634d02c082595114915462f5",
+    "size_bytes": 5431,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "979062491d1a872707af22e9db97cafe5ab40d09294c3a174e02ebdd07da6f56"
+   },
+   {
+    "filename": "mine_accessions2.py",
+    "repo_path": "src/catalog/harvest/mine_accessions2.py",
+    "group": "harvest",
+    "artifact_id": "65b15cf8-c7d8-42cb-9b55-94ffdc3f7d62",
+    "version_id": "ee5c2bb1-af7d-42b8-aedc-7666f6c91998",
+    "sha256": "de5c9361d70404b005954f344f1d28e2c5a7a5c33875071f884019efd72d038c",
+    "size_bytes": 9599,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "529e68273cc62e586cdf5c1364eda24686a3ac1807047d97043e6244ff28cd90"
+   },
+   {
+    "filename": "link_papers.py",
+    "repo_path": "src/catalog/harvest/link_papers.py",
+    "group": "harvest",
+    "artifact_id": "89ef0b3f-1228-4a8c-b2a9-26842c248f76",
+    "version_id": "aa8937de-bc8d-4942-91ad-0dc5841810e9",
+    "sha256": "6d00fc3bce7eea7c24359756b590fa92b8c3bcc74c71c59a6b2b6722df6330e3",
+    "size_bytes": 4090,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "f9593dfee2c7cc9faa7f0c6e6f7b443adf68be66de18e45a67dc03ee4d893ffc"
+   },
+   {
+    "filename": "screen_papers.py",
+    "repo_path": "src/catalog/harvest/screen_papers.py",
+    "group": "harvest",
+    "artifact_id": "6839b61e-86b2-410f-adbc-3570cf46ab2d",
+    "version_id": "aa981ebb-ed91-460f-88ce-3c8342e973f7",
+    "sha256": "31161208e0cf92d49d454035eddc9ad97f816068a75fc574d9a01f4ebb146fcb",
+    "size_bytes": 8368,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "295efb94a3147ff29e842e9c15ac9b94760af6f0a08b6802510fc71f8656868c"
+   },
+   {
+    "filename": "run_s2.py",
+    "repo_path": "src/catalog/harvest/run_s2.py",
+    "group": "harvest",
+    "artifact_id": "0aba4d7d-9e89-4895-b317-cad176fef7bd",
+    "version_id": "b109fd22-178f-43ff-84a1-8b0d87d3e050",
+    "sha256": "9db9618d116f4cbe80add3aadb1fb414c822975b091b4f7f078160529f4bd7d9",
+    "size_bytes": 1973,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "4f8ba50214f585ff4966bd66419375ba55791aacd971e368d6ba2e78a0b6afd1"
+   },
+   {
+    "filename": "access_tiers.py",
+    "repo_path": "src/catalog/harvest/access_tiers.py",
+    "group": "harvest",
+    "artifact_id": "5bb8f99e-88ab-4a68-975a-ace6443cb300",
+    "version_id": "4a205e44-61f5-47a6-9fc6-724260863b53",
+    "sha256": "a8e3b7ca2203cb3b39300fa5b5818b903a2a4d4fcf4b919a9ec17bb8d5f1db45",
+    "size_bytes": 3376,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "a8277b12497679a241e7868ddb22b09a8705d41e89740302c5cbe29b414ef550"
+   },
+   {
+    "filename": "tier_assign.py",
+    "repo_path": "src/catalog/harvest/tier_assign.py",
+    "group": "harvest",
+    "artifact_id": "5aed2a3f-c657-442a-bd15-b40f2dd7298e",
+    "version_id": "67e866d8-dedd-4f22-baa8-fdf919816a69",
+    "sha256": "86c3ac5126e09d61d2aa74a05150a320284b972847afc6df0e0758a545f1df2f",
+    "size_bytes": 2883,
+    "task_named": false,
+    "changes": [],
+    "sha256_repo": "86c3ac5126e09d61d2aa74a05150a320284b972847afc6df0e0758a545f1df2f"
+   },
+   {
+    "filename": "ext_hits_lib.py",
+    "repo_path": "src/catalog/harvest/ext_hits_lib.py",
+    "group": "harvest",
+    "artifact_id": "af8b4bc5-d2a4-4b1d-aa61-d14d5a8ea0f2",
+    "version_id": "25a8931c-7b9a-4814-b4ca-ebd17ce32d75",
+    "sha256": "de9f7e872e3634eef432e68ac34f210bb569b1284ccefe4c97ef91219850bf96",
+    "size_bytes": 5718,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "a2f0058d8eb55a55c8dff0755eabb7852946c5ff0c4c7c096adacefe11dd989a"
+   },
+   {
+    "filename": "build_outreach.py",
+    "repo_path": "src/catalog/harvest/build_outreach.py",
+    "group": "harvest",
+    "artifact_id": "158a0726-d044-40ce-9ddf-a9afa8d78a7f",
+    "version_id": "c74deb95-c821-4cb2-a765-f048e517f58d",
+    "sha256": "879dc683537c36c93b8e5ba2c3653183314b573a61c98ef8f769abc018b71066",
+    "size_bytes": 16877,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "51a4f671999dc16f360a2372f593474b4fcac4d426f04fbd65cc857fa6d85de3"
+   },
+   {
+    "filename": "janitor.py",
+    "repo_path": "src/catalog/harvest/janitor.py",
+    "group": "harvest",
+    "artifact_id": "607bc7f4-53a4-463b-a3c8-0bfd014c10d3",
+    "version_id": "8ae83acf-832f-400d-a602-925559683794",
+    "sha256": "12dd6296834b17b6dea588578b8f8d2e5bc95f360e74b66ccc93c1343fe9bf0d",
+    "size_bytes": 2013,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "594a39b1daf18a0f8904e42eeefe1843966aa27f562765315f957d4f6e96ee68"
+   },
+   {
+    "filename": "llm_batch_common.py",
+    "repo_path": "src/catalog/triage/llm_batch_common.py",
+    "group": "triage",
+    "artifact_id": "bfe20c88-0384-44f5-ba8f-2f1e41163ae8",
+    "version_id": "083873f8-557b-4f65-bc80-651c9f7ce527",
+    "sha256": "815a37e19e9419b7f938e5a87627fd97d7949f0b2329dbab7b29e210ad732d45",
+    "size_bytes": 4392,
+    "task_named": true,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "load_validators path -> module dir",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "45a0a372f071f01a8f8f689979982ce71993c0e4d7185b1d31fd869d2ada0635"
+   },
+   {
+    "filename": "run_sonnet_confirm.py",
+    "repo_path": "src/catalog/triage/run_sonnet_confirm.py",
+    "group": "triage",
+    "artifact_id": "aa54d394-b5e6-4462-868f-723e8e17ba15",
+    "version_id": "f838c86e-a5d9-40a3-bcc0-c9851bccc390",
+    "sha256": "7066bdb61bd344288f26138b1ecd58d8638aa1fefaff7f27aa513821aa22a032",
+    "size_bytes": 10753,
+    "task_named": true,
+    "changes": [
+     "model literal -> resolve_model(\"rubric\")",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "7279776b7ca12554a6aa3d0192cccb728f43d5c3a17c8b17f8365406941ae261"
+   },
+   {
+    "filename": "run_paper_screen.py",
+    "repo_path": "src/catalog/triage/run_paper_screen.py",
+    "group": "triage",
+    "artifact_id": "85e4299d-f829-4fb3-aa26-e6d61d7419e6",
+    "version_id": "3d1ca51d-7c08-41fc-bf10-4d0db407fc7b",
+    "sha256": "8465ffd7226a6b8aca6820ee705e19a8dada435313e3d4bfd2e3e53044b060d5",
+    "size_bytes": 5273,
+    "task_named": true,
+    "changes": [
+     "model literal -> resolve_model(\"screen\")",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "bf350a56d790f1aee4d786342f439d0886893fd70e5a10394811e054141e7825"
+   },
+   {
+    "filename": "curation_kernel.py",
+    "repo_path": "src/catalog/triage/curation_kernel.py",
+    "group": "triage",
+    "artifact_id": "a149b8b9-d88c-42e3-b3a1-60778b3a024c",
+    "version_id": "3aa692ce-c9c1-4104-a936-67eec9ab4ea6",
+    "sha256": "4bf86a7f65589199a0f24dc004b4f22aa5e48f2f8b25c507ace14487e108c486",
+    "size_bytes": 5671,
+    "task_named": false,
+    "changes": [
+     "replaced by skill kernel.py (artifact copy drifted: missing external_curation. prefix)"
+    ],
+    "sha256_repo": "8329355d67bee158c9c4ea68b82773eb669f623688e1019b254b0dd20ff2cf36"
+   },
+   {
+    "filename": "curation_kernel_ext.py",
+    "repo_path": "src/catalog/triage/curation_kernel_ext.py",
+    "group": "triage",
+    "artifact_id": "0bacc0dd-e051-45e0-b99c-373436e6f7d0",
+    "version_id": "558bee32-ccbc-4cc3-a31a-ab2011fbc92b",
+    "sha256": "7bd412cb0248afaa5f86698b6fb2983d8b6c4df59e99d9eeefdc3c3282354cf6",
+    "size_bytes": 7770,
+    "task_named": true,
+    "changes": [
+     "SOURCE_PREFIXES synced with skill kernel (+external_curation.)"
+    ],
+    "sha256_repo": "ea8ac81eee60dc868d15625313171b1bad3b2c5270a2b5aa62fbd5780ddeba2e"
+   },
+   {
+    "filename": "scope_constants_ext.py",
+    "repo_path": "src/catalog/triage/scope_constants_ext.py",
+    "group": "triage",
+    "artifact_id": "64eb0c5f-702d-42f3-8688-3db5ad5b2668",
+    "version_id": "25733498-48ec-42c4-b51c-8bd3fd0e9bfd",
+    "sha256": "ea3fdf4a956948ab45b0d113f5ce0bb2c48c98b73ad33848503db24aa9512d63",
+    "size_bytes": 6297,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "5754ec0cf36f8f7032acb1ec2ac657baa53cb82edf49371e31b81ed805777d41"
+   },
+   {
+    "filename": "triage_studies.py",
+    "repo_path": "src/catalog/triage/triage_studies.py",
+    "group": "triage",
+    "artifact_id": "96917abe-08f2-4d38-9212-6e2d3d81d279",
+    "version_id": "e5f0a246-944e-4cea-99f2-1e4f23670876",
+    "sha256": "b882381e0ca7e10e87cb008bc0a74fa488fec139dd61678a5bd119f154012e5e",
+    "size_bytes": 8574,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "09c606507a5ca609665a6807fea5fddcd340decff42389299339c6c73ea3fdb3"
+   },
+   {
+    "filename": "adjudicate.py",
+    "repo_path": "src/catalog/triage/adjudicate.py",
+    "group": "triage",
+    "artifact_id": "29996e19-5980-4153-a0a8-6313f74ac87b",
+    "version_id": "4dbdc852-0eda-4c37-8a5d-b1e852eec577",
+    "sha256": "cf1196472ea6043791a8b2359f716e14f5eecf298bacff439fe3d6b2e84cc1ee",
+    "size_bytes": 6445,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "4994073a63361e3d974b3d7c00c0454c2af792053497ef0c208a44938b6667ac"
+   },
+   {
+    "filename": "blind_audit.py",
+    "repo_path": "src/catalog/triage/blind_audit.py",
+    "group": "triage",
+    "artifact_id": "99c7ee07-b8a0-492e-9976-109e3020968c",
+    "version_id": "6aff8e60-aa22-467f-9f92-fbb720d4cc30",
+    "sha256": "b2b9293246f19daa377d2cf0692396d563be8bdccb745e8d961b7727efc1b4f4",
+    "size_bytes": 9946,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "a032a2bf03e4ae6b561e5c234588e67b2b2f331f6c8bfb7e9b037289062c79b8"
+   },
+   {
+    "filename": "run_rescue_gate.py",
+    "repo_path": "src/catalog/triage/run_rescue_gate.py",
+    "group": "triage",
+    "artifact_id": "8e4df072-68bb-4476-8bab-636c23c7d117",
+    "version_id": "767444ca-8e1e-42c4-9b54-80e1442777b8",
+    "sha256": "e40e33868e7df0dd37f760c187fc6298726bc4ff3149ba37becefbb96496f3fb",
+    "size_bytes": 3687,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "017fb93f3b2db8f53e35010f93fec05ee8c22efb56597b66d344a37ca15a6a76"
+   },
+   {
+    "filename": "auditor_lib.py",
+    "repo_path": "src/catalog/triage/auditor_lib.py",
+    "group": "triage",
+    "artifact_id": "f8e2163e-5872-488c-83b8-acbd236cc774",
+    "version_id": "973ff40e-1eb0-467c-a82f-41edef182bc4",
+    "sha256": "c71a0280a1736dbed3c6783d4cdab173d2e7debab3e1da56e9fa0451d784a331",
+    "size_bytes": 14863,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "0329a9f17e78bfca5bbccc45a877618490467ae6ee652dbafc64908551719577"
+   },
+   {
+    "filename": "r1_prime.py",
+    "repo_path": "src/catalog/extraction/r1_prime.py",
+    "group": "extraction",
+    "artifact_id": "0f556387-4c2c-43a7-a3a1-753370adde15",
+    "version_id": "a3286ef2-5d54-4ce7-8029-5544573bebd9",
+    "sha256": "26179074d1e668b323a8ea4defaab3b92b07e3042ddd959604ad6f3f9937c32f",
+    "size_bytes": 7736,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "2081bbec438c9bba90c6f4fd7d82a4c7febc010cbe3afed29e65001e09ff4552"
+   },
+   {
+    "filename": "r1_title_parser.py",
+    "repo_path": "src/catalog/extraction/r1_title_parser.py",
+    "group": "extraction",
+    "artifact_id": "f51753a8-31f8-4c00-add3-75f0b93b23aa",
+    "version_id": "ff35b7d8-39cc-4b81-93e7-23b5218130eb",
+    "sha256": "f8045989ad43978ffa25b7c364434377d5f26196997ed00dea25e638975dd7fa",
+    "size_bytes": 5330,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "0e67f34d466e777e0e8ac72096d589e8a021e4f0206cff1771cb4e50d43ff689"
+   },
+   {
+    "filename": "r1_parsers.py",
+    "repo_path": "src/catalog/extraction/r1_parsers.py",
+    "group": "extraction",
+    "artifact_id": "9b9d0a79-6b60-413c-ac0b-6e4bbb2a149b",
+    "version_id": "002cfceb-6de1-49a3-b30e-fed608fc0c48",
+    "sha256": "6eb1a1ff749908954ca10c78f59b1f5c84736a6c0279dd962acc324ac6c8a2d0",
+    "size_bytes": 13634,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "0bdfd1ec6c0165c84065b1c688965c18140d5a26e58486dae92e758f740f4be0"
+   },
+   {
+    "filename": "r1_parser_tests.py",
+    "repo_path": "src/catalog/extraction/r1_parser_tests.py",
+    "group": "extraction",
+    "artifact_id": "4ab04573-66f9-42f7-a28a-6d279db64656",
+    "version_id": "2c9661c8-02e7-4ed1-9ae2-cbd412cdc5dd",
+    "sha256": "8c9a019dea056aee9f4c6e6968f80896f7a76db3ce626615062d6fe45e96e345",
+    "size_bytes": 2157,
+    "task_named": false,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "1866176135d7b14d6f3af2ee59832caa7b3bda7ccda12abca17e4051086725f5"
+   },
+   {
+    "filename": "r1_ext.py",
+    "repo_path": "src/catalog/extraction/r1_ext.py",
+    "group": "extraction",
+    "artifact_id": "4f0ee76d-a689-4c01-9b66-a9667e539c55",
+    "version_id": "d526b235-10d1-4de9-b6ac-8426ad6473fa",
+    "sha256": "5036a43395e0c819203daa8aa28d0f3345a3e62b087fe16894f11da7bd41afdd",
+    "size_bytes": 10711,
+    "task_named": false,
+    "changes": [
+     "model literal -> resolve_model(\"screen\")",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "02cdfa757c51689fc283b10281831c22e0ec90e6e6b5a3779a479a69257d53d6"
+   },
+   {
+    "filename": "r1_run.py",
+    "repo_path": "src/catalog/extraction/r1_run.py",
+    "group": "extraction",
+    "artifact_id": "fc2293b3-4b5a-43e3-a9f8-2e2c6946fb4f",
+    "version_id": "3c5928fb-9046-42a6-af5e-b10da350967f",
+    "sha256": "941d73f588fa4f3ef8d73dd69465962c4fd8fd0b95559be71972e44ef6e1aabb",
+    "size_bytes": 3724,
+    "task_named": false,
+    "changes": [],
+    "sha256_repo": "941d73f588fa4f3ef8d73dd69465962c4fd8fd0b95559be71972e44ef6e1aabb"
+   },
+   {
+    "filename": "r2_supp_extract.py",
+    "repo_path": "src/catalog/extraction/r2_supp_extract.py",
+    "group": "extraction",
+    "artifact_id": "d5af43fa-0ff2-438a-ac9e-566a1f73adc2",
+    "version_id": "7c5f7e7e-5dd6-42e0-b451-a5b9c6744ba8",
+    "sha256": "f46f4b70b2708574b218782808d0f04a91e2a1a422e35d15c4e7873448af0366",
+    "size_bytes": 24539,
+    "task_named": false,
+    "changes": [
+     "model literal -> resolve_model(\"screen\")",
+     "header inserted",
+     "prompt path -> _prompt_path() (cwd first, then src/catalog/prompts/)",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "3054510689697c81513b6e5c731055297aff635e0aebf40532706482ae417dd1"
+   },
+   {
+    "filename": "r2_supp_extract_v2.py",
+    "repo_path": "src/catalog/extraction/r2_supp_extract_v2.py",
+    "group": "extraction",
+    "artifact_id": "2130e0f7-f428-40dc-8e5e-f320f7407496",
+    "version_id": "39de23b2-95b7-4422-81ec-8d2e90145972",
+    "sha256": "18758108ade67a0247a3aeaa16bafbff3fd6e7435c61e40eb0ea76fe4a3d9ab1",
+    "size_bytes": 47421,
+    "task_named": true,
+    "changes": [
+     "model literal -> resolve_model(\"screen\")",
+     "header inserted",
+     "prompt path -> _prompt_path() (cwd first, then src/catalog/prompts/)",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "8b26b198c60335c28b5f3f1702409b5440eb7763a9bf3654c80998a3ff0e8756"
+   },
+   {
+    "filename": "r2_rescue_map.py",
+    "repo_path": "src/catalog/extraction/r2_rescue_map.py",
+    "group": "extraction",
+    "artifact_id": "15493b52-d338-4265-bdcf-ab92d841ea7d",
+    "version_id": "95e7f514-ba03-44ce-9daa-45f0830b09c8",
+    "sha256": "03d1f1f1bf91dec41b30e3fe618108fcbfef342865b54a8579bf2de4ced0a4d5",
+    "size_bytes": 19508,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "dac58291f803c9f8f9e9295db83063b141ab7cb3bee5f97c0521f8598b70c198"
+   },
+   {
+    "filename": "r2_ext.py",
+    "repo_path": "src/catalog/extraction/r2_ext.py",
+    "group": "extraction",
+    "artifact_id": "48d721cc-6222-4ec3-9a55-1dc5a82a7980",
+    "version_id": "8b069081-5507-4f5b-b05b-6e1e99317bd4",
+    "sha256": "13de815d8d61106b48d97681381b4fbc04d76d3bfebecb705ac90432de499a26",
+    "size_bytes": 8176,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "prompt path -> _prompt_path() (cwd first, then src/catalog/prompts/)",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "829f4ab68414ea7499e39e9b93841cf148d7d46d1f6122af1451cc73b47c7850"
+   },
+   {
+    "filename": "r2_full_driver.py",
+    "repo_path": "src/catalog/extraction/r2_full_driver.py",
+    "group": "extraction",
+    "artifact_id": "551ac4e2-dc96-4993-991e-3a8ac640b86c",
+    "version_id": "9570d8ab-4f2f-45fa-88a6-b050f0da72c0",
+    "sha256": "6db8c7aa618fe71c92eee2c5c4d0eb488768f6db5bfea7b956c8fe35be9e211e",
+    "size_bytes": 2558,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "prompt path -> _prompt_path() (cwd first, then src/catalog/prompts/)",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "7cc09eb9510e8f29c2cb0ca833ac9ab0693de33172babaf47275cf9e28087dd6"
+   },
+   {
+    "filename": "r3_prose_extract.py",
+    "repo_path": "src/catalog/extraction/r3_prose_extract.py",
+    "group": "extraction",
+    "artifact_id": "f2684bd1-1f6d-4e6d-b2c0-9ccfd66b1bb8",
+    "version_id": "06b84628-b9ef-4cee-bdcb-fe50c1600c03",
+    "sha256": "b0a4aa101910ba658fa40c038ec22ad83769bd90884d786f76422acb3135c36e",
+    "size_bytes": 14269,
+    "task_named": true,
+    "changes": [
+     "model literal -> resolve_model(\"rubric\")",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "51679bae5f865933045cbe2837c524337796a17080e56638cd65694454a904b7"
+   },
+   {
+    "filename": "r3_p2_driver.py",
+    "repo_path": "src/catalog/extraction/r3_p2_driver.py",
+    "group": "extraction",
+    "artifact_id": "30f4732d-376a-4f50-a9a0-d84bb9a67cc2",
+    "version_id": "eed595f2-7ffc-446c-8582-5e9a5bce0925",
+    "sha256": "99690074225d7ae371d639bf73025222b8338fc1d067f3818829fa14f8be10f3",
+    "size_bytes": 5775,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "6a2f05d40fb697998aa0c57347f9d9976c6280da9d829b8f2d831f1141888c5c"
+   },
+   {
+    "filename": "r4_abstract_extract.py",
+    "repo_path": "src/catalog/extraction/r4_abstract_extract.py",
+    "group": "extraction",
+    "artifact_id": "5239699c-d070-489a-9613-c8a9487ad4d0",
+    "version_id": "ecab0b47-69ed-4aae-881a-29f34eead95d",
+    "sha256": "9957a15c43380576d3239263f61940ea390a3c65bd1de04d85d4b1ab832bd511",
+    "size_bytes": 5303,
+    "task_named": true,
+    "changes": [
+     "model literal -> resolve_model(\"screen\")",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "784a59f5b0e92af4d0dde07614456e9a7b72dd5f2b9ab404ccd8c6886904f8ab"
+   },
+   {
+    "filename": "merge_routes.py",
+    "repo_path": "src/catalog/extraction/merge_routes.py",
+    "group": "extraction",
+    "artifact_id": "6e638133-b4bc-4912-90dd-4f2e64df9c0b",
+    "version_id": "6f2ec94c-0e84-457e-8fdb-c55f77739e40",
+    "sha256": "d40b360faebb65c6dcc52d8173bd83822fb089d07ca31dc9baa393faa8b04066",
+    "size_bytes": 11821,
+    "task_named": true,
+    "changes": [
+     "model literal -> resolve_model(\"adjudicate\")",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "294706c4fa715cae081f473533dc5c61793a5db55a04d6eaa08eb0c8abf801f9"
+   },
+   {
+    "filename": "subject_resolution.py",
+    "repo_path": "src/catalog/extraction/subject_resolution.py",
+    "group": "extraction",
+    "artifact_id": "e5bba23b-cdf5-4d20-8fb3-14d4a9ef88b6",
+    "version_id": "f6a79cc2-56ed-4fa4-adbc-fc0c31660cf3",
+    "sha256": "cde0513a04006b578730b0bbacd391e87ae152f261e4383691618d0102bb82bb",
+    "size_bytes": 18566,
+    "task_named": true,
+    "changes": [
+     "removed cwd sys.path line",
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "8e934e2fa5a7b93187928b0e4db2074774d98e443418a3af72b81463ca62e775"
+   },
+   {
+    "filename": "supp_parse.py",
+    "repo_path": "src/catalog/extraction/supp_parse.py",
+    "group": "extraction",
+    "artifact_id": "a1867694-17d3-4eec-8fee-186fe5f9e52d",
+    "version_id": "e4d91628-170f-4b67-a96c-43f91396956d",
+    "sha256": "7e8fe907187e58afe657b001b8156e1807547f78c90e1d6d227dd0f5b498efb1",
+    "size_bytes": 8813,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "e010bcc094d530061a53bd16118d7d13f8b4729a2013cce6184fe47a9d9a7003"
+   },
+   {
+    "filename": "col_reader.py",
+    "repo_path": "src/catalog/extraction/col_reader.py",
+    "group": "extraction",
+    "artifact_id": "85d25c6d-8a62-48a3-8b5b-6331adc88a36",
+    "version_id": "291c9217-ffe9-4c4e-98e3-8df497a9cb85",
+    "sha256": "465dce693b4e974937225bcdecccb753fe84728a5bc24ac4f7754048ece2d490",
+    "size_bytes": 4582,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "4e1b0ced0cb64312ab00709bd72bd78264cae6535578fed656beb556d944f422"
+   },
+   {
+    "filename": "build_wide.py",
+    "repo_path": "src/catalog/extraction/build_wide.py",
+    "group": "extraction",
+    "artifact_id": "cc60f35d-7d16-482e-aed8-395cebe013f8",
+    "version_id": "7c23cf00-5cde-4aa0-9366-8a063cf3018d",
+    "sha256": "5b2f8704a3f55dd3821503301d228fb4f19406410a93e6ad6944ab78b78c5280",
+    "size_bytes": 2040,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "f15330ee424014f231aac84764f40c185ef3ae5ad645496dd09f51210ba1b4b7"
+   },
+   {
+    "filename": "re_gate.py",
+    "repo_path": "src/catalog/extraction/re_gate.py",
+    "group": "extraction",
+    "artifact_id": "5ddbb2c2-c66c-4e03-ade4-550205ad3d44",
+    "version_id": "2d8b7686-027f-40b0-a825-ed8cc556858e",
+    "sha256": "1574d2c46014e0c470ad74e00c6dd747531843ae267d75fb8eb6703c9d1d443e",
+    "size_bytes": 6683,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "769c1564c9bab91c91b8c1fae5174171347075373b75f9d44e062137390a680b"
+   },
+   {
+    "filename": "build_fix.py",
+    "repo_path": "src/catalog/extraction/build_fix.py",
+    "group": "extraction",
+    "artifact_id": "09beee97-cc53-4759-88fb-03f050bda664",
+    "version_id": "59b34e50-b3e9-4b3b-8df8-98489fdb07a2",
+    "sha256": "be0cb0960208e376509cbe4f5ae15568aca2b6be4ec49e464d4fd5f7354dbcca",
+    "size_bytes": 8771,
+    "task_named": true,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "77598f1730531785ccfee06c2d3688baa6fc60adde429a3d2dc7c9891373d5f7"
+   },
+   {
+    "filename": "pdfdocx_extract.py",
+    "repo_path": "src/catalog/extraction/pdfdocx_extract.py",
+    "group": "extraction",
+    "artifact_id": "6e00800b-5d5d-4861-ab00-a3f64fa51a37",
+    "version_id": "fffaec9e-9151-4c74-8384-29724d32d8c2",
+    "sha256": "2e77a1fcb1767e9e18b22e2b2c58c8ffbc7a42d6e4d4ecfa4f51a4d20b494cc1",
+    "size_bytes": 14907,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "c9eeb94142b4b8a8bed87aea4e5a61cec6e9317a4dbdd7448a4b1b55cc0507a5"
+   },
+   {
+    "filename": "mp2_emit.py",
+    "repo_path": "src/catalog/extraction/mp2_emit.py",
+    "group": "extraction",
+    "artifact_id": "a67c670c-cbaa-4c13-9d38-f8e78aff4b21",
+    "version_id": "44a322aa-a1ab-4709-b4a0-9d96d2d4a231",
+    "sha256": "b6ee11c2d825668682147caf981eb371f6374ba4d302dbd04b89460e3af4494b",
+    "size_bytes": 6766,
+    "task_named": false,
+    "changes": [],
+    "sha256_repo": "b6ee11c2d825668682147caf981eb371f6374ba4d302dbd04b89460e3af4494b"
+   },
+   {
+    "filename": "mp2_post_run.py",
+    "repo_path": "src/catalog/extraction/mp2_post_run.py",
+    "group": "extraction",
+    "artifact_id": "42b96759-b439-4913-8fcd-a92e987d34fc",
+    "version_id": "324da215-19b7-4d17-9ba2-74238d2a8b23",
+    "sha256": "8d5d9c05ec08a2de59156544e8af86596e021fca9378fa7b94bc6493c8175f07",
+    "size_bytes": 3275,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "b702cb2ae32c714e0d7c320a180a989863b68ee3768c2d3adbf9d4914046a1bf"
+   },
+   {
+    "filename": "mp_post.py",
+    "repo_path": "src/catalog/extraction/mp_post.py",
+    "group": "extraction",
+    "artifact_id": "618f9fdb-733c-4d3f-9f8b-45692c3f7aa8",
+    "version_id": "8223c212-0007-4b1d-bd88-24f032fd8d08",
+    "sha256": "1462c132884d03e860ac654b6e38c7c721479107c472bd2f476afc529a53f606",
+    "size_bytes": 8468,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "8792e225bd6ee2196d4c39a6116f3a068bdfb111189b0095e2ab55e926d0b98b"
+   },
+   {
+    "filename": "pilot_eval.py",
+    "repo_path": "src/catalog/extraction/pilot_eval.py",
+    "group": "extraction",
+    "artifact_id": "120085e4-f7a5-4a1f-9393-123fe919c538",
+    "version_id": "df04b7ff-03d0-4809-9c13-7b0838e01ed1",
+    "sha256": "f1dbe9302cb3634a481d185c0880790526806db96d65acaf0c951dc2d197e7e1",
+    "size_bytes": 3444,
+    "task_named": false,
+    "changes": [
+     "header inserted",
+     "set_host header (R1-01, 2026-09-26)"
+    ],
+    "sha256_repo": "89eb2efdef23db02fffc1633a32a3cd29f2adad1555a4f879c6952b15330644a"
+   },
+   {
+    "filename": "enumerate_universe.py",
+    "repo_path": "src/catalog/legacy/enumerate_universe.py",
+    "group": "legacy",
+    "artifact_id": "b9edde08-bef5-41af-b73c-4ac5f8c7dcbf",
+    "version_id": "7ec7b522-14bb-4e47-b468-3c316c04ade7",
+    "sha256": "edf182f9acb94080cb0a3bbd2e29b9f5df1720680ba3cbda952770767746ed92",
+    "size_bytes": 5494,
+    "task_named": false,
+    "changes": [
+     "copied verbatim (legacy)"
+    ],
+    "sha256_repo": "edf182f9acb94080cb0a3bbd2e29b9f5df1720680ba3cbda952770767746ed92"
+   },
+   {
+    "filename": "enumerate_universe_v2.py",
+    "repo_path": "src/catalog/legacy/enumerate_universe_v2.py",
+    "group": "legacy",
+    "artifact_id": "fd748f15-1918-490b-a4e3-fb5538be2cab",
+    "version_id": "94d33671-e181-4950-a894-a355708e8611",
+    "sha256": "4fd9be1f6718d48114fbb0ab9c6c3b2666a9370029c04100204cc37d2a69a0de",
+    "size_bytes": 8318,
+    "task_named": false,
+    "changes": [
+     "copied verbatim (legacy)"
+    ],
+    "sha256_repo": "4fd9be1f6718d48114fbb0ab9c6c3b2666a9370029c04100204cc37d2a69a0de"
+   },
+   {
+    "filename": "scope_constants.py",
+    "repo_path": "src/catalog/legacy/scope_constants_v1.py",
+    "group": "legacy",
+    "artifact_id": "5f1971a4-8807-4498-b971-7c02f8264df2",
+    "version_id": "f10e23c4-1cda-4482-b72b-974b1dba6aa6",
+    "sha256": "e258f35ddb67162c2c64afb1acdbcb21ffba123328cada8af1a05c1506b7c243",
+    "size_bytes": 16099,
+    "task_named": false,
+    "changes": [
+     "copied verbatim (legacy)"
+    ],
+    "sha256_repo": "e258f35ddb67162c2c64afb1acdbcb21ffba123328cada8af1a05c1506b7c243"
+   },
+   {
+    "filename": "scope_constants_v2.py",
+    "repo_path": "src/catalog/legacy/scope_constants_v2.py",
+    "group": "legacy",
+    "artifact_id": "b9c55d3a-bc42-4781-b8c2-70a43b3a98c1",
+    "version_id": "35befdd6-7349-4661-9af6-2f528258a516",
+    "sha256": "be9b782a958b99ece929efaf0c5afd98a2270ea5c68a6631c19d0fff37157df9",
+    "size_bytes": 17592,
+    "task_named": false,
+    "changes": [
+     "copied verbatim (legacy)"
+    ],
+    "sha256_repo": "be9b782a958b99ece929efaf0c5afd98a2270ea5c68a6631c19d0fff37157df9"
+   },
+   {
+    "filename": "r2_column_classify_system.txt",
+    "repo_path": "src/catalog/prompts/r2_column_classify_system.txt",
+    "group": "prompts",
+    "artifact_id": "7d3e1911-5c6d-4ff4-925f-c325061addbd",
+    "version_id": "5112aac6-5dff-4c94-b35c-f17d20e2a5d9",
+    "sha256": "2be9a3c0dd835e3d3d200c7319d102eb7daf5cef59fc3a8d9eab5f35ceb8495d",
+    "size_bytes": 2642,
+    "task_named": true,
+    "changes": [],
+    "sha256_repo": "2be9a3c0dd835e3d3d200c7319d102eb7daf5cef59fc3a8d9eab5f35ceb8495d"
+   },
+   {
+    "filename": "r2_column_classify_system_ext.txt",
+    "repo_path": "src/catalog/prompts/r2_column_classify_system_ext.txt",
+    "group": "prompts",
+    "artifact_id": "67431fda-0cc6-4606-b0c2-9ae5a4543adf",
+    "version_id": "85e337e7-ce4a-4f34-8ec4-c147d0a0a6c5",
+    "sha256": "79fa42fabc3e8bcda2c56b72fc3de239ad31ecff82ff74954e0e58b39f896425",
+    "size_bytes": 3947,
+    "task_named": true,
+    "changes": [],
+    "sha256_repo": "79fa42fabc3e8bcda2c56b72fc3de239ad31ecff82ff74954e0e58b39f896425"
+   },
+   {
+    "filename": "r3_prose_system.txt",
+    "repo_path": "src/catalog/prompts/r3_prose_system.txt",
+    "group": "prompts",
+    "artifact_id": "b897e7de-6755-43ef-ada7-0078715bded0",
+    "version_id": "73fae5e6-9770-4fa6-a2da-ffffeb1dd6a7",
+    "sha256": "66cf3c47d92384ebf8bdf8c2e87aea6d713a879fca5c2187e0c2cd2db63b25ce",
+    "size_bytes": 4735,
+    "task_named": true,
+    "changes": [],
+    "sha256_repo": "66cf3c47d92384ebf8bdf8c2e87aea6d713a879fca5c2187e0c2cd2db63b25ce"
+   },
+   {
+    "filename": "r4_abstract_system.txt",
+    "repo_path": "src/catalog/prompts/r4_abstract_system.txt",
+    "group": "prompts",
+    "artifact_id": "4007c46b-b113-43ed-abbf-f4ad3b786796",
+    "version_id": "5aef8748-e6d2-4840-9e8f-c9fcacfe75e5",
+    "sha256": "811c594a0ce02cf3565b61ee7379ac8effeb6556e82efe842eff1f0307e3c229",
+    "size_bytes": 2107,
+    "task_named": true,
+    "changes": [],
+    "sha256_repo": "811c594a0ce02cf3565b61ee7379ac8effeb6556e82efe842eff1f0307e3c229"
+   },
+   {
+    "filename": "kernel.py",
+    "repo_path": "skills/infant-curation-rules/kernel.py",
+    "group": "skills",
+    "artifact_id": "skill:infant-curation-rules",
+    "version_id": null,
+    "sha256": "8329355d67bee158c9c4ea68b82773eb669f623688e1019b254b0dd20ff2cf36",
+    "sha256_repo": "8329355d67bee158c9c4ea68b82773eb669f623688e1019b254b0dd20ff2cf36",
+    "size_bytes": 5693,
+    "task_named": false,
+    "changes": [
+     "vendored from host.skills.read('infant-curation-rules', path='kernel.py') on 2026-09-26; canonical validators"
+    ],
+    "note": "vendored from host.skills.read; no artifact version (R1-18) \u2014 bootstrap skips skill: sources"
+   },
+   {
+    "filename": "download_bulk.py",
+    "repo_path": "src/catalog/sandpiper/download_bulk.py",
+    "group": "sandpiper",
+    "artifact_id": "46f51c4d-9964-4fc4-8b24-b28be76410b0",
+    "version_id": "44fe6567-2256-48b8-9531-ca7f4c9b5781",
+    "sha256": "63bd02b1b168dfd9998f8cba0acce1e4f7926fd8654f64224bfb5d303f092f7f",
+    "sha256_repo": "4764ab37ed9df3c260c5b463d44b0300f534f93f34a5badf41bfba5644ff7994",
+    "size_bytes": 2515,
+    "task_named": true,
+    "changes": [
+     "env-parametrised Zenodo record/version shim (R3-4)"
+    ]
+   },
+   {
+    "filename": "filter_bulk.py",
+    "repo_path": "src/catalog/sandpiper/filter_bulk.py",
+    "group": "sandpiper",
+    "artifact_id": "a3c17707-91df-45a1-be12-4197a4ba147e",
+    "version_id": "41064d51-83c5-4a01-b110-ed8fa63c46c3",
+    "sha256": "e35bae34aa331596952c60b19e28f752f8035c7d3e5d75d8be9bf37b003620bd",
+    "sha256_repo": "f649bbc46f01f4b9df820adb32a4cc9e3e9c292396b17425a49aa7c0dd8c7eff",
+    "size_bytes": 2675,
+    "task_named": true,
+    "changes": [
+     "env-parametrised Zenodo record/version shim (R3-4)"
+    ]
+   },
+   {
+    "filename": "build_sandpiper_tables.py",
+    "repo_path": "src/catalog/sandpiper/build_sandpiper_tables.py",
+    "group": "sandpiper",
+    "artifact_id": "5207fb71-f5d4-44d2-b197-8f95b1a9da84",
+    "version_id": "7f415b25-114f-4bf3-96c5-234a60591ee4",
+    "sha256": "af9ea206235b2b0e3173deeaa5d28888602d8ca03eea1bded6c5689d5d4c4e78",
+    "sha256_repo": "ec3c162c7dda8ace15c5a9a09908364cfa6fa00e6210a5fa685760137c73fea7",
+    "size_bytes": 15849,
+    "task_named": true,
+    "changes": [
+     "env-parametrised Zenodo record/version shim (R3-4)"
+    ]
+   },
+   {
+    "filename": "sandpiper_lib.py",
+    "repo_path": "src/catalog/sandpiper/sandpiper_lib.py",
+    "group": "sandpiper",
+    "artifact_id": "943c7123-62f7-4074-9787-621369f07f0e",
+    "version_id": "1b4ddff0-0d91-4099-8d04-47ba61ba7e34",
+    "sha256": "1b997628a64c4945f9c4a22efc1b637779bab0729198cbb0aa02b44e241c2201",
+    "sha256_repo": "1b997628a64c4945f9c4a22efc1b637779bab0729198cbb0aa02b44e241c2201",
+    "size_bytes": 3840,
+    "task_named": true,
+    "changes": []
+   },
+   {
+    "filename": "render_report.py",
+    "repo_path": "src/catalog/sandpiper/render_report.py",
+    "group": "sandpiper",
+    "artifact_id": "2db04456-ea50-4c91-b5c0-eb59cc097734",
+    "version_id": "7617c745-e489-4c76-b9af-551d8854c7d7",
+    "sha256": "ec8ea19a40bd6b11498ab6ed9263adecd2ec581a478c86000325889b7f89cfcc",
+    "sha256_repo": "ec8ea19a40bd6b11498ab6ed9263adecd2ec581a478c86000325889b7f89cfcc",
+    "size_bytes": 20695,
+    "task_named": true,
+    "changes": []
+   },
+   {
+    "filename": "harvest_bioproject_authors.py",
+    "repo_path": "src/catalog/authors/harvest_bioproject_authors.py",
+    "group": "authors",
+    "artifact_id": "007dd363-51da-4e22-8de9-db68e98b4929",
+    "version_id": "4f4324db-7432-4dab-b549-08078bedc054",
+    "sha256": "4f0e2bbc19b013cdf8dd1c0add098a7c925d5cd878af339dbd4536627e8e72fa",
+    "sha256_repo": "a781d513f73cca5c7e3f92cdd6275bc7449ddabf9ee0d8917aace760e180ac47",
+    "size_bytes": 5862,
+    "task_named": true,
+    "changes": [
+     "harvest_lib path shim (R3-4)"
+    ]
+   }
+  ],
+  "data": [
+   {
+    "filename": "data_package_v1.2.1.zip",
+    "artifact_id": "45c0f6a9-c26b-4b21-8a20-2e6efe3dbfb4",
+    "version_id": "eb4d3d1a-fc1f-417e-b1a8-c5ab20d5e66b",
+    "size_bytes": 62354840,
+    "required": true,
+    "sha256": "063cc1f364e2bae0dfba9e8eb4668b6038ae99f810a6e38225e2cd793f715102",
+    "note": "current release package (Data-fix track, 2026-09-26); nested top dir package_v1.2.1/ \u2014 make unpack flattens it"
+   },
+   {
+    "filename": "data_package_v1.zip",
+    "artifact_id": "3c54a664-0afe-46f3-9dcd-14575cbe9911",
+    "version_id": "b3689a6a-8b35-4093-8a4a-a5a307c705f7",
+    "size_bytes": 26037669,
+    "required": false,
+    "sha256": "acf0183178684307397fc3fd315141b1df7d1511280a4e88a06866820d19d7cd",
+    "note": "superseded: v1.1 content (README says v1.1); kept for provenance only \u2014 make unpack uses PKG_ZIP=data_package_v1.2.1.zip"
+   },
+   {
+    "filename": "site_generator.zip",
+    "artifact_id": "fed8f96a-3664-4e51-8de9-e2d1290f5975",
+    "version_id": "48832759-2daf-461f-b96c-8c329bf881de",
+    "size_bytes": 38849,
+    "required": false,
+    "sha256": "b20781381a36d7d6ea0304e54e1de1fc355117fc05c1439b2a47999ee47c6022"
+   },
+   {
+    "filename": "release_bundle.tar.gz",
+    "artifact_id": "e26d789c-599d-4908-b5bf-050252504dc2",
+    "version_id": "1ed50ad8-6476-456f-a5c8-7d6c6dc31e3e",
+    "size_bytes": 69310902,
+    "required": false,
+    "sha256": "5464b037f9f77e886e8a16cd33a1d315c052189a1ad284e98865aa3e2846ebcd"
+   },
+   {
+    "filename": "catalog_studies.parquet",
+    "artifact_id": "4e770407-a41a-4c38-86b5-977a05a5ec50",
+    "version_id": "caf0360d-398e-4c5e-b7c2-d21781f5a7b1",
+    "size_bytes": 1104981,
+    "required": true,
+    "sha256": "25fd7f26a8a631599957c7e2a72be8213d07b18e21b503b731060e9825edf965"
+   },
+   {
+    "filename": "study_triage_v2.parquet",
+    "artifact_id": "843218d6-2dc5-43ee-a706-cb5af88e13f6",
+    "version_id": "6a2af383-b9ef-4c31-b2df-935ba5eb8401",
+    "size_bytes": 1025398,
+    "required": true,
+    "sha256": "108232fe4a425930ab253c51ad0d4c686758eeb879a4b5a2cb40bd395af8b054"
+   },
+   {
+    "filename": "harvest_cache.tar.gz",
+    "artifact_id": "75b88127-b830-47c2-bdd1-19b2a09eeb96",
+    "version_id": "1651f99b-eae3-40de-8674-585632ed39fb",
+    "size_bytes": 9751380528,
+    "required": false,
+    "sha256": null,
+    "note": "not hashed (working_data / >400 MB); verify by size and re-hash at next snapshot"
+   },
+   {
+    "filename": "infant_catalog.sqlite",
+    "artifact_id": "9eb19bd1-f41c-4cdf-9d65-5eab9618df7e",
+    "version_id": "76e57aaa-2c7f-487c-bed2-8fa57d7979ef",
+    "size_bytes": 202809344,
+    "required": false,
+    "sha256": "675404e79a75904d0985118a8c003755fc07013103b5e4861742e2b6374764f0"
+   },
+   {
+    "filename": "auditor_findings.csv",
+    "artifact_id": "3d100e7c-2e4f-4247-b574-1d696e948ced",
+    "version_id": "fbdf361f-5cb4-4ee4-b69c-2cc5426460cc",
+    "size_bytes": 2306,
+    "required": false,
+    "sha256": "5d0a4a55935ad9c911c12aeb2a9f3e8bbe87291b0e4016abfd871a1cac331b25"
+   },
+   {
+    "filename": "site.zip",
+    "artifact_id": "c99f6f6e-5fbc-4cba-9d8f-0ed37abe4ba3",
+    "version_id": "95ff2ef5-fdb4-4777-b47e-7873d0e578d7",
+    "size_bytes": 72859928,
+    "required": false,
+    "sha256": "fd4f6c15168223cb733ed668b23c4064b514811a0fb33e5318a0780a0fb98b54",
+    "note": "OUTPUT of an earlier build (pre-1.2.0), not an input; retained for provenance only"
+   }
+  ],
+  "sandpiper": [
+   {
+    "filename": "catalog_runs_sandpiper_match.parquet",
+    "artifact_id": "cd4636ca-09cf-448c-a924-6ac4e881aa2f",
+    "version_id": "b35c12de-c7df-411f-b1ec-5d8a985ac9d2",
+    "size_bytes": 2937008,
+    "required": true,
+    "sha256": "483af07a682e0a3271661163ca85a1baf4a205fd9e6ec686cfc52306e8e28caf",
+    "note": "catalog run \u00d7 Sandpiper membership (174,022 runs); source of sp/matched_runs.parquet, sample_run_totals, sample_scope (prepare_inputs.py)",
+    "dest_subdir": "sandpiper"
+   },
+   {
+    "filename": "sandpiper2.0.0.per_acc_summary.csv.gz",
+    "artifact_id": "c3f69ca2-4ffe-4ac6-8fc3-72dd1d3172df",
+    "version_id": "ff108edb-59ac-4e11-b93b-0a452095c392",
+    "size_bytes": 40069067,
+    "required": true,
+    "sha256": "354353c0be75107fe157e87885a8123122334f08fd02ef6fc96dc35439b52496",
+    "note": "Sandpiper 2.0.0 per-accession QC summary (Zenodo 20419175); source of sp/run_qc_input.parquet",
+    "dest_subdir": "sandpiper"
+   },
+   {
+    "filename": "sandpiper2.0.0.parsed_metadata.tsv.gz",
+    "artifact_id": "c7caa40c-bedb-43f9-bbde-2c530f026b5c",
+    "version_id": "53ec3d41-6531-474d-b5c1-ecf5e227bdcd",
+    "size_bytes": 3769166,
+    "required": false,
+    "sha256": "5a2c8be924401eaa08cac4dcf59e654624c3654f201c4ba409d5ef9752462b9a",
+    "note": "Sandpiper 2.0.0 parsed metadata (Zenodo 20419175)",
+    "dest_subdir": "sandpiper"
+   },
+   {
+    "filename": "sandpiper_flag_table.csv",
+    "artifact_id": "67f83cdd-0482-4961-b41e-9fb9361a7ee7",
+    "version_id": "b9304791-b45b-4054-9689-eccf54e1d987",
+    "size_bytes": 4066,
+    "required": true,
+    "sha256": "d3a84f7a27e79bb802190416135722f7fad8441c5b96df69bcaaad18501537ba",
+    "note": "single source of QC flag definitions (DATAFIX F10); sandpiper_flag_definitions.json is generated from it",
+    "dest_subdir": "sandpiper"
+   },
+   {
+    "filename": "sandpiper_flag_definitions.json",
+    "artifact_id": "2eb69358-ab62-4aef-8bc8-9e5df747a7d4",
+    "version_id": "0c101c8c-a137-4931-a6ba-42d740e45af4",
+    "size_bytes": 3280,
+    "required": false,
+    "sha256": "1645f891eaef04e6f0d23a8ff62edcc041de40179523c95538e78de8ea93c349",
+    "note": "generated from sandpiper_flag_table.csv",
+    "dest_subdir": "sandpiper"
+   },
+   {
+    "filename": "SANDPIPER_REPORT.md",
+    "artifact_id": "0f481c8e-f0bc-4fee-be5f-1226029a9bbe",
+    "version_id": "cf35e04f-c7c0-48ac-a30e-086aff5c0cf2",
+    "size_bytes": 20222,
+    "required": false,
+    "sha256": "b266f1b51001d86b6b7581ab17631e51e8b003f55ab4dc9f63b2e7da9c275151",
+    "note": "rendered by render_report.py; copied into the package",
+    "dest_subdir": "sandpiper"
+   },
+   {
+    "filename": "sandpiper2.0.0.gtdb.csv.gz",
+    "artifact_id": "8071e8b8-9565-4979-b2aa-87614b3b35d5",
+    "version_id": "a970aed8-2cb7-4341-9a1a-536aa24fa1fb",
+    "size_bytes": 3727269191,
+    "required": false,
+    "sha256": "4732c4e1b89c2f716f4542add715f4e934139b1e818e8cc814eaceff6411065d",
+    "note": "Sandpiper 2.0.0 GTDB bulk condensed profiles \u2014 SNAPSHOT SOURCE (R1-14). Zenodo record 20419175, md5 7d3d802c20331c80fa2907e059abcc60 (download_log.json a1e5a7a3); sha256 from download_log.json, not re-hashed here (3.7 GB). One snapshot artifact per Zenodo version + the host copy under ~/catalog/external/sandpiper/<version>/ (docs/DATA_LAYOUT.md). bootstrap skips it unless --all.",
+    "zenodo_record": "20419175",
+    "sandpiper_version": "2.0.0",
+    "dest_subdir": "sandpiper"
+   }
+  ],
+  "authors": [
+   {
+    "filename": "bioproject_records.parquet",
+    "artifact_id": "c9b35121-bef4-426e-b6f9-4e2b544aaa9c",
+    "version_id": "48d7c650-9471-441d-9178-ccec4b6031a7",
+    "size_bytes": 1888635,
+    "required": true,
+    "sha256": "b8257d0d74183f15be02fcc61c977ccdbb23fb95caeb4f90beffecdf30cd772b",
+    "note": "NCBI BioProject XML parse (harvest_bioproject_authors.py output; checkpointed)",
+    "dest_subdir": "authors"
+   },
+   {
+    "filename": "authors.parquet",
+    "artifact_id": "c3f349b3-91f2-4f5f-895c-0299a2f4adee",
+    "version_id": "c8c383da-6ab0-48bd-b208-3184a1e9948b",
+    "size_bytes": 755443,
+    "required": true,
+    "sha256": "f67b98b1ab3e913f8fece267ddb3fecbc31f5ab78eb0fcee013c238455ade231",
+    "note": "author index (Data-fix track rebuild 2026-09-26)",
+    "dest_subdir": "authors"
+   },
+   {
+    "filename": "study_authors_summary.csv",
+    "artifact_id": "122e43bd-1fa0-444a-a137-1ffb6617a4c3",
+    "version_id": "dee52863-eae1-434e-82ea-e19c98e3104e",
+    "size_bytes": 987036,
+    "required": true,
+    "sha256": "b5eeec618b6c9a685ae034de48b395bf6b62d3999adb77ee5f5acaa9831a1dc5",
+    "note": "per-study first author / n_authors / organisations (universe organisation strings live here)",
+    "dest_subdir": "authors"
+   },
+   {
+    "filename": "authors_index.json",
+    "artifact_id": "65e3b649-c7c0-4d5a-b803-304d3c9943e8",
+    "version_id": "cd077fda-2344-4328-88c2-dfedffce5270",
+    "size_bytes": 6304771,
+    "required": false,
+    "sha256": "1e05b505bd984014eff2e96268a494333fe3243482fc2ff94cc4496d9ae915c4",
+    "note": "site authors pages index",
+    "dest_subdir": "authors"
+   },
+   {
+    "filename": "organisations.parquet",
+    "artifact_id": "e05ee965-b520-40b4-94c4-2855d82c0099",
+    "version_id": "4de2a83c-98e1-4bbc-a195-7ff1123cf6a3",
+    "size_bytes": 449919,
+    "required": false,
+    "sha256": "e1469af4a90a13327d6cce4c390c1a13cde9b1a9ca252c2991b85cc01634be6c",
+    "note": "organisation strings + privacy tags (R3-5 lowercase rule)",
+    "dest_subdir": "authors"
+   },
+   {
+    "filename": "AUTHORS_REPORT.md",
+    "artifact_id": "1b250119-a356-4c17-aa75-b5c116420be7",
+    "version_id": "2137d156-4822-431a-b0b8-abc897fd582f",
+    "size_bytes": 8109,
+    "required": false,
+    "sha256": "31983a4705e29349596bf9a19d1bbe4685c665adb4195ef19982f4671061150d",
+    "dest_subdir": "authors"
+   }
+  ],
+  "reports": [
+   {
+    "filename": "CATALOG_REPORT.md",
+    "artifact_id": "7f7403fd-0728-4e73-9afa-1ed18005736d",
+    "version_id": "fc8155f8-9cbe-4a6c-9db2-2b30d00c1792",
+    "size_bytes": 21358,
+    "required": true,
+    "sha256": "0bc06f2a976fda0b2cbdb2efc6faeb7a111079ee497dcb682465637280a82b0f",
+    "note": "linked from the site (docs/CATALOG_REPORT.md)",
+    "dest_subdir": "reports"
+   },
+   {
+    "filename": "EXTRACTION_REPORT.md",
+    "artifact_id": "a24466b2-5098-4bfa-a56c-f1aa5ddd2650",
+    "version_id": "7fc8f510-8615-491e-906f-f8ff1d4cc3e7",
+    "size_bytes": 17110,
+    "required": true,
+    "sha256": "796d674bfb09bbd3545459f5ec8bfb2b5b20720d4fe3f61e8eea7f1d7ffe151a",
+    "note": "linked from the site (docs/EXTRACTION_REPORT.md)",
+    "dest_subdir": "reports"
+   },
+   {
+    "filename": "NEXT_STAGE.md",
+    "artifact_id": "cc8f5879-a259-49eb-ace1-467391e0cb5a",
+    "version_id": "47ea5985-b71e-4bf2-9447-f5d87b2008f0",
+    "size_bytes": 15912,
+    "required": true,
+    "sha256": "d91152b2aaf2fd9cd3989559c21d5d6cfd1bdaf3f2f8d0aaedc1e7b83b4a284a",
+    "note": "linked from the site | R1-12 recomputed budgets version (2026-09-26); repo copy at docs/NEXT_STAGE.md",
+    "dest_subdir": "reports"
+   },
+   {
+    "filename": "SCALE_UP_PLAN.md",
+    "artifact_id": "357a4fdb-6591-4e22-9a15-583df5a755c5",
+    "version_id": "240b2991-5d02-446e-881b-e1403830f63e",
+    "size_bytes": 12138,
+    "required": true,
+    "sha256": "a8b0cdd0a40e9e534ed847c3fb1280dfe9c8cdb1c52f477a103bdaef5356c03b",
+    "note": "linked from the site | R1-12 recomputed budgets version (2026-09-26); repo copy at docs/SCALE_UP_PLAN.md",
+    "dest_subdir": "reports"
+   },
+   {
+    "filename": "field_coverage.png",
+    "artifact_id": "37903a84-3eab-4d7b-ba04-731fddc3d0c5",
+    "version_id": "83508c53-204b-4a15-ae5f-b3f33580c898",
+    "size_bytes": 94924,
+    "required": true,
+    "sha256": "9311b17aa3f97838d5a67d662812bff41cf613c9c381120c97715a97ef629667",
+    "note": "static/field_coverage.png; regenerated by scripts/plot_field_coverage.py from field_coverage_summary.csv (DATAFIX F14 version)",
+    "dest_subdir": "reports"
+   },
+   {
+    "filename": "field_coverage_summary.csv",
+    "artifact_id": "8911b6f5-09a1-44d9-92a9-792b79c4b407",
+    "version_id": "495d1837-7643-49c7-b95b-3eeecffe7088",
+    "size_bytes": 1220,
+    "required": false,
+    "sha256": "56a305648fefb3cbad99072254a73a0949492510cdd260a1dca5832b90283726",
+    "note": "input of scripts/plot_field_coverage.py (also inside the package)",
+    "dest_subdir": "reports"
+   }
+  ]
+ }
+}

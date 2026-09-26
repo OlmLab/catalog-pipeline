@@ -1,0 +1,17 @@
+# generated / large — never commit
+build/
+data/inputs/
+data/package/
+harvest_cache/
+*.sqlite
+*.sqlite-journal
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+node_modules/
+playwright-report/
+test-results/
+# secrets never live in the tree
+.env
+*.token

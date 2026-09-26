@@ -1,0 +1,33 @@
+# Token and batching budgets (A4e, A14). Values are the MEASURED constants from the 2026-09 build
+# (infant-curation-rules skill, "Triage cascade" section; llm_batch_common.py globals).
+platform:
+  host_llm_cap_per_frame_tokens: 2000000     # hard platform cap per frame
+  leaf_worker_soft_cap_tokens: 300000        # what a single delegated leaf may spend without asking
+  delegation: per_session_toggle             # sub-agents cannot delegate; root dispatches every fan-out
+  checkpoint_every_rows: 200                 # llm_batch_common.run_batches checkpoint cadence
+
+per_request:
+  fixed_overhead_tokens: 4900                # system prompt + schema + rules, every request
+  paper_screen:        {items: 25, role: screen,     tokens_per_item: 775,  max_tokens: 4000}
+  study_screen_haiku:  {items: 40, role: screen,     tokens_per_item: null, max_tokens: 4000}   # per-item cost not measured separately
+  sonnet_rubric:       {items: 4,  role: rubric,     tokens_per_item: 1150, max_tokens: 4000}
+  sonnet_confirm:      {items: 4,  role: rubric,     tokens_per_item: 1150, max_tokens: 4000}
+  adjudication:        {items: 1,  role: adjudicate, tokens_per_item: 3000, max_tokens: 4000}
+  retry_missing_ids:   {items: 10, max_tokens_multiplier: 2}   # Rule 13: dropped ids -> batch 10, higher max_tokens
+
+runtime_overrides:      # globals llm_batch_common reads if set BEFORE exec (documented per A4e)
+  BATCH: "int, items per request (default per task above)"
+  MAX_TOKENS: "int, response cap per request"
+  SLOTS: "int, concurrent requests via host.llm list form (default 4)"
+  MODEL: "str, resolved via catalog.models.resolve_model(<role>) — never a literal id"
+
+per_cycle_expected:     # derived from universe_studies_all.first_public_min, 2025-09..2026-08 (docs/RUNBOOK.md §3)
+  new_human_signal_studies_per_month: {mean: 146, min: 111, max: 180}   # after the frame-free human-signal rule
+  deterministic_excluded_per_month: 38
+  llm_judged_per_month: {mean: 108, max: 143}
+  new_included_per_month: {mean: 5.7, min: 2, max: 11}
+  stop_and_ask_owner_above_candidates: 300
+  triage_tokens_per_judged_study: 4000       # Haiku screen share + Sonnet x2 (2x1.15k) + Opus on ~20% + 4.9k/request overhead amortised
+  extraction_tokens_per_new_included_study: 50000   # 19.1M extraction-phase tokens / 389 studies (BUDGET.md)
+  cycle_tokens_expected: {typical: 800000, high: 1500000}
+  wall_time_hours: {resweep: 0.5, triage: 1.5, extraction: 3, package_site_verify: 0.5}

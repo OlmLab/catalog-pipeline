@@ -1,0 +1,26 @@
+# Model ROLES for the catalog pipeline. NO literal model ids live in this repository (A4c).
+# Resolution happens at runtime in src/catalog/models.py:
+#   resolver: reasoning_model -> host.reasoning_model() (must match family_regex, else list_models)
+#             current_model   -> host.current_model()
+#             list_models     -> newest id in host.list_models() matching family_regex
+# Outside a Claude Science kernel, set CATALOG_MODEL_<ROLE> (e.g. CATALOG_MODEL_SCREEN) instead.
+# Keep this file flat (role -> key: value) so the PyYAML-free reader in models.py stays correct.
+roles:
+  screen:              # Haiku-class utility tier: paper abstract screen, R2 column classify, R4 abstract route
+    family_regex: "haiku"
+    resolver: list_models
+    used_by: run_paper_screen.py, r2_supp_extract_v2.py, r4_abstract_extract.py, r1_ext.py
+    measured_tokens_per_item: 775        # per paper (2026-09)
+  rubric:              # Sonnet-class reasoning tier: 4-criterion study rubric, confirmation, R3 prose
+    family_regex: "sonnet"
+    resolver: reasoning_model
+    used_by: run_sonnet_confirm.py, r3_prose_extract.py
+    measured_tokens_per_item: 1150       # per study
+  adjudicate:          # Opus-class: adjudication of non-unanimous verdicts, conflict patterns, group-statement audit
+    family_regex: "opus"
+    resolver: list_models
+    used_by: merge_routes.py, adjudicate.py
+  audit:               # blind kappa sample / auditor spot checks — same tier as adjudicate
+    family_regex: "opus"
+    resolver: list_models
+    used_by: blind_audit.py

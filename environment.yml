@@ -1,0 +1,23 @@
+# conda env for the catalog pipeline (name matches the Claude Science env `infantcat`).
+# Exact pins for reproduction are in requirements.lock (pip freeze of the env that built release v11, 2026-09-26).
+name: infantcat
+channels: [conda-forge]
+dependencies:
+  - python=3.13
+  - pandas>=3.0
+  - pyarrow>=25
+  - duckdb>=1.5
+  - jinja2>=3.1
+  - requests>=2.32
+  - nbformat>=5.11
+  - openpyxl>=3.1
+  - lxml>=6
+  - markdown>=3.11
+  - numpy>=2.5
+  - scipy>=1.18
+  - matplotlib>=3.11
+  - pyyaml>=6
+  - pytest>=8
+  - pip
+  - pip:
+      - esprima      # explorer.js syntax check in site_generator/gen/check_links.py

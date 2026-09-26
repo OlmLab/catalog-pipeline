@@ -1,0 +1,172 @@
+# A9: the live site and the explorer cannot be verified from a Claude sandbox (no browser, olmlab.github.io blocked),
+# so verification runs here. Used in two repos:
+#   * catalog-pipeline  — on push/PR: unit tests + a build from the checked-in test package (if present)
+#   * infant-gut-catalog (site) — on push to release/* and on the deploy workflow: link check, DuckDB read of every
+#     parquet under data/, Playwright smoke of the explorer.
+# A failure on a release/* branch opens an Issue (label: verify-failed) instead of deploying (A3 step 5).
+name: verify
+
+on:
+  push:
+    branches: ["main", "release/**"]
+    tags: ["site-v*", "data-v*"]
+  pull_request:
+  workflow_call:
+    inputs:
+      site_dir:
+        description: "directory holding the built site (index.html at its root)"
+        type: string
+        default: "."
+      ref:
+        description: "git ref to check out (deploy-pages passes inputs.ref on a rollback dispatch; default = the calling ref)"
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  unit-tests:
+    # R1-07: hashFiles() is evaluated on the runner against the checked-out workspace, so a JOB-level condition
+    # runs before checkout and is always empty. The condition lives at STEP level, after checkout: in the site
+    # repo (no tests/) the steps are skipped and the job still reports success; in the pipeline repo they run.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - id: has_tests
+        run: |
+          if [ -d tests ] && ls tests/*.py >/dev/null 2>&1; then echo "yes=1" >> $GITHUB_OUTPUT; else echo "yes=" >> $GITHUB_OUTPUT; echo "no tests/ in this repo — unit tests skipped"; fi
+      - uses: actions/setup-python@v5
+        if: steps.has_tests.outputs.yes != ''
+        with: { python-version: "3.13" }
+      - name: Install the lock file into a clean venv (R1-04 — must succeed on a clean runner)
+        if: steps.has_tests.outputs.yes != ''
+        run: |
+          python -m venv .venv && . .venv/bin/activate
+          pip install -r requirements.lock pytest
+          pip install -e . --no-deps
+          pip check || true
+      - name: Unit tests
+        if: steps.has_tests.outputs.yes != ''
+        run: |
+          . .venv/bin/activate
+          CATALOG_BOOTSTRAP_NO_DATA=1 python -m pytest tests -q
+
+  site-checks:
+    runs-on: ubuntu-latest
+    env:
+      SITE_DIR: ${{ inputs.site_dir || '.' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - name: Locate site root
+        id: site
+        run: |
+          if [ -f "$SITE_DIR/index.html" ]; then echo "dir=$SITE_DIR" >> $GITHUB_OUTPUT;
+          elif [ -f site/index.html ]; then echo "dir=site" >> $GITHUB_OUTPUT;
+          else echo "no built site found — skipping site checks"; echo "dir=" >> $GITHUB_OUTPUT; fi
+      - name: Link check (check_links.py, 0 broken required)
+        if: steps.site.outputs.dir != ''
+        run: |
+          pip install duckdb
+          CL=$(ls site_generator/gen/check_links.py gen/check_links.py check_links.py 2>/dev/null | head -1)
+          if [ -z "$CL" ]; then
+            # site repo holds generated output only — fetch the checker from the (public) pipeline repo
+            CL="$RUNNER_TEMP/check_links.py"
+            curl -fsSL -o "$CL" https://raw.githubusercontent.com/OlmLab/catalog-pipeline/main/site_generator/gen/check_links.py
+          fi
+          python "$CL" "${{ steps.site.outputs.dir }}"
+      - name: DuckDB reads every parquet under data/
+        if: steps.site.outputs.dir != ''
+        run: |
+          python - <<'EOF'
+          import duckdb, glob, os, sys
+          root = os.path.join(os.environ.get("SITE_ROOT", "${{ steps.site.outputs.dir }}"), "data")
+          files = glob.glob(os.path.join(root, "**", "*.parquet"), recursive=True)
+          assert files, f"no parquet under {root}"
+          bad = []
+          for f in files:
+              try:
+                  n = duckdb.sql(f"select count(*) from read_parquet('{f}')").fetchone()[0]
+                  print(f"{n:>9}  {os.path.relpath(f, root)}")
+              except Exception as e:
+                  bad.append((f, str(e)[:120]))
+          if bad:
+              print(bad); sys.exit(1)
+          EOF
+      - name: Version consistency (VERSION.json vs manifest.json)
+        if: steps.site.outputs.dir != ''
+        run: |
+          python - <<'EOF'
+          import json, os, sys
+          d = "${{ steps.site.outputs.dir }}/data"
+          v = json.load(open(os.path.join(d, "VERSION.json"))) if os.path.exists(os.path.join(d, "VERSION.json")) else None
+          m = json.load(open(os.path.join(d, "manifest.json"))) if os.path.exists(os.path.join(d, "manifest.json")) else None
+          if v and m and str(m.get("package_version", "")).lstrip("v") != v["package_version"]:
+              print("manifest.json package_version", m.get("package_version"), "!= VERSION.json", v["package_version"]); sys.exit(1)
+          if v is None: print("VERSION.json missing (B11) — warning only until v1.2.0")
+          EOF
+
+  explorer-smoke:
+    runs-on: ubuntu-latest
+    needs: site-checks
+    env:
+      SITE_DIR: ${{ inputs.site_dir || '.' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Locate site root
+        id: site
+        run: |
+          if [ -f "$SITE_DIR/index.html" ]; then echo "dir=$SITE_DIR" >> $GITHUB_OUTPUT;
+          elif [ -f site/index.html ]; then echo "dir=site" >> $GITHUB_OUTPUT; else echo "dir=" >> $GITHUB_OUTPUT; fi
+      - name: Playwright smoke — explorer loads a study slice and shows the result count
+        if: steps.site.outputs.dir != ''
+        run: |
+          npm i -D @playwright/test@1 && npx playwright install --with-deps chromium
+          (cd "${{ steps.site.outputs.dir }}" && python3 -m http.server 8123 >/dev/null 2>&1 &) ; sleep 2
+          cat > smoke.spec.js <<'EOF'
+          const { test, expect } = require('@playwright/test');
+          test('explorer study slice renders count and evidence', async ({ page }) => {
+            test.setTimeout(240000);
+            await page.goto('http://localhost:8123/samples/index.html?study=PRJEB32631');
+            // DuckDB-WASM (36 MB from jsDelivr) + parquet load: wait for the "samples match" result text
+            await expect(page.getByText(/samples? match/i)).toBeVisible({ timeout: 180000 });
+            const txt = await page.getByText(/samples? match/i).first().textContent();
+            expect(txt).toMatch(/\d/);
+            const row = page.locator('table tbody tr').first();
+            await row.click();
+            await expect(page.getByText(/evidence/i).first()).toBeVisible({ timeout: 30000 });
+          });
+          EOF
+          npx playwright test smoke.spec.js --reporter=list
+
+  notify:
+    # R1-07: a separate job so a failure in ANY of the three jobs (not only explorer-smoke) opens the Issue.
+    # `if: failure()` on a job with `needs` fires when at least one needed job failed.
+    needs: [unit-tests, site-checks, explorer-smoke]
+    if: failure() && (startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open an Issue on failure (release branches / tags only)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              'unit-tests': '${{ needs.unit-tests.result }}',
+              'site-checks': '${{ needs.site-checks.result }}',
+              'explorer-smoke': '${{ needs.explorer-smoke.result }}' };
+            const failed = Object.entries(results).filter(([k, v]) => v === 'failure').map(([k]) => k).join(', ');
+            await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo,
+              title: `verify failed on ${context.ref} (${context.sha.slice(0,7)}): ${failed}`,
+              labels: ['verify-failed'],
+              body: `The verify workflow failed in job(s) **${failed}**: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\nDeploy is blocked until this passes (docs/RUNBOOK.md §6).` });

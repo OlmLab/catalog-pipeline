@@ -1,0 +1,65 @@
+# A2/A3: GitHub Pages deploys FROM ACTIONS (Settings → Pages → Source: GitHub Actions), so generated HTML never
+# accumulates in git history. Lives in the SITE repo (OlmLab/infant-gut-catalog).
+#
+# Flow: the agent pushes the built site to a `release/<package_version>` branch and tags `site-v<package_version>`
+#       → verify (link check, parquet read, Playwright smoke) must pass → deploy.
+#       Pushes to `main` also deploy (owner-driven path / fallback while no PAT exists).
+# Rollback: Actions → "deploy-pages" → "Run workflow" → choose the previous `site-v*` tag (workflow_dispatch below),
+#           or `git push origin site-v1.1.0 --force-with-lease`-free re-tag is NOT needed — re-running the old tag's
+#           workflow run also works ("Re-run all jobs").
+name: deploy-pages
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["site-v*"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "tag or branch to deploy (rollback: previous site-v* tag)"
+        required: true
+        default: "main"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  issues: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+    with:
+      site_dir: "."
+      # R1-07: on a rollback dispatch verify the SAME ref that deploy checks out (was: default ref)
+      ref: ${{ inputs.ref || github.ref }}
+    secrets: inherit
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - name: Refuse placeholder base URL (A15)
+        run: |
+          if grep -rl "USERNAME.github.io/REPOSITORY" robots.txt sitemap.xml 2>/dev/null; then
+            echo "placeholder base URL present — rebuild with --base-url from config/site.yaml"; exit 1; fi
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: "."
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Record deployed version
+        run: |
+          echo "deployed ${{ inputs.ref || github.ref }} → ${{ steps.deployment.outputs.page_url }}"
+          [ -f data/VERSION.json ] && cat data/VERSION.json | head -8 || true

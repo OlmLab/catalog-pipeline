@@ -1,0 +1,76 @@
+# A1: uploads.github.com (Release asset upload) is on the sandbox's non-grantable denylist, so the agent never
+# uploads assets. It pushes a tag `data-v<semver>` to the DATA repo (OlmLab/infant-gut-catalog-data); this workflow
+# builds the zip + SQLite on GitHub's side and attaches them with softprops/action-gh-release using GITHUB_TOKEN.
+# Zenodo DOI: enable the Zenodo↔GitHub integration on the data repo once; every published Release then mints a DOI.
+name: release
+
+on:
+  push:
+    tags: ["data-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-attach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { lfs: false }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install pandas pyarrow duckdb
+      - name: Check tag == VERSION.json
+        run: |
+          python - <<'EOF'
+          import json, os, sys
+          tag = os.environ["GITHUB_REF_NAME"]
+          v = json.load(open("package/VERSION.json"))
+          if v["release_tag"] != tag:
+              print(f"tag {tag} != VERSION.json release_tag {v['release_tag']}"); sys.exit(1)
+          print("ok", tag)
+          EOF
+      - name: Verify table hashes
+        run: |
+          python - <<'EOF'
+          import hashlib, json, os, sys
+          v = json.load(open("package/VERSION.json")); bad = []
+          for n, m in v["tables"].items():
+              p = os.path.join("package", n)
+              if not os.path.exists(p): bad.append(f"missing {n}"); continue
+              h = hashlib.sha256(open(p, "rb").read()).hexdigest()
+              if h != m["sha256"]: bad.append(f"hash {n}")
+          print(bad or "all hashes ok"); sys.exit(1 if bad else 0)
+          EOF
+      - name: Build data_package zip and SQLite
+        run: |
+          V=$(python -c "import json;print(json.load(open('package/VERSION.json'))['package_version'])")
+          (cd package && zip -qr "../data_package_v${V}.zip" .)
+          python - <<'EOF'
+          import glob, os, sqlite3, pandas as pd, json
+          V = json.load(open("package/VERSION.json"))["package_version"]
+          con = sqlite3.connect(f"infant_catalog_v{V}.sqlite")
+          for f in sorted(glob.glob("package/*.parquet")):
+              t = os.path.basename(f)[:-8]
+              pd.read_parquet(f).to_sql(t, con, if_exists="replace", index=False)
+              print("table", t)
+          for f in sorted(glob.glob("package/*.csv")):
+              t = os.path.basename(f)[:-4]
+              pd.read_csv(f, low_memory=False).to_sql(t, con, if_exists="replace", index=False)
+          con.execute("CREATE TABLE IF NOT EXISTS version AS SELECT ? AS package_version", (V,))
+          con.commit(); con.close()
+          EOF
+          ls -la *.zip *.sqlite
+          sha256sum *.zip *.sqlite > SHA256SUMS.txt
+      - name: Attach assets to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Data package ${{ github.ref_name }}"
+          body_path: package/README.md
+          files: |
+            data_package_v*.zip
+            infant_catalog_v*.sqlite
+            SHA256SUMS.txt
+            package/VERSION.json
+          fail_on_unmatched_files: true

@@ -1,0 +1,39 @@
+# Site / repository configuration (A15, A12, A3). Read by the Makefile `site` and `publish-branch`
+# targets and by site_generator/gen/build_site.py via --base-url. The generator must refuse to build
+# for publish while base_url still contains the USERNAME/REPOSITORY placeholder.
+site:
+  title: "Infant Gut Shotgun-Metagenome Catalog"
+  base_url: "https://olmlab.github.io/infant-gut-catalog/"
+  placeholder_base_url: "https://USERNAME.github.io/REPOSITORY/"   # build fails if base_url == this
+  build_date_source: package_release_date   # never wall-clock (A2 determinism); taken from VERSION.json
+  gzip_mtime: 0                             # deterministic *.csv.gz (A2)
+
+github:
+  org: OlmLab
+  repos:
+    pipeline: catalog-pipeline            # this repository (code, config, docs, tests, workflows)
+    data: infant-gut-catalog-data         # package tables <=50 MB each, audit/findings/, reports/, tags data-vX.Y.Z
+    site: infant-gut-catalog              # GitHub Pages repo (generated output only; Pages source = Actions)
+  default_branch: main
+  issues:                                 # R1-05/R1-19: the ONE place the 'Flag an issue' target is defined (site.js/build_site.py read it)
+    repo: infant-gut-catalog              # Issues live in the site repo; the template must be INSTALLED there (make install-workflows)
+    template: catalog-finding.yml
+    label: finding
+  pages_source: github-actions            # deploy-pages.yml; never commit generated HTML to main
+  branch_rules:
+    agent_may_push_to: ["release/*", "refs/tags/data-v*", "refs/tags/site-v*"]
+    agent_may_never_push_to: ["main"]
+    main_ruleset: [block_force_push, block_deletion]   # as configured 2026-09-26 ('protect-main' on all three repos); no PR requirement — fast-forward pushes to main stay possible for the owner
+  tag_patterns:
+    data_release: "data-v{package_version}"     # e.g. data-v1.2.0 -> release.yml
+    site_release: "site-v{package_version}"
+
+local:
+  root: "~/catalog"                       # the ONLY rw host grant the Release Engineer profile holds
+  clones:
+    pipeline: "~/catalog/catalog-pipeline"
+    data: "~/catalog/infant-gut-catalog-data"
+    site: "~/catalog/infant-gut-catalog"
+  cache: "~/catalog/cache"                # harvest cache untarred; gitignored; never an artifact
+  external: "~/catalog/external"          # e.g. external/sandpiper/<zenodo_version>/
+  legacy_site_clone: null                 # ~/Downloads/site was moved to clones.site on 2026-09-26

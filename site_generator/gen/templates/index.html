@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ site.title }}</h1>
+<p class="lead">A curated, evidence-linked catalog of every public shotgun-metagenome study of the human infant gut (0–36 months) in the INSDC archives (ENA/SRA/DDBJ), with per-sample metadata recovered from archive attributes, supplementary tables and papers. Every value carries a verbatim evidence quote, a route (R1–R4) and a confidence.</p>
+
+<div class="cards">
+<div class="card"><div class="num">{{ stats.n_studies|fmt }}</div><div class="lbl">included studies (BioProjects)</div></div>
+<div class="card"><div class="num">{{ stats.n_samples|fmt }}</div><div class="lbl">samples: {{ stats.n_biosamples|fmt }} BioSample units + {{ stats.n_run_units|fmt }} run units; {{ stats.n_parents }} parent BioSamples listed separately</div></div>
+<div class="card"><div class="num">{{ stats.n_catalog_scope|fmt }}</div><div class="lbl">catalog-scope samples = age-scope infant ({{ stats.n_age_scope_infant|fmt }}: infant_evidenced + study_all_infant) AND gut/unknown body site ({{ stats.n_body_site_excluded|fmt }} age-scope rows are body-site excluded/linked)</div></div>
+<div class="card"><div class="num">{{ stats.n_runs|fmt }}</div><div class="lbl">sequencing runs</div></div>
+<div class="card"><div class="num">{{ stats.n_determinations|fmt }}</div><div class="lbl">sample × field determinations with evidence</div></div>
+<div class="card"><div class="num">{{ stats.pct_age_catalog_scope }}%</div><div class="lbl">of catalog-scope samples with age at collection ({{ stats.n_age_catalog_scope|fmt }} of {{ stats.n_catalog_scope|fmt }}; {{ stats.pct_age_in_scope }}% of age-scope infant samples with age ≤ 1,100 d; {{ stats.pct_age }}% = {{ stats.n_age|fmt }} of {{ stats.n_infant_scope|fmt }} body-site infant-scope)</div></div>
+<div class="card"><div class="num">{{ stats.pct_profiled }}%</div><div class="lbl">of samples with a Sandpiper/SingleM community profile ({{ stats.n_profiled|fmt }} samples, {{ stats.n_runs_profiled|fmt }} runs, {{ stats.n_studies_profiled|fmt }} studies with ≥ 1 profiled sample, {{ stats.taxonomy }})</div></div>
+<div class="card"><div class="num">{{ stats.gold_age_precision }}</div><div class="lbl">age precision vs {{ stats.gold_n_age|fmt }} independently curated samples</div></div>
+<div class="card"><div class="num">{{ stats.n_universe|fmt }}</div><div class="lbl">studies screened ({{ stats.n_excluded|fmt }} excluded, {{ stats.n_review|fmt }} in human review)</div></div>
+<div class="card"><div class="num">{{ stats.n_cohorts|fmt }}</div><div class="lbl">cohorts ({{ stats.n_papers|fmt }} linked papers)</div></div>
+</div>
+
+<h2>Age scope of the {{ stats.n_samples|fmt }} samples</h2>
+<p class="small">"Age-scope infant" means age evidence, not body site alone (Reviewer B1); <b>catalog scope</b> = age-scope infant AND body_site_class primary/unknown ({{ stats.n_catalog_scope|fmt }} samples) and is the headline denominator. Counts from <span class="mono">sample_metadata_wide.age_scope</span>; {{ stats.n_mixed }} included studies are mixed-age deposits and carry a banner on their page.</p>
+<table class="tbl" style="max-width:700px"><thead><tr><th>age_scope</th><th class="num">samples</th><th>meaning</th></tr></thead><tbody>
+{% for k,n in stats.age_scope_counts %}<tr><td class="mono">{{ k }}</td><td class="num">{{ n|fmt }}</td><td class="small">{% if k=='infant_evidenced' %}age ≤ 1,100 d, preterm/GA/DOL evidence on this sample or subject{% elif k=='study_all_infant' %}study evidence says all subjects are infants and the triage estimate ≈ n samples{% elif k=='age_unknown_mixed_study' %}study estimated as mixed-age; no per-sample age{% elif k=='age_unknown_no_study_estimate' %}no per-sample age and no per-study infant estimate{% elif k=='adult_flagged' %}resolved age &gt; 1,100 d (adult_age_flag){% elif k=='non_infant_role' %}mother / other role{% endif %}</td></tr>{% endfor %}
+</tbody></table>
+
+<h2>Find a study, cohort, author or accession</h2>
+<input id="q" class="searchbox" type="search" placeholder="Type a BioProject accession (PRJ…), a study title word, a cohort name, or a sample/run accession (SAMEA…, SRR…)" autocomplete="off">
+<ul id="search-results"></ul>
+<p class="small">Sample, BioSample and run accessions are looked up in the <a href="samples/index.html">Sample explorer</a>; studies, cohorts and first authors are matched client-side against a small index; all authors are on the <a href="authors/index.html">Authors</a> page.</p>
+
+<div class="sections">
+<a class="card" href="studies/index.html"><b>Studies</b><br>{{ stats.n_studies|fmt }} included BioProjects with per-study pages, links, coverage and downloads.</a>
+<a class="card" href="cohorts/index.html"><b>Cohorts</b><br>{{ stats.n_cohorts|fmt }} cohort clusters grouping studies and papers that share subjects.</a>
+<a class="card" href="samples/index.html"><b>Sample explorer</b><br>Filter {{ stats.n_samples|fmt }} samples in the browser; download any slice as CSV or parquet; inspect evidence per value.</a>
+<a class="card" href="fields/index.html"><b>Fields &amp; data dictionary</b><br>Every column, vocabulary, coverage, route mix, confidence tiers.</a>
+<a class="card" href="authors/index.html"><b>Authors</b><br>{{ stats.n_authors|fmt }} author names over {{ stats.n_studies_with_author|fmt }} screened studies; report a missing or mis-triaged study.</a>
+<a class="card" href="universe.html"><b>Screened universe</b><br>{{ stats.n_universe|fmt }} candidate studies with status and exclusion reason.</a>
+<a class="card" href="methods.html"><b>Methods &amp; caveats</b><br>Enumeration, triage, four evidence routes, audits and gold evaluation.</a>
+<a class="card" href="downloads.html"><b>Downloads</b><br>The complete data package, individual tables and the getting-started notebook.</a>
+</div>
+
+<h2>Field coverage</h2>
+<img class="fig" src="static/field_coverage.png" alt="Field coverage, data package {{ site.version }}: fraction of samples with a value per field, body-site scope (n = {{ stats.n_infant_scope|fmt }}) versus catalog scope (n = {{ stats.n_catalog_scope|fmt }})">
+<p class="small">Fraction of samples with a value for each field, for the body-site infant scope (n = {{ stats.n_infant_scope|fmt }}) and the catalog scope (n = {{ stats.n_catalog_scope|fmt }}); age at collection is recoverable for {{ stats.pct_age_catalog_scope }}% of catalog-scope samples. Regenerated from <span class="mono">field_coverage_summary.csv</span> of package {{ site.version }}. Numbers per field are in <a href="fields/index.html">Fields</a>.</p>
+
+<h2>Route legend</h2>
+<table class="tbl" style="max-width:900px">
+<tr><th>Route</th><th>Evidence</th><th>Scope</th></tr>
+<tr><td><span class="tag R1">R1</span></td><td>archive sample attribute or sample-name convention</td><td>per sample</td></tr>
+<tr><td><span class="tag R2">R2</span></td><td>supplementary table row keyed to the study's own accessions or library names</td><td>per sample (or per subject)</td></tr>
+<tr><td><span class="tag R3">R3</span></td><td>statement in the paper text applied to a defined group</td><td>group</td></tr>
+<tr><td><span class="tag R4">R4</span></td><td>abstract / ENA description statement (confidence ≤ 0.5)</td><td>group</td></tr>
+</table>
+{% endblock %}
+{% block scripts %}
+<script>
+fetch('search_index.json').then(r=>r.json()).then(idx=>{
+  const q=document.getElementById('q'), out=document.getElementById('search-results');
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function run(){
+    const s=q.value.trim().toLowerCase(); out.innerHTML='';
+    if(s.length<2) return;
+    if(/^(sam[end]|[sed]rr|[sed]rs|[sed]rx)\d+/i.test(s)){
+      const li=document.createElement('li'); li.innerHTML='Look up <b>'+esc(s.toUpperCase())+'</b> in the <a href="samples/index.html?q='+encodeURIComponent(s.toUpperCase())+'">sample explorer</a> (matches sample, BioSample and run accessions)';
+      out.appendChild(li);
+    }
+    const hits=idx.filter(e=>e.k.includes(s)).slice(0,25);
+    for(const h of hits){const li=document.createElement('li'); li.innerHTML='<span class="tag">'+esc(h.t)+'</span> <a href="'+esc(h.u)+'">'+esc(h.id)+'</a> '+esc(h.n); out.appendChild(li);}
+    if(!hits.length){const li=document.createElement('li');li.className='small';li.textContent='No study or cohort matches.';out.appendChild(li);}
+  }
+  q.addEventListener('input',run);
+});
+</script>
+{% endblock %}

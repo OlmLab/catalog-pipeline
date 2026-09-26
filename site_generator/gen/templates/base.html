@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site.title }}{% endblock %}</title>
+<meta name="description" content="{% block desc %}{{ site.description }}{% endblock %}">
+<meta name="catalog-release" content="{{ site.release_tag }}">
+{% if page_path %}<link rel="canonical" href="{{ site.base_url }}{{ page_path }}">{% endif %}
+<meta name="catalog-package-version" content="{{ site.version }}">
+<meta name="catalog-build-date" content="{{ site.build_date }}">
+<link rel="stylesheet" href="{{ root }}static/site.css">
+{% if use_datatables %}
+<link rel="stylesheet" href="{{ root }}static/vendor/dataTables.dataTables-2.1.8.min.css" integrity="{{ site.sri['dataTables.dataTables-2.1.8.min.css'] }}" crossorigin="anonymous">
+{% endif %}
+{% block head %}{% endblock %}
+</head>
+<body>
+<nav class="topnav"><div class="in">
+<a class="brand" href="{{ root }}index.html">Infant Gut Metagenome Catalog</a>
+<a href="{{ root }}studies/index.html" {% if nav=='studies' %}class="active"{% endif %}>Studies</a>
+<a href="{{ root }}cohorts/index.html" {% if nav=='cohorts' %}class="active"{% endif %}>Cohorts</a>
+<a href="{{ root }}samples/index.html" {% if nav=='samples' %}class="active"{% endif %}>Sample explorer</a>
+<a href="{{ root }}fields/index.html" {% if nav=='fields' %}class="active"{% endif %}>Fields</a>
+<a href="{{ root }}authors/index.html" {% if nav=='authors' %}class="active"{% endif %}>Authors</a>
+<a href="{{ root }}universe.html" {% if nav=='universe' %}class="active"{% endif %}>Universe</a>
+<a href="{{ root }}methods.html" {% if nav=='methods' %}class="active"{% endif %}>Methods</a>
+<a href="{{ root }}downloads.html" {% if nav=='downloads' %}class="active"{% endif %}>Downloads</a>
+</div></nav>
+<main>
+{% if crumbs %}<div class="crumbs">{% for c in crumbs %}{% if not loop.first %} › {% endif %}{% if c.href %}<a href="{{ c.href }}">{{ c.label }}</a>{% else %}{{ c.label }}{% endif %}{% endfor %}</div>{% endif %}
+{% block content %}{% endblock %}
+</main>
+<footer>
+<div><b>{{ site.title }}</b> — package <span class="mono">{{ site.version }}</span> · built {{ site.build_date }} · generator <span class="mono">{{ site.sha8 }}</span> · release <span class="mono">{{ site.release_tag }}</span> (<a href="{{ root }}data/VERSION.json">VERSION.json</a>, <a href="{{ root }}docs/CHANGELOG.html">changelog</a>). Curated tables are released under <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>; archive metadata remains under INSDC terms; community profiles from <a href="https://sandpiper.qut.edu.au/">Sandpiper</a> (Woodcroft et al. 2025, CC-BY).</div>
+<div>How to cite: <i>{{ site.citation }}</i></div>
+<div>Caveats: every value carries a route (R1 archive attribute, R2 supplementary table, R3 paper text, R4 abstract/description), a scope and a confidence tier (not a calibrated probability); R3/R4 values are group-level statements applied to samples — see <a href="{{ root }}fields/index.html">Fields</a> and <a href="{{ root }}methods.html#limitations">Methods › Limitations</a>. Built with an LLM-assisted pipeline; treat individual values as evidence-linked claims, not ground truth. Found an error? Every study, cohort and sample has a <b>Flag an issue</b> button that opens a prefilled GitHub issue.</div>
+</footer>
+{% if use_datatables %}
+<script src="{{ root }}static/vendor/jquery-3.7.1.min.js" integrity="{{ site.sri['jquery-3.7.1.min.js'] }}" crossorigin="anonymous"></script>
+<script src="{{ root }}static/vendor/dataTables-2.1.8.min.js" integrity="{{ site.sri['dataTables-2.1.8.min.js'] }}" crossorigin="anonymous"></script>
+{% endif %}
+<script>window.CATALOG={version:'{{ site.version }}',release:'{{ site.release_tag }}',issueRepo:'{{ site.issue_repo }}',issueTemplate:'catalog-finding.yml'};</script>
+<script src="{{ root }}static/site.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

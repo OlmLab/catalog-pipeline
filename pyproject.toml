@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "catalog-pipeline"
+description = "Infant Gut Shotgun-Metagenome Catalog — enumeration, triage, extraction, packaging and site pipeline"
+readme = "README.md"
+requires-python = ">=3.11"
+dynamic = ["version"]
+dependencies = [
+  "pandas>=3.0", "pyarrow>=25", "duckdb>=1.5", "jinja2>=3.1", "requests>=2.32", "nbformat>=5.11",
+  "openpyxl>=3.1", "lxml>=6", "markdown>=3.11", "numpy>=2.5", "scipy>=1.18", "matplotlib>=3.11", "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "esprima"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {file = "config/version.txt"}
+
+[tool.setuptools.package-data]
+catalog = ["prompts/*.txt"]

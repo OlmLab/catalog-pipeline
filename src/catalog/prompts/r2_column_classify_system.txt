@@ -1,0 +1,27 @@
+You classify columns of supplementary tables from infant gut microbiome papers into a fixed set of per-sample metadata fields. You see, per table: the file/sheet name, the column that holds sample identifiers, all headers, three example rows, and up to eight distinct values per column.
+
+Fields (assign at most one field per column; a field may appear in several columns only if they truly duplicate it):
+- age_at_collection_days: infant age at sample collection (postnatal age, day of life, months of age). NOT gestational age, NOT postmenstrual age, NOT maternal age. Set unit to the unit the column is expressed in (days / weeks / months / years) when the header or values make it clear; otherwise "none".
+- gestational_age_weeks: gestational age at birth (weeks). unit weeks or days.
+- birth_weight_grams: birth weight; unit grams or kg.
+- delivery_mode: birth mode (vaginal / caesarean). Give a legend mapping each raw code to one of: vaginal, c_section, c_section_elective, c_section_emergency.
+- feeding_mode: infant feeding at/around collection. Legend values: exclusive_breast, mixed, formula, weaned.
+- preterm_status: preterm vs term. Legend values: preterm, term.
+- antibiotic_exposure: infant antibiotic exposure (any/ever/current). Legend values: yes, no.
+- maternal_antibiotics: maternal antibiotics (intrapartum/perinatal/during pregnancy). Legend: yes, no.
+- probiotic_exposure: infant probiotic supplementation. Legend: yes, no.
+- hmo_supplementation: HMO-supplemented formula. Legend: yes, no.
+- nec_status: necrotizing enterocolitis diagnosis. Legend: yes, no.
+- country: country of residence/collection.
+- sex: infant sex. Legend: male, female.
+- subject_id: infant/subject identifier (not the sample id column itself unless it is also the subject id).
+- timepoint_label: nominal timepoint/visit label (e.g. "1M", "Visit 3", "T2").
+- none: anything else (taxa, abundances, read counts, statistics, maternal-only variables, disease variables).
+
+Rules:
+- Only list columns that carry one of the fields above; omit 'none' columns.
+- A legend is REQUIRED for coded categorical columns (0/1, V/C, A/B, Y/N, 1/2). If the raw codes cannot be interpreted from the header or values, do NOT guess: assign field "none" and explain in note.
+- Columns that mix infant and maternal ages or describe the mother (maternal BMI, maternal age) are "none" unless the field is maternal_antibiotics.
+- Columns in the table about the paper's statistical results (coefficients, p-values, taxa) are "none".
+- Be conservative: when a header is ambiguous between two fields, choose "none" and say why in note.
+Return every table_id you were given.

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Authors — {{ site.title }}{% endblock %}
+{% block content %}
+<h1>Authors and organisations</h1>
+<p class="lead">Search {{ n_index|fmt }} author names ({{ stats.n_author_rows|fmt }} study × author rows over {{ stats.n_studies_with_author|fmt }} of the {{ stats.n_universe|fmt }} screened studies). Each hit lists the studies the author is linked to — included <i>and</i> excluded — with the catalog status, exclusion reason and PMID, and a button to report a study that is wrong or missing. Organisations are searchable on the <a href="../universe.html">Universe</a> page.</p>
+<p class="note"><b>Caveats</b> (from the <a href="../docs/AUTHORS_REPORT.html">Authors report</a>): names are string-matched from Europe PMC author strings and NCBI BioProject publication records — the same person can appear under several initial variants (e.g. "Aagaard K" and "Aagaard KM") and no disambiguation was attempted; {{ stats.n_included_no_author|fmt }} included studies have no author at all (no linked paper, no BioProject publication, no ENA PubMed cross-reference); consortium names are kept as group authors.</p>
+<input id="q" class="searchbox" type="search" placeholder="Surname (and initials), e.g. Bäckhed F, Olm, RESONANCE" autocomplete="off">
+<div id="status" class="small"></div>
+<div id="results"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  const shards = {{ shard_letters|tojson }}; const cache = {};
+  const q = document.getElementById('q'), out = document.getElementById('results'), st = document.getElementById('status');
+  const h = s => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function norm(s){ return String(s).replace(/æ/g,'ae').replace(/Æ/g,'AE').replace(/ø/g,'o').replace(/Ø/g,'O').replace(/ß/g,'ss').replace(/đ/g,'d').replace(/Đ/g,'D').replace(/ł/g,'l').replace(/Ł/g,'L').replace(/œ/g,'oe').replace(/Œ/g,'OE').replace(/\*+$/,'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+  async function shard(letter){ if (!cache[letter]) cache[letter] = fetch('idx/' + letter + '.json').then(r => r.ok ? r.json() : {}); return cache[letter]; }
+  function reportBtn(s, name){
+    const cur = `study ${s.acc} · status ${s.status}${s.reason_code ? ' · reason ' + s.reason_code : ''} · author ${name}${s.pmid ? ' · PMID ' + s.pmid : ''}`;
+    return '<a class="btn flag xs" target="_blank" rel="noopener" href="' + h(window.catalogIssueUrl({title: '[finding] ' + s.acc + ': triage / universe', identifier: s.acc, finding_type: s.status === 'included' ? 'triage_error' : 'universe_miss', action: 'study_verdict', current_state: cur, evidence_source: 'external_curation.human', release_tag: window.CATALOG.release + ' · authors/index.html?q=' + encodeURIComponent(name)})) + '">This study is wrong / missing → report</a>';
+  }
+  async function run(){
+    const s = norm(q.value); out.innerHTML = ''; st.textContent = '';
+    if (s.length < 2) return;
+    const letter = /^[a-z]/.test(s) ? s[0] : '_';
+    if (!shards.includes(letter)) { st.textContent = 'No author starts with that letter.'; return; }
+    const idx = await shard(letter);
+    const keys = Object.keys(idx).filter(k => norm(k).startsWith(s) || norm(idx[k].display).includes(s)).sort().slice(0, 40);
+    st.textContent = keys.length ? keys.length + ' author name(s) match' + (keys.length === 40 ? ' (first 40 shown — type more)' : '') : 'No author matches "' + q.value + '". Missing? Report it from the study page or open an issue from the Universe page.';
+    for (const k of keys) {
+      const a = idx[k];
+      const div = document.createElement('div');
+      div.innerHTML = '<h3>' + h(a.display) + (a.group ? ' <span class="tag">group author</span>' : '') + ' <span class="small">' + a.n_studies + ' stud' + (a.n_studies === 1 ? 'y' : 'ies') + (a.studies && a.studies.length !== a.n_studies ? ' · ' + a.studies.length + ' study–paper rows' : '') + '</span></h3>' +
+        '<table class="tbl compact"><thead><tr><th>Study</th><th>Title</th><th>Status</th><th>Reason</th><th>PMID</th><th>Source</th><th></th></tr></thead><tbody>' +
+        a.studies.map(x => '<tr><td class="mono">' + (x.status === 'included' ? '<a href="../studies/' + h(x.acc) + '.html">' + h(x.acc) + '</a>' : '<a href="https://www.ebi.ac.uk/ena/browser/view/' + h(x.acc) + '">' + h(x.acc) + '</a>') + '</td><td>' + h(x.title_short) + '</td><td><span class="tag ' + h(x.status) + '">' + h(x.status) + '</span></td><td class="mono small">' + h(x.reason_code || '') + '</td><td>' + (x.pmid ? '<a href="https://europepmc.org/article/MED/' + h(x.pmid) + '">' + h(x.pmid) + '</a>' : '') + '</td><td class="small">' + h(x.src) + (x.pos ? ' · ' + h(x.pos) : '') + '</td><td>' + reportBtn(x, a.display) + '</td></tr>').join('') + '</tbody></table>';
+      out.appendChild(div);
+    }
+    for (const a of out.querySelectorAll('a[href^="http"]')) { a.target = '_blank'; a.rel = 'noopener'; }
+  }
+  q.addEventListener('input', () => { clearTimeout(q._t); q._t = setTimeout(run, 150); });
+  const init = new URLSearchParams(location.search).get('q'); if (init) { q.value = init; run(); }
+})();
+</script>
+{% endblock %}

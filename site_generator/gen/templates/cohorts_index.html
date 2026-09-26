@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Cohorts — {{ site.title }}{% endblock %}
+{% block content %}
+<h1>Cohorts ({{ cohorts|length|fmt }})</h1>
+<p class="lead">Cohort clusters group BioProjects and papers that share the same underlying subjects (entity-resolved from paper titles, abstracts and data-availability statements). Singleton cohorts wrap a study with no detected sibling deposit. Unique-infant estimates come from a quoted statement in an index publication where one was found.</p>
+<div class="btns"><a class="btn sec" href="../data/package/cohorts.csv" download>Download table (CSV)</a></div>
+<table id="cohorts" class="tbl display compact">
+<thead><tr><th>Cohort</th><th>Name</th><th class="num">Included studies</th><th class="num">Papers</th><th>Countries</th><th class="num">Samples</th><th class="num">Unique infants (est.)</th><th>Estimate status</th><th>First public</th></tr></thead>
+<tbody>{% for c in cohorts %}<tr>
+<td><a href="{{ c.cohort_id }}.html">{{ c.cohort_id }}</a></td>
+<td>{{ c.cohort_name }}</td>
+<td class="num">{{ c.n_included_studies|numint }}</td>
+<td class="num">{{ c.n_papers|numint }}</td>
+<td>{{ c.countries or '' }}</td>
+<td class="num" data-order="{{ c.n_samples_in_catalog }}">{{ c.n_samples_in_catalog|fmt }}</td>
+<td class="num">{{ c.unique_infants_display or ('—' if c.unique_infants_outcome == 'sentinel_no_evidence' or c.unique_infants_est is none else c.unique_infants_est|numint) }}</td>
+<td class="small">{{ c.unique_infants_outcome or '' }}</td>
+<td>{{ c.first_public_min or '' }}</td>
+</tr>{% endfor %}</tbody></table>
+{% endblock %}
+{% block scripts %}<script>new DataTable('#cohorts',{pageLength:50,order:[[5,'desc']],lengthMenu:[25,50,100,500]});</script>{% endblock %}

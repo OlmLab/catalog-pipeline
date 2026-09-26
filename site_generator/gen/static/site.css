@@ -1,0 +1,104 @@
+/* Colours follow the University of Colorado Boulder brand palette (colours only; no logo or wordmark).
+   One edit here changes the whole site. Gold is used as background/accent only — never as text on white (WCAG AA). */
+:root{--cu-gold:#CFB87C;--cu-black:#000000;--cu-dark-gray:#565A5C;--cu-light-gray:#A2A4A3;
+  --cu-bronze:#A88B4A;--cu-pale-gray:#D9D9D9;--cu-pale-gold:#F3EEDD;
+  --ink:var(--cu-black);--muted:var(--cu-dark-gray);--line:var(--cu-pale-gray);--bg:#ffffff;--panel:#F5F5F4;
+  --accent:var(--cu-gold);--accent-text:#7A6A3C;--accent2:var(--cu-gold);--warn:#8A4A1A;
+  --r1:var(--cu-gold);--r2:var(--cu-dark-gray);--r3:var(--cu-bronze);--r4:var(--cu-pale-gray);--maxw:1240px;font-size:15px}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+a{color:var(--accent-text);text-decoration:underline;text-decoration-color:var(--cu-gold);text-underline-offset:2px}a:hover{color:var(--cu-black);text-decoration-color:var(--cu-black)}
+code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+pre{background:var(--panel);padding:.75rem;overflow:auto;border:1px solid var(--line);border-radius:6px}
+h1{font-size:1.7rem;margin:.4rem 0 .6rem}h2{font-size:1.25rem;margin:1.6rem 0 .5rem;border-bottom:2px solid var(--cu-gold);padding-bottom:.2rem}h3{font-size:1.05rem;margin:1.1rem 0 .4rem}
+.topnav{background:var(--cu-black);color:#fff;position:sticky;top:0;z-index:20;border-bottom:4px solid var(--cu-gold)}
+.topnav .in{max-width:var(--maxw);margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:.2rem 1rem;padding:.45rem 1rem}
+.topnav a{color:#fff;opacity:.92;padding:.25rem .3rem;border-radius:4px;text-decoration:none}.topnav a:hover{opacity:1;background:rgba(207,184,124,.25);color:#fff}
+.topnav .brand{font-weight:600;margin-right:auto;opacity:1;color:var(--cu-gold)}
+.topnav a.active{background:var(--cu-gold);color:var(--cu-black)}
+main{max-width:var(--maxw);margin:0 auto;padding:1rem 1rem 3rem}
+.crumbs{font-size:.85rem;color:var(--muted);margin:.2rem 0 .6rem}.crumbs a{color:var(--muted)}
+footer{border-top:4px solid var(--cu-gold);color:var(--muted);font-size:.85rem;max-width:var(--maxw);margin:2rem auto;padding:1rem}
+.lead{font-size:1.05rem;color:var(--cu-dark-gray);max-width:900px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin:1rem 0}
+.card{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--cu-gold);border-radius:8px;padding:.7rem .8rem}
+.card .num{font-size:1.5rem;font-weight:600;color:var(--ink)}.card .lbl{font-size:.8rem;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1rem}
+table.tbl{border-collapse:collapse;width:100%;font-size:.9rem}
+table.tbl th,table.tbl td{border-bottom:1px solid var(--line);padding:.35rem .5rem;text-align:left;vertical-align:top}
+table.tbl th{background:var(--cu-black);color:#fff}
+table.tbl.compact th,table.tbl.compact td{padding:.2rem .4rem}
+table.kv td:first-child{color:var(--muted);white-space:nowrap;width:220px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.final td{background:var(--cu-pale-gold)}
+tr.masked td{color:var(--cu-dark-gray);text-decoration:line-through;text-decoration-color:var(--cu-dark-gray)}tr.masked td .tag{text-decoration:none}
+.tag{display:inline-block;font-size:.75rem;padding:.05rem .4rem;border-radius:10px;background:var(--panel);border:1px solid var(--cu-light-gray);color:var(--cu-dark-gray)}
+.tag.R1{background:var(--cu-gold);color:var(--cu-black);border-color:var(--cu-gold)}.tag.R2{background:var(--cu-dark-gray);color:#fff;border-color:var(--cu-dark-gray)}.tag.R3{background:var(--accent-text);color:#fff;border-color:var(--accent-text)}.tag.R4{background:var(--cu-pale-gray);color:var(--cu-black);border-color:var(--cu-light-gray)}
+.tag.included{background:var(--cu-gold);color:var(--cu-black);border-color:var(--cu-gold)}.tag.excluded{background:var(--cu-dark-gray);color:#fff;border-color:var(--cu-dark-gray)}.tag.human_review{background:#fff;color:var(--cu-black);border:1px dashed var(--cu-dark-gray)}
+.bar{display:inline-block;height:10px;background:var(--line);border-radius:3px;width:100px;vertical-align:middle;position:relative;overflow:hidden}
+.bar>span{position:absolute;left:0;top:0;bottom:0;background:var(--cu-gold)}
+.covrow{display:grid;grid-template-columns:200px 1fr 60px;gap:.5rem;align-items:center;font-size:.88rem;padding:.12rem 0}
+.covrow .bar{width:100%}
+.btn{display:inline-block;background:var(--cu-gold);color:var(--cu-black);padding:.4rem .8rem;border-radius:6px;border:1px solid var(--cu-gold);cursor:pointer;font-size:.9rem;text-decoration:none;font-weight:500}
+.btn:hover{filter:brightness(1.06);color:var(--cu-black)}.btn.sec{background:#fff;color:var(--cu-black);border:1px solid var(--cu-dark-gray)}
+.btn.flag{background:var(--cu-black);color:var(--cu-gold);border-color:var(--cu-black)}.btn.confirm{background:#fff;color:var(--cu-black);border:1px solid var(--cu-gold)}
+.btn.xs{padding:.05rem .4rem;font-size:.75rem;border-radius:4px}
+.btn:disabled{opacity:.5;cursor:default}
+.btns{display:flex;flex-wrap:wrap;gap:.5rem;margin:.6rem 0}
+.quote{font-style:italic;color:var(--cu-black)}
+.note{background:var(--cu-pale-gold);border:1px solid var(--cu-gold);border-radius:6px;padding:.6rem .8rem;font-size:.9rem}
+.small{font-size:.85rem;color:var(--muted)}
+.searchbox{width:100%;max-width:640px;font-size:1.05rem;padding:.5rem .7rem;border:1px solid var(--cu-dark-gray);border-radius:6px}
+#search-results{list-style:none;padding:0;margin:.4rem 0;max-width:640px}
+#search-results li{padding:.3rem .5rem;border-bottom:1px solid var(--line)}
+.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem;margin:1rem 0}
+.sections a.card{display:block;color:var(--ink);text-decoration:none}.sections a.card:hover{border-color:var(--cu-black)}
+.sections .card b{color:var(--cu-black)}
+img.fig{max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px}
+.exp{display:grid;grid-template-columns:300px 1fr;gap:1rem}
+.filters{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.7rem;font-size:.88rem;align-self:start;position:sticky;top:56px;max-height:calc(100vh - 64px);overflow:auto}
+.filters label{display:block;margin:.5rem 0 .15rem;color:var(--muted);font-size:.8rem}
+.filters .lbl{display:block;font-size:.8rem;color:var(--muted);margin-top:.5rem}
+.filters select,.filters input{width:100%;padding:.25rem .35rem;border:1px solid var(--cu-light-gray);border-radius:4px;font-size:.88rem;background:#fff}
+.filters .row2{display:flex;gap:.4rem}
+.filters .chk{display:inline-flex;align-items:center;gap:.25rem;margin-right:.6rem;color:var(--ink)}
+.filters .chk input{width:auto}
+.filters input[type=range]{accent-color:var(--cu-gold)}
+#result-wrap{overflow:auto}
+#result-table td{white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+#result-table tbody tr{cursor:pointer}#result-table tbody tr:hover{background:var(--cu-pale-gold)}
+.pager{display:flex;gap:.5rem;align-items:center;margin:.5rem 0;flex-wrap:wrap}
+.status{color:var(--muted);font-size:.88rem}
+.detail{position:fixed;right:0;top:0;bottom:0;width:min(640px,100%);background:#fff;border-left:4px solid var(--cu-gold);box-shadow:-4px 0 18px rgba(0,0,0,.12);z-index:30;overflow:auto;padding:1rem;display:none}
+.detail.open{display:block}
+.detail .close{float:right;cursor:pointer;font-size:1.3rem;border:0;background:none}
+.conf{color:var(--muted);font-size:.8rem}
+/* stacked composition bars (study pages) and horizontal bars (explorer detail) */
+.stackrow{display:grid;grid-template-columns:110px 1fr;gap:.6rem;align-items:center;margin:.4rem 0 .1rem}
+.stacklbl{font-size:.85rem;color:var(--muted)}
+.stack{position:relative;height:22px;background:#fff;border:1px solid var(--cu-dark-gray);border-radius:4px;overflow:hidden}
+.stack>span{position:absolute;top:0;bottom:0;border-right:1px solid var(--cu-dark-gray)}
+.legend .sw{display:inline-block;width:.8em;height:.8em;border:1px solid var(--cu-dark-gray);vertical-align:-1px;margin-right:.2em}
+.hbars{display:grid;gap:.15rem;margin:.3rem 0}
+.hbar{display:grid;grid-template-columns:170px 1fr 52px;gap:.4rem;align-items:center;font-size:.85rem}
+.hbar .trk{display:block;height:12px;background:var(--panel);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.hbar .trk>span{display:block;height:100%}
+.hbar .val{text-align:right;font-variant-numeric:tabular-nums}
+.hbar .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr.hist.rejected td,tr.hist.dropped td{color:var(--cu-dark-gray)}
+/* DataTables in brand colours */
+.dt-container{font-size:.88rem}
+.dt-container .dt-search input,.dt-container select{padding:.3rem .5rem;border:1px solid var(--cu-light-gray);border-radius:4px}
+.dt-container .dt-paging .dt-paging-button.current,.dt-container .dt-paging .dt-paging-button.current:hover{background:var(--cu-gold)!important;color:var(--cu-black)!important;border-color:var(--cu-gold)!important}
+.dt-container .dt-paging .dt-paging-button:hover{background:var(--cu-pale-gold)!important;color:var(--cu-black)!important;border-color:var(--cu-gold)!important}
+table.dataTable thead>tr>th.dt-orderable-asc:hover,table.dataTable thead>tr>th.dt-orderable-desc:hover{outline-color:var(--cu-gold)}
+table.dataTable thead>tr>th span.dt-column-order:before,table.dataTable thead>tr>th span.dt-column-order:after{color:var(--cu-gold)}
+.md table{border-collapse:collapse;font-size:.88rem;margin:.6rem 0}.md th,.md td{border:1px solid var(--line);padding:.3rem .5rem;vertical-align:top}.md th{background:var(--panel);color:var(--ink)}
+.md h2{margin-top:1.4rem}
+details summary{cursor:pointer}
+@media (max-width:820px){.exp{grid-template-columns:1fr}.filters{position:static;max-height:none}.covrow{grid-template-columns:130px 1fr 50px}table.kv td:first-child{width:auto}.hbar{grid-template-columns:110px 1fr 48px}}
+
+/* F12: visible keyboard focus everywhere; the detail panel is focusable */
+#result-table tbody tr:focus,#result-table th:focus,a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--cu-black);outline-offset:1px}
+#result-table tbody tr:focus td{background:var(--cu-pale-gold)}
+.detail:focus{outline:none}
