@@ -8,7 +8,7 @@ supplementary file) cannot escalate.
 
 | item | scope | where it lives | who may use it |
 |---|---|---|---|
-| GitHub fine-grained PAT | **Resource owner: OlmLab**; repositories: `infant-gut-catalog` (site) and `infant-gut-catalog-data` (data) ONLY; permissions: **Contents: read/write**, Metadata: read (implicit), **Workflows: none**, Issues: read (for the findings inbox — optional) ; expiry ≤ 1 year | Customize → Credentials (stored 2026-09-26 under the display name `GitHub`; env var `GITHUB_TOKEN`), injected only into cells that declare `credentials=["GitHub"]` | Release Engineer profile only |
+| GitHub fine-grained PAT | **Resource owner: OlmLab**; repositories: `infant-gut-catalog` (site) and `infant-gut-catalog-data` (data) ONLY; permissions as configured 2026-09-26 after the first release: **Contents: read/write**, **Workflows: read/write** (needed to install/update `.github/workflows/*` — GitHub rejects workflow pushes without it; may be set back to *No access* between workflow changes), **Actions: read/write** (re-run a failed deploy, rollback via `workflow_dispatch`), Issues: read/write (findings inbox), Metadata: read; NOT granted: Administration, Environments, Pages (the `github-pages` environment rule and Pages source are owner-only UI settings); expiry ≤ 1 year | Customize → Credentials (stored 2026-09-26 under the display name `GitHub`; env var `GITHUB_TOKEN`), injected only into cells that declare `credentials=["GitHub"]` | Release Engineer profile only |
 | host filesystem grant | `~/catalog/` read-write (see DATA_LAYOUT.md) | Claude Science host grants | Release Engineer, Curator (rw); Auditor: **no grants** |
 | network grants | github.com, api.github.com (push + Issues API); olmlab.github.io (post-deploy check); zenodo.org and sandpiper.qut.edu.au (Sandpiper module) | Settings → Domain Allowlist | any profile that needs them; Auditor read-only sites only |
 
@@ -89,3 +89,16 @@ footer shows `package <semver> · build <sha>` so a reader can tell which releas
 Read-only by construction: no host grants, no credentials, network limited to public read APIs. It writes
 `audit/findings/*.csv` as artifacts; a Curator/Release Engineer session applies them with `apply_findings.py`
 (every row re-validated) — the Auditor never edits tables.
+
+## 5. First unattended release — what had to be set once (2026-09-26, data 1.2.2)
+* The `github-pages` **environment** allowed deployments from `main` only (default of the old branch-based Pages). The
+  `site-v1.2.2` tag was verified but the deploy job was rejected with no step executed. Fix (owner UI, once): Settings →
+  Environments → github-pages → Deployment branches and tags → add rule *Tag* `site-v*`. The PAT cannot do this (no
+  Environments permission by design).
+* `deploy-pages.yml` carries `if: github.repository == 'OlmLab/infant-gut-catalog'` so the authored copy in this repo never
+  tries to deploy (it failed at `configure-pages` on the first pipeline push).
+* The site repo has no `check_links.py`; `verify.yml` fetches it from this repo's `main` via raw.githubusercontent.com.
+* Release assets built and attached by `release.yml` in ~3 min: `data_package_v1.2.2.zip` 62.6 MB, `infant_catalog_v1.2.2.sqlite` 532 MB.
+* The sandbox cannot create a directory named `.git` under `~/catalog/` (writes inside an existing `.git` are fine), so new
+  clones are created by the owner (`git clone`) and the agent works inside them afterwards.
+
