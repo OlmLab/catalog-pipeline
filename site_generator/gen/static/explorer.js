@@ -20,7 +20,7 @@ const fmtV = (v, c) => {
 };
 const TAXON_COLORS = ['#CFB87C','#565A5C','#A88B4A','#8C8F91','#7A6A3C','#3C3C3C','#8A7A48','#7F7060','#6E6A5E','#8F7418','#6F6D62','#6B6F73','#7D7461','#4A4A4A','#75604A','#5F6366']; // F11: identical to build_site.py TAXON_PALETTE
 
-let duckdb, db, conn, detReady = false, vhReady = false, tgReady = false, page = 0, total = 0, sortCol = 'sample_key', sortDir = 'ASC';
+let duckdb, db, conn, detReady = false, vhReady = false, tgReady = false, sdaReady = false, page = 0, total = 0, sortCol = 'sample_key', sortDir = 'ASC';
 
 function setBoot(msg){ $('boot-msg').textContent = msg; }
 function ruleOn(){ return $('f-rule').checked; }
@@ -185,6 +185,7 @@ async function ensureFile(url, name, view){
 }
 async function ensureDet(){ if (!detReady) { await ensureFile(CFG.det, 'det.parquet', 'det'); detReady = true; } }
 async function ensureVh(){ if (!vhReady) { await ensureFile(CFG.vh, 'vh.parquet', 'vh'); vhReady = true; } }
+async function ensureSda(){ if (!sdaReady) { await ensureFile(CFG.sdall, 'sdall.parquet', 'sdall'); sdaReady = true; } } // R2026.1: bitemporal determinations, loaded only when a detail panel opens
 async function ensureTg(){ if (!tgReady) { await ensureFile(CFG.topgen, 'tg.parquet', 'tg'); tgReady = true; } }
 
 function issueBtns(s, f, ev){
@@ -238,6 +239,7 @@ async function showDetail(key){
   html += `</tbody></table>
   <h3>Community profile (Sandpiper/SingleM, ${h(s.taxonomy_db || 'GTDB')} ${h(s.taxonomy_version || '')})</h3><div id="taxo" class="status">${s.sp_profiled ? 'loading top genera…' : 'not profiled in Sandpiper'}</div>
   <h3>Evidence</h3><div id="evidence" class="status">loading determinations…</div>
+  <h3>Value timeline across releases</h3><div id="timeline" class="status">loading…</div>
   <h3>Value history</h3><div id="history" class="status">loading…</div>`;
   body.innerHTML = html;
   for (const f of FIELDS) { const cell = $('btn-'+f); if (cell) cell.innerHTML = issueBtns(s, f, null); }
@@ -266,6 +268,21 @@ async function showDetail(key){
       ev.map(e => `<tr><td class="mono">${h(e.field_name)}</td><td>${h(fmtV(e.value_normalized))}<br><span class="small">${h(fmtV(e.field_value))}</span></td><td><span class="tag ${h(e.route)}">${h(e.route)}</span> ${h(e.scope)}${e.scope === 'group' ? ' <span class="tag" title="group statement applied to samples">group statement</span>' : ''}<br><span class="conf">${fmtV(e.confidence)}</span></td><td class="small">${h(e.evidence_source)}<br>${h(e.evidence_locator)}${e.parse_note ? '<br><i>'+h(e.parse_note)+'</i>' : ''}</td><td class="quote">“${h(e.evidence_quote)}”</td></tr>`).join('') + '</tbody></table>'
       : '<p class="small">No determinations recorded for this sample.</p>';
   } catch (e) { $('evidence').textContent = 'could not load evidence: ' + (e.message || e); }
+  try { // R2026.1 value timeline: current + retired values per field from sample_determinations_all (release_added / release_retired / retired_reason)
+    await ensureSda();
+    const RC = CFG.releaseCols;
+    const d = await conn.query(`SELECT field_name, value_normalized, field_value, route, scope, confidence, evidence_source, evidence_quote, "${RC.added}" AS release_added, "${RC.retired}" AS release_retired, "${RC.reason}" AS retired_reason, "${RC.stage}" AS retired_change_stage FROM sdall WHERE sample_key = '${esc(key)}' ORDER BY field_name, ("${RC.retired}" IS NULL) DESC, "${RC.added}" DESC, "${RC.retired}" DESC`);
+    const tl = d.toArray().map(x => x.toJSON());
+    const nRet = tl.filter(e => e.release_retired !== null && e.release_retired !== undefined).length;
+    $('timeline').className = '';
+    if (!tl.length) $('timeline').innerHTML = '<p class="small">No determinations (current or retired) for this sample.</p>';
+    else {
+      let last = null;
+      $('timeline').innerHTML = `<p class="small">${tl.length - nRet} current and ${nRet} retired value${nRet === 1 ? '' : 's'} from <span class="mono">sample_determinations_all.parquet</span>; release <b>${h(CFG.releaseId)}</b> is current. Rows the README rule would hide (R3/R4 with confidence &lt; 0.5) are marked${ruleOn() ? '' : ' (rule currently off)'}.</p><table class="tbl small"><thead><tr><th>field</th><th>value</th><th>route/scope · tier</th><th>release added</th><th>release retired</th><th>retired reason · stage</th><th>evidence</th></tr></thead><tbody>` +
+        tl.map(e => { const cur = e.release_retired === null || e.release_retired === undefined; const masked = ['R3','R4'].includes(e.route) && (e.confidence ?? 0) < 0.5; const first = e.field_name !== last; last = e.field_name;
+          return `<tr class="${cur ? 'current' : 'hist retired'}${masked ? ' masked' : ''}"><td class="mono">${first ? `<a href="${CFG.fieldsUrl}#${h(e.field_name)}">${h(e.field_name)}</a>` : ''}</td><td>${cur ? '<b>' : ''}${h(fmtV(e.value_normalized))}${cur ? '</b>' : ''}${e.field_value !== null && e.field_value !== undefined && String(e.field_value) !== String(e.value_normalized) ? ` <span class="small">(${h(fmtV(e.field_value))})</span>` : ''}${masked ? ' <span class="tag">hidden by README rule</span>' : ''}</td><td><span class="tag ${h(e.route)}">${h(e.route)}</span> ${h(e.scope)} <span class="conf">${fmtV(e.confidence)}</span></td><td class="mono">${h(e.release_added)}</td><td class="mono">${cur ? '<span class="tag">current</span>' : h(e.release_retired)}</td><td class="small">${cur ? '' : h(e.retired_reason) + (e.retired_change_stage ? ' <span class="mono">' + h(e.retired_change_stage) + '</span>' : '')}</td><td class="quote small">“${h(e.evidence_quote)}” <span class="small">${h(e.evidence_source)}</span></td></tr>`; }).join('') + '</tbody></table>';
+    }
+  } catch (e) { $('timeline').textContent = 'could not load the value timeline: ' + (e.message || e); }
   try {
     await ensureVh();
     const d = await conn.query(`SELECT field_name, value_normalized, route, scope, confidence, status, reason, replaced_by, change_stage, evidence_source, evidence_quote, date FROM vh WHERE sample_key = '${esc(key)}' ORDER BY field_name, status`);

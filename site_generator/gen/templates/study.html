@@ -61,6 +61,13 @@
 <p class="small">R1 archive attribute · R2 supplementary table · R3 paper text · R4 abstract · R0 none</p>
 <p>{% for k,v in recov %}<span class="tag {{ v }}">{{ k }}: {{ v }}</span> {% endfor %}</p>
 
+<h2 id="timeline">Verdict timeline across releases ({{ timeline|length }} row{{ '' if timeline|length == 1 else 's' }})</h2>
+<p class="small">One row per verdict state of this study in <span class="mono">universe_studies_all.parquet</span>, oldest first: the release in which the verdict row was added and, if it is no longer current, the release in which it was retired. The stage-by-stage judgements <i>within</i> a release are the decision history below. See <a href="../changes/index.html">changes by release</a>.</p>
+<table class="tbl compact"><thead><tr><th>Release added</th><th>Release retired</th><th>Verdict</th><th class="num">Confidence</th><th>Stage</th><th>Reason · evidence</th></tr></thead><tbody>
+{% for t in timeline %}<tr{% if t.current %} class="final"{% endif %}><td class="mono"><a href="../changes/{{ t.release_added }}.html">{{ t.release_added }}</a></td><td class="mono">{% if t.release_retired %}<a href="../changes/{{ t.release_retired }}.html">{{ t.release_retired }}</a>{% else %}<b>current</b>{% endif %}</td>
+<td><span class="tag {{ 'included' if t.verdict in ['include','included'] else ('excluded' if t.verdict in ['exclude','excluded'] else 'human_review') }}">{{ t.verdict or '—' }}</span> <span class="small">{{ t.status }}</span></td><td class="num">{{ t.conf if t.conf is not none else '' }}</td><td class="mono small">{{ t.stage }}</td><td>{% if t.reason %}<span class="mono">{{ t.reason }}</span> {% endif %}<span class="quote small">{{ t.quote }}</span></td></tr>{% endfor %}
+</tbody></table>
+
 <h2>Decision history ({{ history|length }} rows)</h2>
 <details><summary class="small">Every triage stage that judged this study, in stage order (screen → tier-1 rubric → confirmation → adjudication → growth waves → re-judgement → human review → final), from <span class="mono">study_verdict_history.parquet</span>. A haiku screen pass is a candidate forward, not a verdict.{% if n_consolidated_hidden %} {{ n_consolidated_hidden }} consolidated bookkeeping rows that repeat the deciding stage are folded into the single <b>final</b> line.{% endif %}</summary>
 <table class="tbl compact small"><thead><tr><th>#</th><th>Stage</th><th>Level</th><th>Verdict</th><th class="num">Conf.</th><th>Model</th><th>Reason / quotes</th><th>Source table</th></tr></thead><tbody>

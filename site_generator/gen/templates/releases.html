@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Releases — {{ site.title }}{% endblock %}
+{% block content %}
+<h1>Releases</h1>
+<p class="lead">Every release of the catalog is frozen and archived as a GitHub Release of the data repository (tag <span class="mono">data-v&lt;package&gt;</span>) and a site tag (<span class="mono">site-v&lt;package&gt;</span>). Numbered releases (<span class="mono">R&lt;YYYY&gt;.&lt;n&gt;</span>) start with {{ releases[-1].release_id if releases|length and not releases[-1].release_id.startswith('R') else '' }}{{ site.release_id }}; earlier states are identified by their package version. Every fact row carries <span class="mono">release_added</span> / <span class="mono">release_retired</span>; the <a href="../changes/index.html">Changes</a> pages list what changed in each release.</p>
+{% include "_cite.html" %}
+<h2>Registry ({{ n_releases }} releases, from <span class="mono">releases.csv</span>)</h2>
+<table class="tbl compact" id="registry"><thead><tr><th>Release</th><th>Date</th><th>Package</th><th>Data tag</th><th>Site tag</th><th>DOI</th><th class="num">Studies</th><th class="num">Samples</th><th class="num">Catalog scope</th><th class="num">Determinations (current)</th><th>Sandpiper</th><th>Changes</th></tr></thead><tbody>
+{% for r in releases %}<tr{% if r.current %} class="final"{% endif %} id="rel-{{ r.release_id }}"><td class="mono">{{ r.release_id }}{% if r.current %} <b>current</b>{% endif %}</td><td>{{ r.release_date or '' }}</td><td class="mono">{{ r.package_version }}</td>
+<td class="mono">{% if r.data_url %}<a href="{{ r.data_url }}">{{ r.data_tag }}</a>{% else %}—{% endif %}</td><td class="mono">{% if r.site_url %}<a href="{{ r.site_url }}">{{ r.site_tag }}</a>{% else %}—{% endif %}</td>
+<td>{% if r.doi %}<a href="https://doi.org/{{ r.doi }}">{{ r.doi }}</a>{% else %}<span class="small">pending</span>{% endif %}</td>
+<td class="num">{{ r.n_studies_included|fmt }}</td><td class="num">{{ r.n_samples|fmt }}</td><td class="num">{{ r.n_catalog_scope|fmt }}</td><td class="num">{{ r.n_determinations_current|fmt }}</td><td class="mono">{{ r.sandpiper_version or '—' }}</td>
+<td><a href="../changes/{{ r.changes_href }}">changes</a></td></tr>{% endfor %}
+</tbody></table>
+<p class="small">Empty cells are counts the historical changelog does not state; nothing is back-filled by estimate. Historical rows (1.0.0 … 1.2.2) are documented in the <a href="../docs/CHANGELOG.html">package changelog</a>.</p>
+<h2>Release notes</h2>
+{% for r in releases %}{% if r.notes_html %}
+<details{% if r.current %} open{% endif %} id="notes-{{ r.release_id }}"><summary><b>{{ r.release_id }}</b> — package {{ r.package_version }}, {{ r.release_date }} (<a href="RELEASE_NOTES_{{ r.release_id }}.md">markdown</a>)</summary>
+<div class="doc">{{ r.notes_html|safe }}</div></details>
+{% endif %}{% endfor %}
+{% endblock %}

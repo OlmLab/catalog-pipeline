@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Changes by release — {{ site.title }}{% endblock %}
+{% block content %}
+<h1>Changed since…</h1>
+<p class="lead">Per release: studies whose verdict row was added in that release, and determinations (sample × field values) added or retired in it, read from <span class="mono">universe_studies_all.parquet</span> and <span class="mono">sample_determinations_all.parquet</span> (<span class="mono">release_added</span> / <span class="mono">release_retired</span>). Counts are aggregated per field and per study; the per-sample rows are in the tables and in each sample's value timeline in the <a href="../samples/index.html">explorer</a>.</p>
+<table class="tbl compact"><thead><tr><th>Release</th><th>Date</th><th>Package</th><th class="num">Verdict rows added</th><th class="num">Determinations added</th><th class="num">Determinations retired</th><th class="num">Studies with value changes</th><th></th></tr></thead><tbody>
+{% for c in changes %}<tr{% if c.current %} class="final"{% endif %}><td class="mono"><a href="{{ c.href }}">{{ c.release_id }}</a></td><td>{{ c.release_date }}</td><td class="mono">{{ c.package_version }}</td>
+{% if c.nothing %}<td colspan="4" class="small">nothing changed in this release</td>{% else %}<td class="num">{{ c.n_verdicts|fmt }}</td><td class="num">{{ c.n_added|fmt }}</td><td class="num">{{ c.n_retired|fmt }}</td><td class="num">{{ c.n_studies_changed|fmt }}</td>{% endif %}
+<td><a href="{{ c.href }}">details</a></td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}
