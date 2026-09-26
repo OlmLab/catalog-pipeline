@@ -1,0 +1,62 @@
+# Release / bitemporal spec (MATURITY_PLAN.md §2) — the ONE source both code paths read:
+#   src/catalog/release/*  (Data track: appends the columns, writes releases.csv, RELEASE_NOTES_<id>.md, VERSION.json)
+#   site_generator/gen/build_site.py (Site track: releases/, changes/, study verdict timelines, explorer value timeline)
+# Frozen 2026-09-26 for R2026.1. Do not rename keys or column names; add, never remove.
+schema_version: 1
+
+release_id:
+  numbered_pattern: "R<YYYY>.<n>"          # e.g. R2026.1 — the catalog release
+  first_numbered: "R2026.1"                # ships data package 1.3.0
+  # pre-numbered historical states are identified by the package semver string they shipped as
+  historical: ["1.0.0", "1.1.0", "1.2.0", "1.2.1", "1.2.2"]
+
+columns:                                   # appended at the END of every fact table, in this order
+  release_added: release_added             # str, one of the ids above
+  release_retired: release_retired         # str | null (null = current row)
+  package_added: package_added             # str semver of the package in which the row first appeared
+  # extra columns of sample_determinations_all.parquet only
+  retired_reason: retired_reason           # str | null
+  retired_change_stage: retired_change_stage   # str | null — value_history.change_stage of the retiring event
+
+fact_tables:                               # get release_added / release_retired / package_added
+  - sample_determinations.parquet
+  - universe_studies_all.parquet           # verdict rows
+  - study_metadata_wide.parquet
+  - study_metadata_wide.csv
+  - cohorts.csv
+  - study_paper_links.csv
+  - sandpiper_sample_summary.parquet
+  - sandpiper_run_qc.parquet
+  - sandpiper_top_genera.parquet
+  - sandpiper_study_panels.parquet
+derived_tables_without_release_columns:    # values come from sample_determinations
+  - sample_metadata_wide.parquet
+  - sample_metadata_wide.csv.gz
+
+files:
+  determinations_all: sample_determinations_all.parquet   # current (release_retired null) UNION retired rows
+  registry: releases.csv
+  release_notes_pattern: "RELEASE_NOTES_{release_id}.md" # package root
+  version_json_keys: [release_id, previous_release_id]
+
+registry_columns:                          # releases.csv, one row per release id, oldest first
+  - release_id
+  - package_version
+  - release_date            # YYYY-MM-DD
+  - data_tag                # data-v<semver>
+  - site_tag                # site-v<semver>
+  - doi                     # empty until Zenodo mints one
+  - n_studies_included
+  - n_samples
+  - n_catalog_scope
+  - n_determinations_current
+  - sandpiper_version
+  - notes_file
+
+site_pages:                                # Site track output paths (relative to the site root)
+  releases_index: releases/index.html
+  changes_index: changes/index.html
+  changes_release: "changes/{release_id}.html"
+  determinations_all_site_path: data/sample_determinations_all.parquet   # explorer loads on demand
+  data_release_url: "https://github.com/OlmLab/infant-gut-catalog-data/releases/tag/{data_tag}"
+  site_release_url: "https://github.com/OlmLab/infant-gut-catalog/releases/tag/{site_tag}"
