@@ -1,0 +1,146 @@
+# config/releases.yaml — SINGLE SOURCE for the release model (docs/RELEASES.md is the narrative).
+# Read by src/catalog/release/bitemporal.py, src/catalog/release/release_notes.py, catalog.make_version
+# (release_id / previous_release_id in VERSION.json) and by the site generator (releases/, changes/ pages).
+# Frozen 2026-09-26 for release R2026.1 (package 1.3.0). Do NOT rename columns or ids; append only.
+schema_version: 1
+
+release_id:
+  regex: '^R\d{4}\.\d+$'            # numbered catalog releases: R<YYYY>.<n>
+  first: R2026.1
+  # Pre-numbered historical states are identified by the package semver string that shipped them.
+  historical_regex: '^\d+\.\d+\.\d+$'
+
+# Ordered oldest → newest. Dates and counts come from the package CHANGELOG.md / docs/CHANGELOG.md; a missing count
+# is left null (never invented). n_* for R2026.1 are filled by bitemporal.py from the built tables.
+history:
+  - id: '1.0.0'
+    package_version: '1.0.0'
+    release_date: '2026-09-25'
+    bundle: v10
+    label: first public data package (package CHANGELOG "v1")
+    data_tag: null
+    site_tag: null
+  - id: '1.1.0'
+    package_version: '1.1.0'
+    release_date: '2026-09-25'
+    bundle: v11
+    label: sample-unit fix, auditor findings applied (package CHANGELOG "v1.1 (release v11)")
+    data_tag: null
+    site_tag: null
+  - id: '1.2.0'
+    package_version: '1.2.0'
+    release_date: '2026-09-26'
+    bundle: v12
+    label: data-model fix after Reviewer B (B1/B2/B9), Sandpiper profiles, author index, VERSION.json
+    data_tag: null
+    site_tag: null
+  - id: '1.2.1'
+    package_version: '1.2.1'
+    release_date: '2026-09-26'
+    label: fixes from the three final reviews (R3-1 … R3-15, F-series)
+    data_tag: null
+    site_tag: null
+  - id: '1.2.2'
+    package_version: '1.2.2'
+    release_date: '2026-09-26'
+    label: owner decisions applied (701 value_history rows); first unattended GitHub Release
+    data_tag: data-v1.2.2
+    site_tag: site-v1.2.2
+
+releases:
+  - release_id: R2026.1
+    package_version: '1.3.0'
+    previous_package_version: '1.2.2'
+    previous_release_id: '1.2.2'
+    notes_file: RELEASE_NOTES_R2026.1.md
+    data_tag: data-v1.3.0
+    site_tag: site-v1.3.0
+
+# Bitemporal columns appended (in this order) at the END of every fact table.
+columns:
+  release_added: release_added        # str; release id (numbered) or historical package semver
+  release_retired: release_retired    # str | null; null = current row
+  package_added: package_added        # str; semver of the package in which the row first appeared
+  # extra columns of sample_determinations_all.parquet only
+  retired_reason: retired_reason
+  retired_change_stage: retired_change_stage
+
+# Fact tables (package filenames). key = row identity used to diff releases; default = release_added when nothing
+# more specific is known. sample_metadata_wide is DERIVED (no release columns).
+fact_tables:
+  - file: sample_determinations.parquet
+    key: [sample_key, field_name]
+    default_release_added: '1.0.0'
+    seed: value_history+src_track
+  - file: universe_studies_all.parquet
+    key: [study_accession]
+    default_release_added: '1.0.0'
+    seed: study_verdict_history
+    diff_column: triage_verdict
+  - file: study_metadata_wide.parquet
+    key: [study_accession]
+    default_release_added: '1.0.0'
+    csv_twin: study_metadata_wide.csv
+  - file: cohorts.csv
+    key: [cohort_id]
+    default_release_added: '1.0.0'
+  - file: study_paper_links.csv
+    key: [study_accession, paper_id]
+    default_release_added: '1.0.0'
+    overrides:                         # auditor finding applied in 1.1.0 (value_history change_stage=auditor_review, field missing_paper)
+      - match: {study_accession: PRJNA294605, paper_id: 27258951}
+        release_added: '1.1.0'
+  - file: sandpiper_sample_summary.parquet
+    key: [sample_key]
+    default_release_added: '1.2.0'     # package CHANGELOG v1.2.0: "Sandpiper profiles" landed
+  - file: sandpiper_run_qc.parquet
+    key: [run_accession]
+    default_release_added: '1.2.0'
+  - file: sandpiper_top_genera.parquet
+    key: [sample_key, taxon]
+    default_release_added: '1.2.0'
+  - file: sandpiper_study_panels.parquet
+    key: [study_accession, taxon]
+    default_release_added: '1.2.0'
+
+# Package in which each value_history.change_stage took effect — VERIFIED against the package CHANGELOG.md text
+# (see docs/RELEASES.md "Provenance of reconstructed release_added"). Where the task brief's proposal differed the
+# CHANGELOG wins: sample_unit_fix and auditor_review are "v1.1 (release v11)"; auditor_review:B2/B9 are "v1.2 —
+# data-model fix after Reviewer B" (= 1.2.0); auditor_review:R3-3 is v1.2.1; owner_decision is 1.2.2.
+change_stage_to_package:
+  r1_parse: '1.0.0'
+  group_statement_audit: '1.0.0'
+  sample_unit_fix: '1.1.0'
+  auditor_review: '1.1.0'
+  'auditor_review:B2': '1.2.0'
+  'auditor_review:B9': '1.2.0'
+  'auditor_review:R3-3': '1.2.1'
+  owner_decision: '1.2.2'
+
+# sample_determinations.src_track values that mark a row as added by a later package (rows the value_history
+# does not point at because the replacement row has another sample_key, e.g. run-level rows).
+src_track_to_package:
+  sample_unit_fix: '1.1.0'
+  adult_scope_fix: '1.2.0'
+
+# value_history.status → is the row a RETIRED published value (it was the visible value in an earlier package and a
+# later package replaced/removed it)? Rows with other statuses were never published (rejected/dropped/duplicate
+# candidates, finding records, or the pre-history of a now-current row) and do not enter sample_determinations_all.
+retired_statuses: [superseded, moved_to_parent_biosamples, recommitted_out_of_scope_host, recommitted_out_of_scope_isolate]
+never_published_statuses: [rejected, dropped, not_committed_duplicate, recommitted_out_of_scope_adult, auditor_finding_applied]
+
+files:
+  determinations_all: sample_determinations_all.parquet
+  registry: releases.csv
+  release_notes: 'RELEASE_NOTES_{release_id}.md'
+
+registry_columns: [release_id, package_version, release_date, data_tag, site_tag, doi, n_studies_included, n_samples,
+                   n_catalog_scope, n_determinations_current, sandpiper_version, notes_file]
+
+# Site pages the Site track builds from these files.
+site_pages:
+  releases_index: releases/index.html
+  changes_index: changes/index.html
+  changes_release: 'changes/{release_id}.html'
+  study_verdict_timeline: 'studies/{study_accession}.html#verdict-timeline'
+  sample_value_timeline: 'samples/index.html#timeline'
