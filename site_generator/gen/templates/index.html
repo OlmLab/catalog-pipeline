@@ -16,6 +16,9 @@
 <div class="card"><div class="num">{{ stats.n_cohorts|fmt }}</div><div class="lbl">cohorts ({{ stats.n_papers|fmt }} linked papers)</div></div>
 </div>
 
+{% include "_cite.html" %}
+<p class="small">This is release <b>{{ site.release_id }}</b> ({{ n_releases }} releases so far) — see the <a href="releases/index.html">release registry</a> and <a href="changes/{{ site.release_id }}.html">what changed in this release</a>.</p>
+
 <h2>Age scope of the {{ stats.n_samples|fmt }} samples</h2>
 <p class="small">"Age-scope infant" means age evidence, not body site alone (Reviewer B1); <b>catalog scope</b> = age-scope infant AND body_site_class primary/unknown ({{ stats.n_catalog_scope|fmt }} samples) and is the headline denominator. Counts from <span class="mono">sample_metadata_wide.age_scope</span>; {{ stats.n_mixed }} included studies are mixed-age deposits and carry a banner on their page.</p>
 <table class="tbl" style="max-width:700px"><thead><tr><th>age_scope</th><th class="num">samples</th><th>meaning</th></tr></thead><tbody>

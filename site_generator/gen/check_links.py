@@ -45,7 +45,7 @@ js = (site / 'static' / 'explorer.js').read_text()
 for rel in re.findall(r"'(\.\./data/[^']+)'", js) + re.findall(r'"(\.\./data/[^"]+)"', js):
     if not (site / 'samples' / rel).resolve().exists():
         broken.append(('static/explorer.js (from samples/)', rel))
-cfg = re.findall(r"(?:parquet|det|vh|topgen|csvgz):'(\.\./data/[^']+)'", (site / 'samples' / 'index.html').read_text())
+cfg = re.findall(r"(?:parquet|det|vh|sdall|topgen|csvgz):'(\.\./data/[^']+)'", (site / 'samples' / 'index.html').read_text())
 for rel in cfg:
     if not (site / 'samples' / rel).resolve().exists():
         broken.append(('samples/index.html EXPLORER_CFG', rel))

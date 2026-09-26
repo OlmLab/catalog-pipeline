@@ -86,3 +86,25 @@ hmo_supplementation, nec_status, country, geo_subregion, health_condition, multi
 catalog_studies.parquet + study_triage_v2.parquet (triage state consumed by resweep/triage), site_generator.zip,
 release_bundle.tar.gz (reports + evidence trails), harvest_cache.tar.gz (working_data; resume substrate),
 infant_catalog.sqlite, auditor_findings.csv, site.zip. `bootstrap.py` materialises them into `data/inputs/`.
+
+## 5. Release history views (R2026.1, Site track — MATURITY_PLAN §2)
+`config/releases.yaml` is the ONE spec both tracks read (release ids, the three bitemporal columns
+`release_added` / `release_retired` / `package_added`, the fact-table list, `sample_determinations_all.parquet`,
+`releases.csv`, `RELEASE_NOTES_<id>.md`, and the site page paths). `build_site.py --releases-config` loads it and
+asserts: `VERSION.json.release_id` is the newest `releases.csv` row, its `package_version`/`data_tag` agree with
+VERSION.json, every release id used by `sample_determinations` / `universe_studies_all` / `sample_determinations_all`
+exists in the registry, and the `_all` table's current rows equal `sample_determinations`.
+
+| page | source | content |
+|---|---|---|
+| `releases/index.html` | `releases.csv`, `RELEASE_NOTES_<id>.md` | registry (id, date, package, data/site tags → GitHub Release URLs, DOI or "pending", counts, Sandpiper version, link to changes) + every notes file rendered with `markdown`; Cite box |
+| Cite box (`_cite.html`, on home + releases) | VERSION.json, releases.csv, `config/site.yaml github.data_repo_id` | `Infant Gut Shotgun-Metagenome Catalog, release <id> (data package <semver>), OlmLab, <date>`; Zenodo badge `https://zenodo.org/badge/<repo_id>.svg` → `https://zenodo.org/badge/latestdoi/<repo_id>`; "DOI: pending Zenodo integration" while `doi` is empty; the three upstream citations (ENA/INSDC, Woodcroft et al. 2025 + Zenodo 20419175, curatedMetagenomicData) |
+| `changes/index.html`, `changes/<id>.html` | `universe_studies_all` (`release_added == id`), `sample_determinations_all` (`release_added == id` / `release_retired == id`), `study_verdict_history` (previous verdict) | per release: verdict rows added (with previous differing verdict where the history has one), determinations added/retired per field, top-20 studies by rows changed (study-page + explorer deep links), retiring stages; one-line "nothing changed" state; each page asserted < 2 MB (aggregates only, never per-sample rows) |
+| study pages `#timeline` | `universe_studies_all` all rows of the study (current + retired) | "Verdict timeline across releases" (release added/retired, verdict, confidence, stage, reason, quote) above the within-release "Decision history" |
+| explorer detail panel | `data/sample_determinations_all.parquet` (on demand, `ensureSda`) | "Value timeline across releases": per field, current row first then retired rows (value, route/scope/tier, release added, release retired, retired reason · change stage, evidence quote); README-rule-hidden rows marked |
+| footer (every page) | VERSION.json, releases.csv | `release <id> · package <semver> · build <sha> · built <date> · data tag <tag> · DOI …` + `<meta name="catalog-release-id">` |
+
+Tests: `site_generator/gen/tests/test_release_pages.py` (spec layer always; built-site layer with
+`CATALOG_SITE_DIR` + `CATALOG_PACKAGE_DIR`, including a DuckDB replay of the explorer's timeline SQL).
+`site_generator/gen/tests/make_mock_release_package.py` builds a placeholder 1.3.0 package from an unpacked 1.2.2
+package for generator development; the Data track's `src/catalog/release/` produces the real one.

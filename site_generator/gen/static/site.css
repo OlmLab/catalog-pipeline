@@ -102,3 +102,7 @@ details summary{cursor:pointer}
 #result-table tbody tr:focus,#result-table th:focus,a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--cu-black);outline-offset:1px}
 #result-table tbody tr:focus td{background:var(--cu-pale-gold)}
 .detail:focus{outline:none}
+
+/* R2026.1 releases / timelines */
+.cite{margin:1rem 0}.cite img{vertical-align:middle}
+tr.retired td{color:var(--muted)}tr.retired td b{color:var(--ink)}

@@ -12,6 +12,8 @@ release_id:
 
 # Ordered oldest → newest. Dates and counts come from the package CHANGELOG.md / docs/CHANGELOG.md; a missing count
 # is left null (never invented). n_* for R2026.1 are filled by bitemporal.py from the built tables.
+  first_numbered: R2026.1            # alias of `first` (read by site_generator)
+  historical: ['1.0.0', '1.1.0', '1.2.0', '1.2.1', '1.2.2']   # pre-numbered package states, oldest first (= history[].id)
 history:
   - id: '1.0.0'
     package_version: '1.0.0'
@@ -135,6 +137,8 @@ retired_statuses: [superseded, moved_to_parent_biosamples, recommitted_out_of_sc
 never_published_statuses: [rejected, dropped, not_committed_duplicate, recommitted_out_of_scope_adult, auditor_finding_applied]
 
 files:
+  release_notes_pattern: 'RELEASE_NOTES_{release_id}.md'   # alias of release_notes (read by site_generator)
+  version_json_keys: [release_id, previous_release_id]
   determinations_all: sample_determinations_all.parquet
   registry: releases.csv
   release_notes: 'RELEASE_NOTES_{release_id}.md'
@@ -149,3 +153,7 @@ site_pages:
   changes_release: 'changes/{release_id}.html'
   study_verdict_timeline: 'studies/{study_accession}.html#verdict-timeline'
   sample_value_timeline: 'samples/index.html#timeline'
+  determinations_all_site_path: data/sample_determinations_all.parquet   # where build_site.py copies files.determinations_all (explorer loads it on demand)
+  data_release_url: 'https://github.com/OlmLab/infant-gut-catalog-data/releases/tag/{data_tag}'
+  site_release_url: 'https://github.com/OlmLab/infant-gut-catalog/releases/tag/{site_tag}'
+derived_tables_without_release_columns: [sample_metadata_wide.parquet, sample_metadata_wide.csv.gz]   # wide table is derived from sample_determinations

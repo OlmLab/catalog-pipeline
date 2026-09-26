@@ -15,6 +15,7 @@ from urllib.parse import quote
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import markdown
+import yaml
 
 HERE = Path(__file__).resolve().parent
 FIELDS = ['probiotic_exposure', 'preterm_status', 'gestational_age_weeks', 'delivery_mode', 'feeding_mode',
@@ -81,7 +82,9 @@ FILE_DESC = {
     'authors.parquet': 'Study × author × paper rows (string-matched names; see AUTHORS_REPORT).',
     'study_authors_summary.csv': 'Per screened study: first/last author, n authors, organisations.',
     'authors_index.json': 'Author search index used by the Authors page.',
-    'VERSION.json': 'Package version, release tag, build date, sha256 + rows per table.',
+    'sample_determinations_all.parquet': 'Bitemporal determinations: current rows (release_retired null) plus every retired row with release_added / release_retired / retired_reason / retired_change_stage (R2026.1).',
+    'releases.csv': 'Release registry: one row per release id (release date, package version, tags, DOI, headline counts).',
+    'VERSION.json': 'Package version, release id, release tag, build date, sha256 + rows per table.',
     'DATA_DICTIONARY.md': 'Every column, every vocabulary.', 'README.md': 'Package overview and how to read a value.',
     'CHANGELOG.md': 'Version history.', 'getting_started.ipynb': 'Notebook: load, filter, join, plot.',
     'SANDPIPER_REPORT.md': 'Sandpiper join: source, method, validation, caveats.', 'AUTHORS_REPORT.md': 'Author index: sources, coverage, caveats.',
@@ -201,6 +204,41 @@ def read_base_url(cfg_path):
     return (m.group(1) if m else None), (p.group(1) if p else 'https://USERNAME.github.io/REPOSITORY/')
 
 
+def read_release_spec(cfg_path):
+    """config/releases.yaml — the frozen bitemporal spec shared with src/catalog/release (ids, column names, table list, page paths)."""
+    spec = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8'))
+    for k in ('columns', 'files', 'registry_columns', 'site_pages', 'release_id'):
+        assert k in spec, f'config/releases.yaml lacks {k}'
+    return spec
+
+
+def read_data_repo_id(cfg_path):
+    """config/site.yaml github.data_repo_id (GitHub repository id of the data repo; Zenodo badge/latestdoi URLs are built from it)."""
+    txt = Path(cfg_path).read_text(encoding='utf-8') if cfg_path and Path(cfg_path).exists() else ''
+    m = re.search(r'^\s*data_repo_id:\s*(\d+)', txt, re.M)
+    return int(m.group(1)) if m else None
+
+
+def release_order_key(spec):
+    """sort key: historical semver ids first (in spec order), then numbered R<YYYY>.<n> ids by (year, n)."""
+    hist = {r: i for i, r in enumerate(spec['release_id']['historical'])}
+
+    def key(rid):
+        rid = str(rid)
+        if rid in hist:
+            return (0, hist[rid], 0)
+        m = re.fullmatch(r'R(\d{4})\.(\d+)', rid)
+        return (1, int(m.group(1)), int(m.group(2))) if m else (2, 0, 0)
+    return key
+
+
+UPSTREAM_CITATIONS = [  # mandatory upstream citations (methods page carries the same three)
+    dict(key='insdc', text='Archive metadata: European Nucleotide Archive / INSDC (ENA, SRA, DDBJ) — archive metadata remains under INSDC terms.', url='https://www.ebi.ac.uk/ena/browser/'),
+    dict(key='sandpiper', text='Community profiles: Woodcroft, B. J. et al. Comprehensive taxonomic identification of microbial species in metagenomic data using SingleM and Sandpiper. Nature Biotechnology (2025); bulk snapshot Zenodo record 20419175 (CC-BY).', url='https://doi.org/10.5281/zenodo.20419175'),
+    dict(key='cmd', text='Gold evaluation set: Pasolli, E. et al. Accessible, curated metagenomic data through ExperimentHub (curatedMetagenomicData). Nature Methods 14, 1023–1024 (2017).', url='https://doi.org/10.1038/nmeth.4468'),
+]
+
+
 def counts_sorted(series):
     vc = series.value_counts()
     return sorted(((str(k), int(v)) for k, v in vc.items()), key=lambda x: (-x[1], x[0]))
@@ -214,6 +252,7 @@ def main():
     ap.add_argument('--package-zip', default=None, help='path to the whole-package zip to copy into data/package/')
     ap.add_argument('--config', default=str(HERE.parent.parent / 'config' / 'site.yaml'))
     ap.add_argument('--base-url', default=None, help='overrides config/site.yaml site.base_url')
+    ap.add_argument('--releases-config', default=str(HERE.parent.parent / 'config' / 'releases.yaml'), help='frozen bitemporal/release spec shared with src/catalog/release')
     ap.add_argument('--allow-placeholder-base-url', action='store_true', help='test builds only')
     ap.add_argument('--build-date', default=None, help='overrides VERSION.json build_date (tests only)')
     ap.add_argument('--max-rows-html', type=int, default=2000)
@@ -229,7 +268,7 @@ def main():
         sys.exit(f'refusing to build: base_url is the placeholder {placeholder!r} (A15). Set site.base_url in config/site.yaml or pass --base-url.')
     if out.exists():
         shutil.rmtree(out)
-    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package']:
+    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes']:
         (out / d).mkdir(parents=True, exist_ok=True)
 
     # ---------- load ----------
@@ -255,6 +294,39 @@ def main():
     coh = pd.read_csv(pkg / 'cohorts.csv')
     spl = pd.read_csv(pkg / 'study_paper_links.csv', dtype={'paper_id': str})
     uni = pd.read_parquet(pkg / 'universe_studies_all.parquet')
+    # ---------- releases (R2026.1: config/releases.yaml is the one spec both tracks read) ----------
+    rspec = read_release_spec(a.releases_config)
+    RA, RR, PA = rspec['columns']['release_added'], rspec['columns']['release_retired'], rspec['columns']['package_added']
+    RREASON, RSTAGE = rspec['columns']['retired_reason'], rspec['columns']['retired_change_stage']
+    rel_key = release_order_key(rspec)
+    reg = pd.read_csv(pkg / rspec['files']['registry'], dtype=str, keep_default_na=False)
+    assert list(reg.columns) == list(rspec['registry_columns']), f"releases.csv columns {list(reg.columns)} != spec {rspec['registry_columns']}"
+    assert reg.release_id.is_unique and len(reg), 'releases.csv: one row per release id'
+    reg = reg.assign(_k=reg.release_id.map(rel_key)).sort_values('_k', kind='mergesort').drop(columns='_k').reset_index(drop=True)
+    release_id = vj.get('release_id')
+    assert release_id and release_id in set(reg.release_id), f'VERSION.json release_id {release_id!r} must be a releases.csv row'
+    assert release_id == reg.release_id.iloc[-1], f'VERSION.json release_id {release_id!r} must be the newest releases.csv row ({reg.release_id.iloc[-1]!r})'
+    cur_rel = reg[reg.release_id == release_id].iloc[0].to_dict()
+    assert cur_rel['package_version'] == version, f'releases.csv package_version {cur_rel["package_version"]} != VERSION.json {version}'
+    assert cur_rel['data_tag'] == vj['release_tag'], 'releases.csv data_tag must equal VERSION.json release_tag'
+    sda_path = pkg / rspec['files']['determinations_all']
+    sda = pd.read_parquet(sda_path, columns=['study_accession', 'field_name', 'sample_key', RA, RR, RREASON, RSTAGE])
+    assert {RA, RR} <= set(sd.columns) and {RA, RR} <= set(uni.columns), 'fact tables lack release columns (package must be >= 1.3.0)'
+    assert (sda[RR].isna().sum()) == len(sd), 'sample_determinations_all current rows must equal sample_determinations rows'
+    known_ids = set(reg.release_id)
+    for df_, nm in ((sd, 'sample_determinations'), (uni, 'universe_studies_all'), (sda, 'sample_determinations_all')):
+        bad = set(df_[RA].dropna().astype(str)) | set(df_[RR].dropna().astype(str))
+        assert bad <= known_ids, f'{nm}: release ids {sorted(bad - known_ids)[:5]} missing from releases.csv'
+    data_repo_id = read_data_repo_id(a.config)
+    assert data_repo_id, 'config/site.yaml github.data_repo_id is required (Zenodo badge / latestdoi URLs)'
+    notes_by_release = {}
+    for r in reg.itertuples(index=False):
+        nf = r.notes_file
+        if nf and nf.startswith('RELEASE_NOTES_') and (pkg / nf).exists():
+            notes_by_release[r.release_id] = (pkg / nf).read_text(encoding='utf-8')
+    assert release_id in notes_by_release, f"{rspec['files']['release_notes_pattern'].format(release_id=release_id)} missing from the package"
+    uni_all = uni
+    uni = uni[uni[RR].isna()].reset_index(drop=True) if RR in uni.columns else uni  # current verdict rows drive every existing page
     hrq = pd.read_csv(pkg / 'human_review_queue.csv')
     fcs = pd.read_csv(pkg / 'field_coverage_summary.csv')
     gold = pd.read_csv(pkg / 'extraction_gold_eval_hires.csv').rename(columns={'Unnamed: 0': 'field'})
@@ -322,10 +394,15 @@ def main():
     assert stats['n_studies_profiled'] == int((spcov.n_samples_profiled > 0).sum()) == int((st.sp_n_samples_profiled.fillna(0) > 0).sum()), 'F6: profiled-study definition disagrees between tables'
     assert stats['n_catalog_scope'] == stats['n_age_scope_infant'] - stats['n_body_site_excluded'], 'F9: catalog_scope must equal age-scope minus body-site excluded/linked'
     gen_sha = vj.get('generator_git_sha', 'nogit')
+    doi = cur_rel.get('doi') or ''
     site = dict(title='Infant Gut Shotgun-Metagenome Catalog', version=version, release_tag=vj['release_tag'], build_date=build_date,
                 sha8=gen_sha[:8], base_url=base_url, issue_repo=ISSUE_REPO,
+                release_id=release_id, previous_release_id=vj.get('previous_release_id'), release_date=cur_rel['release_date'], doi=doi,
+                data_release_url=rspec['site_pages']['data_release_url'].format(data_tag=cur_rel['data_tag']) if cur_rel['data_tag'] else None,
+                zenodo_badge=f'https://zenodo.org/badge/{data_repo_id}.svg', zenodo_latest=f'https://zenodo.org/badge/latestdoi/{data_repo_id}', data_repo_id=data_repo_id,
+                upstream=UPSTREAM_CITATIONS, releases_page=rspec['site_pages']['releases_index'], changes_page=rspec['site_pages']['changes_index'],
                 description='Curated, evidence-linked catalog of public shotgun-metagenome studies of the human infant gut with per-sample metadata and Sandpiper community profiles.',
-                citation=f'Infant Gut Shotgun-Metagenome Catalog, data package {version} ({vj["release_tag"]}), {build_date[:4]}.',
+                citation=f'Infant Gut Shotgun-Metagenome Catalog, release {release_id} (data package {version}), OlmLab, {cur_rel["release_date"]}.' + (f' doi:{doi}' if doi else ''),
                 sri=json.loads((HERE / 'static' / 'vendor' / 'SRI.json').read_text()))
 
     env = Environment(loader=FileSystemLoader(HERE / 'templates'), autoescape=select_autoescape(['html']))
@@ -350,7 +427,7 @@ def main():
         shutil.copyfile(rep / 'field_coverage.png', out / 'static' / 'field_coverage.png')
 
     # ---------- data files ----------
-    IN_DATA = ['sample_metadata_wide.parquet', 'sample_determinations.parquet', 'value_history.parquet', 'sandpiper_top_genera.parquet']
+    IN_DATA = ['sample_metadata_wide.parquet', 'sample_determinations.parquet', 'value_history.parquet', 'sandpiper_top_genera.parquet', rspec['files']['determinations_all']]
     for name in IN_DATA:
         shutil.copyfile(pkg / name, out / 'data' / name)
     pkg_files = []
@@ -454,6 +531,24 @@ def main():
         _others = svh_live[svh_live.stage_level != 'screen'].groupby('study_accession').stage_rank.min()
         _both = _first.index.intersection(_others.index)
         assert (_first.loc[_both] < _others.loc[_both]).all(), 'R3-6: screen stage must precede every other stage'
+    # R2026.1: verdict timeline across releases — every verdict row of the study (current + retired) from universe_studies_all
+    def _quote(ev):
+        try:
+            e = json.loads(ev) if isinstance(ev, str) and ev.startswith('[') else []
+            return ' · '.join(f"“{x.get('quote','')}” ({x.get('source','')})" for x in e if isinstance(x, dict))[:300]
+        except ValueError:
+            return str(ev)[:200]
+    timeline_by_study = {}
+    _tl = uni_all.assign(_k=uni_all[RA].astype(str).map(rel_key))
+    for acc, g in _tl.groupby('study_accession'):
+        rows = []
+        for r in g.sort_values(['_k', RA], kind='mergesort').itertuples(index=False):
+            d = r._asdict()
+            rows.append(dict(release_added=d[RA], release_retired=None if isnull(d[RR]) else d[RR], package_added=None if isnull(d.get(PA)) else d.get(PA),
+                             verdict='' if isnull(d['triage_verdict']) else str(d['triage_verdict']), status='' if isnull(d['catalog_status']) else str(d['catalog_status']),
+                             conf=None if isnull(d['confidence']) else round(float(d['confidence']), 2), stage='' if isnull(d['decision_stage']) else str(d['decision_stage']),
+                             reason='' if isnull(d['reason_code']) else str(d['reason_code']), quote=_quote(d['evidence']), current=isnull(d[RR])))
+        timeline_by_study[acc] = rows
     panel_by_study = {}
     PANEL_SCOPE_TEXT = {  # F9: distinguish 'no catalog-scope samples' from 'no profiles' (labels from sandpiper_study_panel_status.csv)
         'no_profiled_samples': 'No run of this study is in the Sandpiper snapshot, so no community profile exists',
@@ -551,7 +646,7 @@ def main():
                             proposed_change='none — confirmed correct', evidence_source='external_curation.human', release_tag=f"{vj['release_tag']} · studies/{acc}.html")
         render('study.html', f'studies/{acc}.html', '../', nav='studies', use_datatables=True, s=s,
                papers=papers_by_study.get(acc, []), evidence=evidence, cov=cov, recov=recov, roles=roles, sites=sites, ages=ages,
-               parents=parents_by_study.get(acc, []), history=hist_by_study.get(acc, []), n_consolidated_hidden=n_consolidated_hidden.get(acc, 0), panel=panel_by_study.get(acc), pstatus=pstatus_by.get(acc, {}), spcov=spcov_by.get(acc, {}), spqc=spqc_by.get(acc, {}),
+               parents=parents_by_study.get(acc, []), history=hist_by_study.get(acc, []), timeline=timeline_by_study.get(acc, []), n_consolidated_hidden=n_consolidated_hidden.get(acc, 0), panel=panel_by_study.get(acc), pstatus=pstatus_by.get(acc, {}), spcov=spcov_by.get(acc, {}), spqc=spqc_by.get(acc, {}),
                study_authors=authors_by_study.get(acc, []), sas=sas_by.get(acc, {}), flag_url=flag, confirm_url=confirm,
                samples=[clean(r) for r in shown[SAMPLE_COLS].to_dict('records')],
                n_total=n_total, n_shown=len(shown), dl=study_dl[acc],
@@ -617,6 +712,7 @@ def main():
            catfields=catfields, field_names=FIELDS, n_samples=len(sw), n_cols=int(sw.shape[1]),
            parquet_size=human((pkg / 'sample_metadata_wide.parquet').stat().st_size),
            topgen_size=human((pkg / 'sandpiper_top_genera.parquet').stat().st_size), vh_size=human((pkg / 'value_history.parquet').stat().st_size),
+           sda_name=rspec['files']['determinations_all'], sda_size=human(sda_path.stat().st_size), release_cols=dict(added=RA, retired=RR, reason=RREASON, stage=RSTAGE),
            issue_template=ISSUE_TEMPLATE, crumbs=[dict(label='Home', href='../index.html'), dict(label='Sample explorer')])
 
     # ---------- fields ----------
@@ -715,6 +811,78 @@ def main():
     render('methods.html', 'methods.html', '', nav='methods', stats=stats, status_counts=status_counts, stage_counts=stage_counts, sp=sp_stats,
            route_counts=route_counts, gold=gold_rows, flagdefs=flagdefs, flag_rows=flag_rows, docs=doc_list, crumbs=[dict(label='Home', href='index.html'), dict(label='Methods')])
 
+    # ---------- releases (registry + notes + cite) ----------
+    releases = []
+    for r in reg.itertuples(index=False):
+        d = {k: (v if v != '' else None) for k, v in r._asdict().items()}
+        d['data_url'] = rspec['site_pages']['data_release_url'].format(data_tag=d['data_tag']) if d['data_tag'] else None
+        d['site_url'] = rspec['site_pages']['site_release_url'].format(site_tag=d['site_tag']) if d['site_tag'] else None
+        d['notes_html'] = md_to_html(notes_by_release[d['release_id']]) if d['release_id'] in notes_by_release else None
+        d['changes_href'] = rspec['site_pages']['changes_release'].format(release_id=d['release_id']).split('/')[-1]
+        d['current'] = d['release_id'] == release_id
+        releases.append(d)
+    releases_desc = list(reversed(releases))  # newest first on the page
+    for d in releases:
+        if d['notes_html'] is None:
+            continue
+        (out / 'releases' / f"RELEASE_NOTES_{d['release_id']}.md").write_text(notes_by_release[d['release_id']], encoding='utf-8')
+    render('releases.html', rspec['site_pages']['releases_index'], '../', nav='releases', releases=releases_desc, n_releases=len(releases), first_numbered=rspec['release_id']['first_numbered'],
+           crumbs=[dict(label='Home', href='../index.html'), dict(label='Releases')])
+
+    # ---------- changes ("changed since <release>") ----------
+    sw_n_by_study = sw.groupby('study_accession').size().to_dict()
+    title_by_acc = uni.drop_duplicates('study_accession').set_index('study_accession').study_title.to_dict()
+    # previous verdict per study = the last live verdict_norm in study_verdict_history that differs from the current verdict
+    prev_verdict = {}
+    for acc, g in svh_live.sort_values(['stage_rank', 'date'], kind='mergesort', na_position='last').groupby('study_accession'):
+        prev_verdict[acc] = [str(v) for v in g.verdict_norm.dropna().tolist()]
+    def changes_for(rid):
+        v = uni_all[uni_all[RA].astype(str) == rid]
+        verdicts = []
+        for r in v.sort_values(['catalog_status', 'study_accession'], kind='mergesort').itertuples(index=False):
+            d = r._asdict()
+            cur = '' if isnull(d['triage_verdict']) else str(d['triage_verdict'])
+            hist = [x for x in prev_verdict.get(d['study_accession'], []) if x != cur]
+            verdicts.append(dict(acc=d['study_accession'], title='' if isnull(d['study_title']) else str(d['study_title'])[:120], verdict=cur, status='' if isnull(d['catalog_status']) else str(d['catalog_status']),
+                                 previous=hist[-1] if hist else None, conf=None if isnull(d['confidence']) else round(float(d['confidence']), 2), stage='' if isnull(d['decision_stage']) else str(d['decision_stage']),
+                                 included=d['study_accession'] in included, retired=None if isnull(d[RR]) else str(d[RR])))
+        added = sda[sda[RA].astype(str) == rid]
+        retired = sda[sda[RR].astype(str) == rid]
+        def by_field(df_):
+            return [dict(field=f, label=LABELS.get(f, f), link=f in FIELDS, n=int(n), n_samples=int(ns), n_studies=int(nst)) for f, n, ns, nst in
+                    sorted(((f, len(g), g.sample_key.nunique(), g.study_accession.nunique()) for f, g in df_.groupby('field_name')), key=lambda x: (-x[1], x[0]))]
+        both = pd.concat([added.assign(_kind='added'), retired.assign(_kind='retired')], ignore_index=True)
+        per_study = []
+        if len(both):
+            g_ = both.groupby('study_accession')
+            agg = pd.DataFrame(dict(n_added=g_._kind.apply(lambda x: int((x == 'added').sum())), n_retired=g_._kind.apply(lambda x: int((x == 'retired').sum())),
+                                    n_samples=g_.sample_key.nunique(), fields=g_.field_name.apply(lambda x: ', '.join(sorted(set(x))))))
+            agg['n_rows'] = agg.n_added + agg.n_retired
+            agg = agg.sort_values(['n_rows', 'study_accession'], ascending=[False, True], kind='mergesort')
+            reasons = retired.groupby('study_accession')[RREASON].apply(lambda x: '; '.join(sorted(set(str(v)[:80] for v in x.dropna()))[:3])).to_dict() if len(retired) else {}
+            stages = both.groupby('study_accession')[RSTAGE].apply(lambda x: ', '.join(sorted(set(str(v) for v in x.dropna())))).to_dict()
+            for acc, r in agg.head(20).iterrows():
+                per_study.append(dict(acc=acc, included=acc in included, title=(title_by_acc.get(acc) or '')[:100], n_added=int(r.n_added), n_retired=int(r.n_retired), n_rows=int(r.n_rows),
+                                      n_samples=int(r.n_samples), n_samples_study=int(sw_n_by_study.get(acc, 0)), fields=r.fields, reason=reasons.get(acc, ''), stage=stages.get(acc, '')))
+        n_studies_changed = int(both.study_accession.nunique()) if len(both) else 0
+        return dict(release_id=rid, verdicts=verdicts, n_verdicts=len(verdicts), n_verdict_studies=int(v.study_accession.nunique()),
+                    n_added=len(added), n_retired=len(retired), n_samples_added=int(added.sample_key.nunique()), n_samples_retired=int(retired.sample_key.nunique()),
+                    n_studies_changed=n_studies_changed, fields_added=by_field(added), fields_retired=by_field(retired), per_study=per_study,
+                    retired_stages=counts_sorted(retired[RSTAGE].dropna().astype(str)) if len(retired) else [],
+                    nothing=(len(verdicts) == 0 and len(added) == 0 and len(retired) == 0))
+    changes = []
+    for d in releases_desc:
+        c = changes_for(d['release_id'])
+        c.update(release_date=d['release_date'], package_version=d['package_version'], current=d['current'], href=d['changes_href'])
+        changes.append(c)
+        render('changes_release.html', rspec['site_pages']['changes_release'].format(release_id=d['release_id']), '../', nav='releases', c=c, rel=d,
+               crumbs=[dict(label='Home', href='../index.html'), dict(label='Releases', href='../' + rspec['site_pages']['releases_index']), dict(label='Changes', href='index.html'), dict(label=d['release_id'])])
+    render('changes_index.html', rspec['site_pages']['changes_index'], '../', nav='releases', changes=changes,
+           crumbs=[dict(label='Home', href='../index.html'), dict(label='Releases', href='../' + rspec['site_pages']['releases_index']), dict(label='Changes')])
+    for pth in [rspec['site_pages']['changes_index']] + [rspec['site_pages']['changes_release'].format(release_id=d['release_id']) for d in releases]:
+        assert (out / pth).stat().st_size < 2_000_000, f'{pth} over the 2 MB budget'
+    print(f'[{time.time()-t0:.0f}s] releases + {len(changes)} changes pages', file=sys.stderr)
+
     # ---------- downloads + manifest ----------
     def dirstat(sub, pattern='*'):
         fs = [f for f in (out / sub).glob(pattern) if f.is_file()]
@@ -723,6 +891,7 @@ def main():
         dict(path='data/sample_metadata_wide.parquet', desc='Sample table loaded by the explorer', **dirstat('data', 'sample_metadata_wide.parquet')),
         dict(path='data/sample_determinations.parquet', desc='Evidence rows loaded by the explorer on demand', **dirstat('data', 'sample_determinations.parquet')),
         dict(path='data/value_history.parquet', desc='Superseded / rejected / dropped values, loaded by the explorer on demand', **dirstat('data', 'value_history.parquet')),
+        dict(path='data/' + rspec['files']['determinations_all'], desc='Bitemporal determinations (current + retired, release_added / release_retired), loaded by the explorer value timeline on demand', **dirstat('data', rspec['files']['determinations_all'])),
         dict(path='data/sandpiper_top_genera.parquet', desc='Top genera per sample, loaded by the explorer on demand', **dirstat('data', 'sandpiper_top_genera.parquet')),
         dict(path='data/studies/<PRJ>.csv.gz|.parquet', desc='Per-study sample slices (gzip CSV + parquet)', **dirstat('data/studies', '*[0-9].csv.gz')),
         dict(path='data/studies/<PRJ>_determinations.csv.gz', desc='Per-study determinations with evidence (gzip CSV, mtime 0)', **dirstat('data/studies', '*_determinations.csv.gz')),
@@ -733,7 +902,7 @@ def main():
     offsite = [dict(o, desc=o['desc'].replace('{v}', version)) for o in OFFSITE]
     render('downloads.html', 'downloads.html', '', nav='downloads', files=pkg_files, zip_name=zip_name, zip_size=zip_size, sitedata=sitedata, offsite=offsite, vj=vj,
            crumbs=[dict(label='Home', href='index.html'), dict(label='Downloads')])
-    manifest = dict(site=site['title'], package_version=version, release_tag=vj['release_tag'], build_date=build_date, generator_git_sha=gen_sha, base_url=base_url,
+    manifest = dict(site=site['title'], package_version=version, release_tag=vj['release_tag'], release_id=release_id, build_date=build_date, generator_git_sha=gen_sha, base_url=base_url,
                     files=[dict(path=str(p.relative_to(out)), bytes=p.stat().st_size, sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in sorted((out / 'data').rglob('*')) if p.is_file()],
                     tables={k: dict(rows=v.get('rows'), sha256=v.get('sha256')) for k, v in sorted(vj['tables'].items())})
     (out / 'data' / 'manifest.json').write_text(json.dumps(manifest, indent=1, sort_keys=True), encoding='utf-8')
@@ -745,7 +914,7 @@ def main():
     sidx += [dict(t='cohort', id=c['cohort_id'], n=c['cohort_name'], u=f"cohorts/{c['cohort_id']}.html",
                   k=f"{c['cohort_id']} {c['cohort_name']} {c.get('study_accessions') or ''}".lower()) for c in cohorts]
     (out / 'search_index.json').write_text(dumps(sidx), encoding='utf-8')
-    render('index.html', 'index.html', '', nav='home', stats=stats, readme_version_warning=readme_version_warning)
+    render('index.html', 'index.html', '', nav='home', stats=stats, readme_version_warning=readme_version_warning, n_releases=len(releases))
     urls = ''.join(f'<url><loc>{base_url}{p}</loc></url>' for p in sorted(written))  # F21: docs pages included
     (out / 'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + '</urlset>', encoding='utf-8')
     (out / 'robots.txt').write_text(f'User-agent: *\nAllow: /\nSitemap: {base_url}sitemap.xml\n', encoding='utf-8')
