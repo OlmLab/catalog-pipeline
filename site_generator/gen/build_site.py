@@ -826,7 +826,7 @@ def main():
         if d['notes_html'] is None:
             continue
         (out / 'releases' / f"RELEASE_NOTES_{d['release_id']}.md").write_text(notes_by_release[d['release_id']], encoding='utf-8')
-    render('releases.html', rspec['site_pages']['releases_index'], '../', nav='releases', releases=releases_desc, n_releases=len(releases),
+    render('releases.html', rspec['site_pages']['releases_index'], '../', nav='releases', releases=releases_desc, n_releases=len(releases), first_numbered=rspec['release_id']['first_numbered'],
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Releases')])
 
     # ---------- changes ("changed since <release>") ----------
