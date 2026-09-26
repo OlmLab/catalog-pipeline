@@ -15,6 +15,7 @@ release_id:
 history:
   - id: '1.0.0'
     package_version: '1.0.0'
+    counts: {n_studies_included: 389}   # docs/CHANGELOG v10 'v1' / CYCLE_LOG build row (389 includes); '609 k determinations' is rounded → not recorded
     release_date: '2026-09-25'
     bundle: v10
     label: first public data package (package CHANGELOG "v1")
@@ -22,6 +23,7 @@ history:
     site_tag: null
   - id: '1.1.0'
     package_version: '1.1.0'
+    counts: {n_studies_included: 389, n_samples: 154222, n_determinations_current: 609584}   # package CHANGELOG v1.2: 'Sample table 154,222 → 154,206'; 'Determinations 609,584 − 97 − 23 − 125 + 9,559 = 618,898'
     release_date: '2026-09-25'
     bundle: v11
     label: sample-unit fix, auditor findings applied (package CHANGELOG "v1.1 (release v11)")
@@ -29,6 +31,7 @@ history:
     site_tag: null
   - id: '1.2.0'
     package_version: '1.2.0'
+    counts: {n_studies_included: 389, n_samples: 154206, n_determinations_current: 618898, sandpiper_version: '2.0.0'}   # package CHANGELOG v1.2 / v1.2.0
     release_date: '2026-09-26'
     bundle: v12
     label: data-model fix after Reviewer B (B1/B2/B9), Sandpiper profiles, author index, VERSION.json
@@ -36,12 +39,14 @@ history:
     site_tag: null
   - id: '1.2.1'
     package_version: '1.2.1'
+    counts: {n_studies_included: 389, n_samples: 154206, n_catalog_scope: 71795, n_determinations_current: 618898, sandpiper_version: '2.0.0'}   # package CHANGELOG v1.2.1 R3-8 (catalog_scope 71,795)
     release_date: '2026-09-26'
     label: fixes from the three final reviews (R3-1 … R3-15, F-series)
     data_tag: null
     site_tag: null
   - id: '1.2.2'
     package_version: '1.2.2'
+    counts: {n_studies_included: 389, n_samples: 154206, n_catalog_scope: 72358, n_determinations_current: 618898, sandpiper_version: '2.0.0'}   # package CHANGELOG 1.2.2 (catalog_scope 71,795 → 72,358)
     release_date: '2026-09-26'
     label: owner decisions applied (701 value_history rows); first unattended GitHub Release
     data_tag: data-v1.2.2
