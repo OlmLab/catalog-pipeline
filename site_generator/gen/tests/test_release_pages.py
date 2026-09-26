@@ -27,7 +27,9 @@ def test_release_spec_shape():
     assert SPEC['columns']['release_added'] == 'release_added' and SPEC['columns']['release_retired'] == 'release_retired' and SPEC['columns']['package_added'] == 'package_added'
     assert SPEC['release_id']['first_numbered'] == 'R2026.1'
     assert SPEC['release_id']['historical'] == ['1.0.0', '1.1.0', '1.2.0', '1.2.1', '1.2.2']
-    assert 'sample_determinations.parquet' in SPEC['fact_tables'] and 'sample_metadata_wide.parquet' not in SPEC['fact_tables']
+    # fact_tables entries are dicts ({file, key, default_release_added, ...}) in the data-track spec; plain names in the mock
+    ft = [t['file'] if isinstance(t, dict) else t for t in SPEC['fact_tables']]
+    assert 'sample_determinations.parquet' in ft and 'sample_metadata_wide.parquet' not in ft
     assert SPEC['files']['determinations_all'] == 'sample_determinations_all.parquet' and SPEC['files']['registry'] == 'releases.csv'
     assert SPEC['registry_columns'][0] == 'release_id' and 'doi' in SPEC['registry_columns'] and SPEC['registry_columns'][-1] == 'notes_file'
     assert SPEC['site_pages']['releases_index'] == 'releases/index.html' and SPEC['site_pages']['changes_release'] == 'changes/{release_id}.html'

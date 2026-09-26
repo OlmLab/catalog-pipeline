@@ -13,7 +13,10 @@ import pytest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GEN = os.path.join(REPO, "site_generator", "gen", "build_site.py")
-PKG = os.environ.get("CATALOG_PACKAGE_DIR", os.path.join(REPO, "data", "inputs", "data_package"))
+# R2026.1: the generator needs a package with release columns (>= 1.3.0); prefer the freshly built build/package,
+# then the unpacked input package (skipped below if it predates 1.3.0 — no releases.csv)
+_CANDIDATES = [os.environ.get("CATALOG_PACKAGE_DIR"), os.path.join(REPO, "build", "package"), os.path.join(REPO, "data", "inputs", "data_package")]
+PKG = next((c for c in _CANDIDATES if c and os.path.exists(os.path.join(c, "releases.csv"))), _CANDIDATES[-1])
 
 
 def _tree_hashes(root):
@@ -33,6 +36,8 @@ def _build(out):
 def test_two_builds_are_byte_identical(tmp_path):
     if not os.path.isdir(PKG) or not os.path.exists(os.path.join(PKG, "sample_metadata_wide.parquet")):
         pytest.skip(f"no unpacked package at {PKG}")
+    if not os.path.exists(os.path.join(PKG, "releases.csv")):
+        pytest.skip(f"package at {PKG} predates 1.3.0 (no releases.csv); run make release first")
     a, b = tmp_path / "a", tmp_path / "b"
     _build(str(a))
     _build(str(b))

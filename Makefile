@@ -155,12 +155,15 @@ package-docs:    ## stage 5c — build_counts.json from the tables; README headi
 release-notes:   ## stage 5d — RELEASE_NOTES_<release_id>.md from PKG_SRC (previous) vs PKG_OUT (new); deterministic
 	$(PY) -m catalog.release.release_notes --prev $(PKG_SRC) --new $(PKG_OUT) --out $(RELEASE_NOTES)
 
-release:         ## stage 5 (R2026.n) — unpack → findings → assemble → bitemporal → package-docs → release notes → VERSION.json → zip → check
+release:         ## stage 5 (R2026.n) — unpack → findings → assemble → bitemporal → package-docs → VERSION.json → release notes → VERSION.json+zip → check
 	@test -n "$(RELEASE_ID)" || { echo "config/releases.yaml has no release for package $(VERSION)"; exit 1; }
 	$(MAKE) unpack
 	$(MAKE) package-assemble
 	$(MAKE) bitemporal
 	$(MAKE) package-docs
+	# VERSION.json must carry the NEW version before the notes are generated (release_notes reads it for the header);
+	# the second make_version run re-hashes the package with RELEASE_NOTES included, the third checks (R1-11)
+	$(PY) -m catalog.make_version --package $(PKG_OUT) --build-date $(BUILD_DATE) --zip $(PKG_ZIP_OUT)
 	$(MAKE) release-notes
 	$(PY) -m catalog.make_version --package $(PKG_OUT) --build-date $(BUILD_DATE) --zip $(PKG_ZIP_OUT)
 	$(PY) -m catalog.make_version --package $(PKG_OUT) --check --zip $(PKG_ZIP_OUT)
@@ -169,15 +172,8 @@ release:         ## stage 5 (R2026.n) — unpack → findings → assemble → b
 package-merge:   ## assemble a package from parts (v1.2 tables + Sandpiper dir + authors dir) with build_package.py — used for 1.2.x
 	$(PY) -m catalog.build_package --v12 $(PKG_SRC) --sandpiper $(SP_DIR)/sp --authors $(BUILD)/authors_$(CYCLE) --out $(PKG_OUT) --build-date $(BUILD_DATE) --package-version $(VERSION) --zip $(PKG_ZIP_OUT)
 
-check-reports:   ## fail when a report the site links to is missing from $(REPORTS) (R1-08; the list is config/inputs.json group `reports`)
-	@$(PY) - <<-'EOF'
-	import json, os, sys
-	req = [e["filename"] for e in json.load(open("config/inputs.json"))["inputs"]["reports"] if e.get("required", True)]
-	missing = [f for f in req if not os.path.exists(os.path.join("$(REPORTS)", f))]
-	if missing:
-	    print("missing report inputs in $(REPORTS):", missing, "— run bootstrap (group reports) or place them there", file=sys.stderr); sys.exit(1)
-	print("reports present:", req)
-	EOF
+check-reports:   ## fail when a report the site links to is missing from $(REPORTS) (R1-08; list = config/inputs.json group `reports`)
+	$(PY) scripts/check_reports.py $(REPORTS)
 
 plot-coverage:   ## regenerate field_coverage.png from the package's field_coverage_summary.csv (deterministic)
 	$(PY) scripts/plot_field_coverage.py --summary $(PKG_OUT)/field_coverage_summary.csv --out $(REPORTS)/field_coverage.png
