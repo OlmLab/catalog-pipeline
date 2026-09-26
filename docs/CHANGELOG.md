@@ -22,6 +22,17 @@ data-package **semver** (`config/version.txt`, `VERSION.json`), and release bund
 
 Cumulative LLM spend to v11: ≈ 47.3 M tokens (CATALOG_REPORT §1; BUDGET.md).
 
+## 1.3.0 — 2026-09-26 — release R2026.1 (first numbered release; bitemporal data; deterministic, 0 LLM tokens)
+Data (package CHANGELOG 1.3.0; `data_package_v1.3.0.zip`): release columns `release_added` / `release_retired` / `package_added` on 9 fact
+tables (10 files), `sample_determinations_all.parquet` (618,898 current + 1,316 retired), `releases.csv`, `RELEASE_NOTES_R2026.1.md`,
+`build_counts.json` regenerated (was stale at 1.2.1 / 71,795), README heading fixed (1.2.2 shipped "v1.2.0"). No 1.2.2 value changed.
+Repo: `config/releases.yaml` + `docs/RELEASES.md` (release model, frozen column spec, CHANGELOG-verified change_stage → package
+mapping: sample_unit_fix/auditor_review → 1.1.0, B2/B9 → 1.2.0, R3-3 → 1.2.1, owner_decision → 1.2.2); `src/catalog/release/`
+(`bitemporal.py`, `release_notes.py`, `package_docs.py`); `make release` = unpack → findings → package-assemble → bitemporal →
+package-docs → release-notes → make_version → zip → check (`package` still works); `make_version` writes `release_id` /
+`previous_release_id` and `--check` verifies them; `PKG_ZIP` default → `data_package_v1.2.2.zip`; `docs/package_changelog/<semver>.md`
+holds the package CHANGELOG entry; tests `test_bitemporal.py` (6) + `test_release_notes.py` (3); `audit/schema.json` schema_version 1.3.0.
+
 ## 1.2.1 — 2026-09-26 (fix wave after three independent final reviews; deterministic, 0 LLM tokens)
 Data (DATAFIX_REPORT.md; `data_package_v1.2.1.zip`, artifact eb4d3d1a): see that report for the per-finding table.
 Repo (REPOFIX_REPORT.md): model resolution works with the kernel `host` global (`set_host`, frame fallback, `python -m catalog.models` exits 1 on

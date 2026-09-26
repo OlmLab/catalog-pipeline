@@ -55,3 +55,6 @@ snapshot per release; delete intermediate `*_checkpoint_*` parquet older than tw
   `rm -rf` inside `~/catalog/` except `build/` (`make clean`).
 * One writer per clone at a time: the Release Engineer profile; the Curator writes only under
   `catalog-pipeline/build/` and `audit/findings/`.
+
+## Release outputs (R2026.1)
+`build/package/` carries `sample_determinations_all.parquet`, `releases.csv`, `RELEASE_NOTES_<release_id>.md`, `bitemporal_log.json` next to the tables; `docs/package_changelog/<semver>.md` is the source of the package CHANGELOG entry. Data package zips are named `data_package_v<semver>.zip`; the release id lives in `VERSION.json.release_id`.

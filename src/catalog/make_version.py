@@ -9,6 +9,8 @@ One semver for the data package is the public version; release tags and site lab
       "build_date":         "2026-09-26",           # package release date; the site footer uses THIS, never wall clock
       "generator_git_sha":  "<short sha or 'nogit'>",
       "generator_repo":     "OlmLab/catalog-pipeline",
+      "release_id":         "R2026.1",                # numbered catalog release (config/releases.yaml); pre-numbered = the semver
+      "previous_release_id": "1.2.2",
       "tables": { "<file>": {"sha256": ..., "size_bytes": ..., "rows": <int|null>} , ... }
     }
 
@@ -92,9 +94,30 @@ def build(package_dir: str, package_version: str, build_date: str | None = None,
         if not os.path.isfile(p) or name == "VERSION.json" or not name.endswith(TABLE_EXT):
             continue
         tables[name] = dict(sha256=sha256_file(p), size_bytes=os.path.getsize(p), rows=row_count(p))
-    return dict(release_tag=f"data-v{package_version}", package_version=package_version,
-                build_date=build_date or dt.date.today().isoformat(), generator_git_sha=git_sha(repo),
-                generator_repo="OlmLab/catalog-pipeline", tables=tables)
+    v = dict(release_tag=f"data-v{package_version}", package_version=package_version,
+             build_date=build_date or dt.date.today().isoformat(), generator_git_sha=git_sha(repo),
+             generator_repo="OlmLab/catalog-pipeline", tables=tables)
+    v.update(release_ids(package_version, repo))
+    return v
+
+
+def release_ids(package_version: str, repo: str = REPO) -> dict:
+    """release_id / previous_release_id for this package from config/releases.yaml (R2026.1 release model; docs/RELEASES.md).
+
+    Numbered releases come from `releases:`; a package version listed only under `history:` is its own id (pre-numbered
+    state). Unknown versions get release_id = None so the manifest still builds (tests use 9.9.9)."""
+    p = os.path.join(os.environ.get("CATALOG_CONFIG_DIR", os.path.join(repo, "config")), "releases.yaml")
+    if not os.path.exists(p):
+        return {}
+    import yaml
+
+    cfg = yaml.safe_load(open(p, encoding="utf-8"))
+    ids = [(h["package_version"], h["id"], None) for h in cfg.get("history", [])]
+    ids += [(r["package_version"], r["release_id"], r.get("previous_release_id")) for r in cfg.get("releases", [])]
+    for i, (pv, rid, prev) in enumerate(ids):
+        if pv == package_version:
+            return dict(release_id=rid, previous_release_id=prev if prev is not None else (ids[i - 1][1] if i else None))
+    return dict(release_id=None, previous_release_id=None)
 
 
 def build_zip(package_dir: str, out_zip: str, build_date: str) -> dict:
@@ -150,6 +173,9 @@ def check(package_dir: str, package_version: str, out_zip: str | None = None) ->
         v = json.load(open(vj))
         if v.get("package_version") != package_version:
             problems.append(f"VERSION.json package_version {v.get('package_version')} != {package_version}")
+        exp = release_ids(package_version).get("release_id")
+        if exp is not None and v.get("release_id") != exp:
+            problems.append(f"VERSION.json release_id {v.get('release_id')} != {exp} (config/releases.yaml)")
         for name, meta in v.get("tables", {}).items():
             p = os.path.join(package_dir, name)
             if not os.path.exists(p):
@@ -200,7 +226,7 @@ def main(argv=None):
     v["check_rule"] = "every file in the package directory with extension in TABLE_EXT must be listed in tables (unlisted files fail --check)"
     out = a.out or os.path.join(a.package, "VERSION.json")
     json.dump(v, open(out, "w"), indent=1, sort_keys=True)
-    print(json.dumps({k: v[k] for k in ("release_tag", "package_version", "build_date", "generator_git_sha")} | {"n_tables": len(v["tables"])}))
+    print(json.dumps({k: v.get(k) for k in ("release_tag", "package_version", "release_id", "previous_release_id", "build_date", "generator_git_sha")} | {"n_tables": len(v["tables"])}))
     if a.zip:
         info = build_zip(a.package, a.zip, v["build_date"])
         side = write_sidecar(a.package, a.zip, info)

@@ -9,11 +9,15 @@ export CATALOG_CONFIG_DIR := $(CURDIR)/config
 VERSION    := $(shell cat config/version.txt)
 DATA       ?= data/inputs
 # PKG_ZIP: the CURRENT release package zip (explicit, never a glob — R1-03); PKG_SRC: where `unpack` flattens it
-PKG_ZIP    ?= $(DATA)/data_package_v1.2.1.zip
+PKG_ZIP    ?= $(DATA)/data_package_v1.2.2.zip
 PKG_SRC    ?= $(DATA)/data_package
 BUILD      ?= build
 PKG_OUT    := $(BUILD)/package
 PKG_ZIP_OUT:= $(BUILD)/data_package_v$(VERSION).zip
+# Release model (config/releases.yaml, docs/RELEASES.md): RELEASE_ID for VERSION, PREV_VERSION from the unpacked source package
+RELEASE_ID := $(shell $(PY) -c "import yaml;c=yaml.safe_load(open('config/releases.yaml'));print(next((r['release_id'] for r in c['releases'] if r['package_version']=='$(VERSION)'),''))")
+PREV_VERSION = $(shell $(PY) -c "import json;print(json.load(open('$(PKG_SRC)/VERSION.json'))['package_version'])")
+RELEASE_NOTES := $(PKG_OUT)/RELEASE_NOTES_$(RELEASE_ID).md
 APPLIED    := $(BUILD)/applied_$(VERSION)
 SITE_OUT   := $(BUILD)/site
 SITE_CLONE ?= $(HOME)/catalog/infant-gut-catalog
@@ -32,7 +36,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: help bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: help bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -125,15 +129,42 @@ findings:        ## stage 4 — apply audit/findings/*.csv with validators; rebu
 ingest-issues:   ## pull GitHub Issues labelled `finding` into audit/findings/<date>_issues.csv (needs GITHUB_TOKEN or GH_TOKEN; R1-09/F2)
 	$(PY) -m catalog.ingest_issues --repo $$($(PY) -c "import yaml;c=yaml.safe_load(open('config/site.yaml'));print(c['github']['org']+'/'+c['github']['issues']['repo'])") --out audit/findings
 
-package:         ## stage 5 — package dir (+ applied tables) → VERSION.json → deterministic zip + sidecar (R1-11); `findings` always re-runs first
+package-assemble: ## stage 5a — findings → package dir = PKG_SRC + applied tables (shared by `package` and `release`)
 	@test -n "$(PKG_SRC)" && test -f "$(PKG_SRC)/sample_metadata_wide.parquet" || { echo "PKG_SRC=$(PKG_SRC) is not an unpacked package (run make unpack)"; exit 1; }
 	@test -n "$(PKG_OUT)" && test "$(PKG_OUT)" != "/" || exit 1
 	$(MAKE) findings
 	mkdir -p $(PKG_OUT) && rsync -a --delete $(PKG_SRC)/ $(PKG_OUT)/
 	@if [ -f $(APPLIED)/APPLIED ]; then cp $(APPLIED)/*.parquet $(APPLIED)/*.csv $(PKG_OUT)/ 2>/dev/null; cp $(APPLIED)/APPLY_FINDINGS_DIFF.md $(PKG_OUT)/; echo "applied tables copied from $(APPLIED)"; else echo "no applied findings (nothing copied)"; fi
+
+package:         ## stage 5 — package dir (+ applied tables) → VERSION.json → deterministic zip + sidecar (R1-11); `findings` always re-runs first
+	$(MAKE) package-assemble
 	$(PY) -m catalog.make_version --package $(PKG_OUT) --build-date $(BUILD_DATE) --zip $(PKG_ZIP_OUT)
 	$(PY) -m catalog.make_version --package $(PKG_OUT) --check --zip $(PKG_ZIP_OUT)
 	@ls -la $(PKG_ZIP_OUT) && cat $(PKG_ZIP_OUT).sha256
+
+bitemporal:      ## stage 5b — release columns on every fact table + sample_determinations_all.parquet + releases.csv (config/releases.yaml; docs/RELEASES.md)
+	@test -n "$(RELEASE_ID)" || { echo "config/releases.yaml has no release for package $(VERSION) — add it under releases:"; exit 1; }
+	@test -f "$(PKG_OUT)/sample_determinations.parquet" || { echo "run make package-assemble first"; exit 1; }
+	$(PY) -m catalog.release.bitemporal --package $(PKG_OUT) --out $(PKG_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) \
+	  --previous-package-version $(PREV_VERSION) --previous-package $(PKG_SRC) --release-date $(BUILD_DATE)
+
+package-docs:    ## stage 5c — build_counts.json from the tables; README heading/Files table, DATA_DICTIONARY release columns, CHANGELOG entry (docs/package_changelog/$(VERSION).md)
+	$(PY) -m catalog.release.package_docs --package $(PKG_OUT) --package-version $(VERSION) --release-id $(RELEASE_ID) --build-date $(BUILD_DATE) \
+	  --changelog-entry docs/package_changelog/$(VERSION).md
+
+release-notes:   ## stage 5d — RELEASE_NOTES_<release_id>.md from PKG_SRC (previous) vs PKG_OUT (new); deterministic
+	$(PY) -m catalog.release.release_notes --prev $(PKG_SRC) --new $(PKG_OUT) --out $(RELEASE_NOTES)
+
+release:         ## stage 5 (R2026.n) — unpack → findings → assemble → bitemporal → package-docs → release notes → VERSION.json → zip → check
+	@test -n "$(RELEASE_ID)" || { echo "config/releases.yaml has no release for package $(VERSION)"; exit 1; }
+	$(MAKE) unpack
+	$(MAKE) package-assemble
+	$(MAKE) bitemporal
+	$(MAKE) package-docs
+	$(MAKE) release-notes
+	$(PY) -m catalog.make_version --package $(PKG_OUT) --build-date $(BUILD_DATE) --zip $(PKG_ZIP_OUT)
+	$(PY) -m catalog.make_version --package $(PKG_OUT) --check --zip $(PKG_ZIP_OUT)
+	@ls -la $(PKG_ZIP_OUT) $(RELEASE_NOTES) && cat $(PKG_ZIP_OUT).sha256
 
 package-merge:   ## assemble a package from parts (v1.2 tables + Sandpiper dir + authors dir) with build_package.py — used for 1.2.x
 	$(PY) -m catalog.build_package --v12 $(PKG_SRC) --sandpiper $(SP_DIR)/sp --authors $(BUILD)/authors_$(CYCLE) --out $(PKG_OUT) --build-date $(BUILD_DATE) --package-version $(VERSION) --zip $(PKG_ZIP_OUT)

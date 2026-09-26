@@ -71,7 +71,7 @@
     "study_note",
     "note_only"
    ],
-   "description": "sample_unit (biosample / run / pooled) is wrong \u2014 needs a pipeline re-key, recorded as a study note"
+   "description": "sample_unit (biosample / run / pooled) is wrong — needs a pipeline re-key, recorded as a study note"
   },
   "duplicate": {
    "actions": [
@@ -241,10 +241,22 @@
    "finding"
   ],
   "title": "[finding] <identifier>: <field or verdict>",
-  "description": "Report a wrong, missing or unsupported value, verdict or link in the Infant Gut Shotgun-Metagenome Catalog \u2014 or confirm a value is correct",
+  "description": "Report a wrong, missing or unsupported value, verdict or link in the Infant Gut Shotgun-Metagenome Catalog — or confirm a value is correct",
   "evidence_optional_for": [
    "confirmed_correct"
   ],
-  "date_and_source_from": "issue.created_at (date) and issue.number (source) \u2014 filled by ingest_issues.py, never typed by hand"
+  "date_and_source_from": "issue.created_at (date) and issue.number (source) — filled by ingest_issues.py, never typed by hand"
+ },
+ "schema_version": "1.3.0",
+ "release_columns": {
+  "$comment": "R2026.1 (config/releases.yaml, docs/RELEASES.md): appended at the end of every fact table; sample_metadata_wide has none",
+  "release_added": "str — release id (R<YYYY>.<n>) or pre-numbered package semver in which the row first became visible; pre-1.3.0 values reconstructed from value_history.change_stage / src_track",
+  "release_retired": "str|null — release that replaced/removed the row; null = current",
+  "package_added": "str — semver of the package in which the row first appeared",
+  "sample_determinations_all_extra": {
+   "retired_reason": "str|null — value_history.reason",
+   "retired_change_stage": "str|null — value_history.change_stage"
+  },
+  "release_tag_note": "the structured finding column release_tag (data-v<semver>) names the package the finding was raised against; apply_findings rows applied in release R get release_added = R"
  }
 }
