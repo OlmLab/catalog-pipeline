@@ -397,3 +397,17 @@ def test_carry_infant_universe_appends_missing_included_study():
     assert row.found_by == CARRY_FOUND_BY and row.candidate_class == "prior_human" and row.in_infant_catalog == "include"
     assert row.study_title == "carried" and row.n_runs == 7 and row.description_short == ""
     assert carry_infant_universe(out, inf).shape == out.shape  # idempotent
+
+
+def test_curated_precedence_overrides_archive_only_values_for_included_studies():
+    from catalog.registry.build_registry import apply_curated_precedence, derive_scope_memberships
+    df = pd.DataFrame({"in_infant_catalog": ["include", "include", "exclude"], "host_human": ["yes", "unknown", "no"],
+                       "assay": ["other", "shotgun_dna", "other"], "body_sites": ["unknown_site", "gut_stool;oral", ""],
+                       "body_site_primary": ["unknown_site", "oral", None], "life_stages": ["unknown_age", "adult", ""],
+                       "life_stage_primary": ["unknown_age", "adult", None]})
+    out = apply_curated_precedence(df)
+    assert list(out.assay) == ["shotgun_dna", "shotgun_dna", "other"] and list(out.host_human) == ["yes", "yes", "no"]
+    assert out.body_sites[0] == "gut_stool" and out.body_site_primary[0] == "gut_stool" and out.life_stage_primary[0] == "infant"
+    assert out.body_sites[1] == "gut_stool;oral" and out.body_site_primary[1] == "oral" and out.life_stages[1] == "adult;infant"
+    assert out.attrs["curated_precedence_applied"] == 2 and out.body_sites[2] == ""
+    assert "human_all" in derive_scope_memberships("yes", ["gut_stool"], ["infant"], "shotgun_dna", "include")

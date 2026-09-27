@@ -88,7 +88,7 @@ def derive_scope_memberships(host_human: str, body_sites: list[str], life_stages
         sid = s["id"]
         hit = False
         if sid == "human_all":
-            hit = human and assay in ("shotgun_dna", "mixed")
+            hit = (human and assay in ("shotgun_dna", "mixed")) or in_infant == "include"   # a curated scope is always inside human_all
         elif sid == "infant_gut":
             hit = in_infant == "include"
         elif not human:
@@ -181,6 +181,38 @@ def join_sandpiper(universe: pd.DataFrame, sandpiper_runs: pd.DataFrame | None) 
     return out
 
 
+CURATED_ASSAY_OVERRIDE = ("other", "unknown", "amplicon_misfiled")
+
+
+def apply_curated_precedence(out: pd.DataFrame) -> pd.DataFrame:
+    """Curated verdict > archive-only classification (config/scope.yaml). A study INCLUDED in the infant gut catalog was confirmed
+    by the curated cascade (paper + sample metadata) to be a human shotgun metagenome of infant stool: registry values that
+    contradict that — host_human != yes/mixed, assay in {other, unknown, amplicon_misfiled} (ENA library_strategy OTHER deposits),
+    gut_stool / infant missing from the site / stage lists — are overridden here and the note records it. Stage and evidence are
+    untouched (the override is a precedence rule, not new evidence)."""
+    inc = out["in_infant_catalog"] == "include"
+    if not inc.any():
+        return out
+    out = out.copy()
+    fix_host = inc & ~out["host_human"].isin(["yes", "mixed"])
+    fix_assay = inc & out["assay"].isin(CURATED_ASSAY_OVERRIDE)
+    out.loc[fix_host, "host_human"] = "yes"
+    out.loc[fix_assay, "assay"] = "shotgun_dna"
+
+    def _add(lst: str, code: str) -> str:
+        parts = [p for p in (lst or "").split(";") if p and not p.startswith("unknown")]
+        return ";".join(parts + ([code] if code not in parts else []))
+
+    bs_missing = inc & ~out["body_sites"].fillna("").str.contains(r"(?:^|;)gut_stool(?:;|$)")
+    ls_missing = inc & ~out["life_stages"].fillna("").str.contains(r"(?:^|;)(?:infant|neonate)(?:;|$)")
+    out.loc[bs_missing, "body_sites"] = out.loc[bs_missing, "body_sites"].map(lambda v: _add(v, "gut_stool"))
+    out.loc[bs_missing & (out["body_site_primary"].isna() | (out["body_site_primary"] == "unknown_site")), "body_site_primary"] = "gut_stool"
+    out.loc[ls_missing, "life_stages"] = out.loc[ls_missing, "life_stages"].map(lambda v: _add(v, "infant"))
+    out.loc[ls_missing & (out["life_stage_primary"].isna() | (out["life_stage_primary"] == "unknown_age")), "life_stage_primary"] = "infant"
+    out.attrs["curated_precedence_applied"] = int((fix_host | fix_assay | bs_missing | ls_missing).sum())
+    return out
+
+
 def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | None, release_id: str, package_version: str,
              sandpiper_runs: pd.DataFrame | None = None) -> pd.DataFrame:
     universe = carry_infant_universe(universe, infant)
@@ -263,6 +295,7 @@ def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | N
         "in_infant_catalog": in_inf, "infant_reason_code": col("infant_reason_code", None),
         "universe_slice": col("universe_slice"),
     })
+    out = apply_curated_precedence(out)
     out["scope_memberships"] = [";".join(derive_scope_memberships(h, b.split(";") if b else [], l.split(";") if l else [], a, i))
                                 for h, b, l, a, i in zip(out.host_human, out.body_sites, out.life_stages, out.assay, out.in_infant_catalog)]
     out["release_added"], out["release_retired"], out["package_added"] = release_id, None, package_version

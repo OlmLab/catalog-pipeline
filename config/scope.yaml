@@ -13,7 +13,9 @@ vocabularies:
 
 # Membership rule (src/catalog/registry/build_registry.py::derive_scope_memberships), deterministic from
 # (host_human, body_sites, life_stages, assay, in_infant_catalog):
-#   human_all      : host_human in {yes, mixed} and assay in {shotgun_dna, mixed}
+#   human_all      : host_human in {yes, mixed} and assay in {shotgun_dna, mixed}, OR in a curated scope (in_infant_catalog == include)
+#                    (curated verdict > archive-only classification: build_registry.apply_curated_precedence also sets host yes,
+#                    assay shotgun_dna and gut_stool/infant for included infant studies whose ENA record says OTHER/unknown)
 #   infant_gut     : in_infant_catalog == include                       (curated verdict wins over the vocabulary rule)
 #   gut_child      : gut_stool in body_sites and (child or adolescent) in life_stages
 #   gut_adult      : gut_stool in body_sites and (adult or elderly) in life_stages
