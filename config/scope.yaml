@@ -221,7 +221,8 @@ files:
   audit: registry_universe_audit.csv
   site_studies_path: data/registry_studies.parquet
 vocab_dir: config/vocab
-release_id: R2026.4
+release_id: R2026.4          # release in which the registry tier first ships
+package_version: "1.6.0"
 scope_rules:
   infant_gut:
     rule: in_infant_catalog == include
@@ -256,3 +257,18 @@ scope_rules:
   unknown_site:
     rule: unknown_site in body_sites OR body_sites empty
     site: null
+
+# ---- further keys from the registry-site track (audit table columns etc.) ----
+human_signal_rules:
+- A
+- B
+- C
+- none
+audit_columns:
+- universe_slice
+- ena_query
+- ena_count_runs
+- rows_pulled
+- n_studies
+- completeness
+- pulled_at

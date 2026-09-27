@@ -37,7 +37,8 @@ REGISTRY_SQL = {
 
 def test_scope_spec_shape():
     ids = [s['id'] for s in SSPEC['scopes']]
-    assert ids == ['infant_gut', 'gut_child', 'gut_adult', 'oral', 'skin', 'vaginal_urogenital', 'respiratory', 'milk', 'blood_tissue', 'other_site', 'unknown_site']
+    # S0 spec: the registry scope human_all comes first, then the curated infant scope and the ten registry scopes
+    assert ids == ['human_all', 'infant_gut', 'gut_child', 'gut_adult', 'oral', 'skin', 'vaginal_urogenital', 'respiratory', 'milk', 'blood_tissue', 'other_site', 'unknown_site']
     assert SSPEC['registry_columns'][:3] == ['study_accession', 'secondary_study_accession', 'study_title']
     assert SSPEC['registry_columns'][-3:] == ['release_added', 'release_retired', 'package_added']
     for c in ('host_human', 'host_evidence', 'assay', 'access', 'body_sites', 'body_site_primary', 'body_site_evidence', 'life_stages', 'life_stage_primary',
@@ -52,12 +53,12 @@ def test_vocabularies():
     assert list(VOCABS['body_site']) == ['gut_stool', 'oral', 'skin', 'nasal_nasopharyngeal', 'respiratory_lower', 'vaginal_urogenital', 'milk', 'blood_tissue', 'eye_ear', 'other_site', 'unknown_site', 'multi_site']
     assert list(VOCABS['life_stage']) == ['neonate', 'infant', 'child', 'adolescent', 'adult', 'elderly', 'unknown_age', 'mixed_ages']
     assert set(VOCABS['assay']) == set(SSPEC['assay_values'])
-    bs_yaml = yaml.safe_load((REPO / 'config' / 'vocab' / 'body_site.yaml').read_text())
-    assert bs_yaml['codes']['gut_stool']['uberon'][0]['id'] == 'UBERON:0001988' and 'gutierrez' in bs_yaml['codes']['gut_stool']['negatives']
+    bs_yaml = yaml.safe_load((REPO / 'config' / 'vocab' / 'body_sites.yaml').read_text())
+    assert bs_yaml['codes']['gut_stool']['uberon'][0]['id'] == 'UBERON:0001988' and 'gutierrez' in bs_yaml['codes']['gut_stool']['negative_terms']
     for code, spec in bs_yaml['codes'].items():
         for u in spec.get('uberon') or []:
             assert re.fullmatch(r'UBERON:\d{7}', u['id']), (code, u)
-    ls_yaml = yaml.safe_load((REPO / 'config' / 'vocab' / 'life_stage.yaml').read_text())
+    ls_yaml = yaml.safe_load((REPO / 'config' / 'vocab' / 'life_stages.yaml').read_text())
     assert ls_yaml['codes']['neonate']['days'] == [0, 29] and ls_yaml['codes']['infant']['days'] == [29, 1101] and ls_yaml['infant_catalog_window_days'] == [0, 1100]
 
 
@@ -193,7 +194,7 @@ def test_home_nav_methods_carry_registry():
     base_nav = (SITE / 'universe.html').read_text(encoding='utf-8')
     assert re.search(r'<a href="registry/index.html"[^>]*>Registry</a>', base_nav), 'nav link'
     methods = (SITE / 'methods.html').read_text(encoding='utf-8')
-    assert 'id="registry"' in methods and 'UBERON:0001988' in methods and 'deterministic_prior' in methods and 'config/vocab/life_stage.yaml' in methods
+    assert 'id="registry"' in methods and 'UBERON:0001988' in methods and 'deterministic_prior' in methods and 'config/vocab/life_stages.yaml' in methods
     sidx = json.loads((SITE / 'search_index.json').read_text(encoding='utf-8'))
     assert {e['id'] for e in sidx if e['t'] == 'scope'} == {sc['id'] for sc in SSPEC['scopes']}
 

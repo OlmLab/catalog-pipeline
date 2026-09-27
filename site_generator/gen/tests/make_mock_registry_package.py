@@ -37,7 +37,7 @@ def sha256(p):
 
 
 def load_vocab(vocab_dir):
-    return {n: yaml.safe_load((vocab_dir / f'{n}.yaml').read_text(encoding='utf-8')) for n in ('body_site', 'life_stage', 'assay', 'population_flags')}
+    return {n: yaml.safe_load((vocab_dir / {'body_site': 'body_sites.yaml', 'life_stage': 'life_stages.yaml', 'assay': 'assay.yaml', 'population_flags': 'population_flags.yaml'}[n]).read_text(encoding='utf-8')) for n in ('body_site', 'life_stage', 'assay', 'population_flags')}
 
 
 def term_hits(text, codes, skip=()):

@@ -422,9 +422,9 @@ def main():
             bad = set(rg[col].dropna().astype(str)) - set(map(str, allowed))
             assert not bad, f'registry_studies.{col} outside the vocabulary: {sorted(bad)[:5]}'
         _codes = set(vocabs['body_site']); _bad = {c for v in rg.body_sites.dropna() for c in split_list(v)} - _codes
-        assert not _bad, f'registry_studies.body_sites codes outside config/vocab/body_site.yaml: {sorted(_bad)[:5]}'
+        assert not _bad, f'registry_studies.body_sites codes outside config/vocab/body_sites.yaml: {sorted(_bad)[:5]}'
         _codes = set(vocabs['life_stage']); _bad = {c for v in rg.life_stages.dropna() for c in split_list(v)} - _codes
-        assert not _bad, f'registry_studies.life_stages codes outside config/vocab/life_stage.yaml: {sorted(_bad)[:5]}'
+        assert not _bad, f'registry_studies.life_stages codes outside config/vocab/life_stages.yaml: {sorted(_bad)[:5]}'
         _sids = {sc['id'] for sc in sspec['scopes']}; _bad = {c for v in rg.scope_memberships.dropna() for c in split_list(v)} - _sids
         assert not _bad, f'registry_studies.scope_memberships outside config/scope.yaml: {sorted(_bad)[:5]}'
         assert (set(rg[RA].dropna().astype(str)) | set(rg[RR].dropna().astype(str))) <= known_ids, 'registry_studies: release ids missing from releases.csv'
@@ -1073,7 +1073,8 @@ def main():
         scope_rows, scope_pages = [], []
         for sc in sspec['scopes']:
             m = rg[rg.scope_memberships.map(lambda v: sc['id'] in split_list(v))]
-            d = dict(id=sc['id'], label=sc['label'], definition=sc['definition'], rule=sc.get('rule', ''), curated=bool(sc.get('curated')),
+            _sr = sspec.get('scope_rules', {}).get(sc['id'], {})
+            d = dict(id=sc['id'], label=sc['label'], definition=sc['definition'], rule=sc.get('rule') or _sr.get('rule') or '', curated=bool(sc.get('curated')),
                      n_studies=len(m), n_runs=int(m.n_runs.fillna(0).sum()), n_biosamples=int(m.n_biosamples.fillna(0).sum()),
                      n_pending=int((m.classification_stage == 'pending').sum()))
             d['n_classified'] = d['n_studies'] - d['n_pending']
@@ -1106,8 +1107,8 @@ def main():
         _html = (out / site['registry_page']).read_text(encoding='utf-8')
         assert "data/registry_studies.parquet" in _html and 'USERNAME' not in _html and 'REPOSITORY' not in _html, 'registry page must reference the registry parquet and carry no placeholder'
         _vd = Path(a.scope_config).parent / sspec['vocab_dir'].split('/')[-1]
-        _bs = yaml.safe_load((_vd / 'body_site.yaml').read_text(encoding='utf-8'))['codes']
-        _ls = yaml.safe_load((_vd / 'life_stage.yaml').read_text(encoding='utf-8'))['codes']
+        _bs = yaml.safe_load((_vd / 'body_sites.yaml').read_text(encoding='utf-8'))['codes']
+        _ls = yaml.safe_load((_vd / 'life_stages.yaml').read_text(encoding='utf-8'))['codes']
         reg_methods = dict(stats=rstats, stage_labels=stage_labels, assay=vocabs['assay'], scopes=scope_rows, facets=facets,
                            n_uberon=sum(len(d_.get('uberon') or []) for d_ in _bs.values()),
                            uberon_rows=[(c, d_['label'], ', '.join(f"{u['id']} ({u['label']})" for u in (d_.get('uberon') or [])), ', '.join(map(str, d_.get('terms') or []))) for c, d_ in _bs.items()],
