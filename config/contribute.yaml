@@ -1,0 +1,130 @@
+# config/contribute.yaml — SINGLE SOURCE for the community-contribution worklist (release R2026.2, package 1.4.0).
+# Read by src/catalog/contribute/build_worklist.py (tables), tests/test_contribute_worklist.py, the site generator
+# (contribute/ pages, "Help complete this study" panel) and the Issue-form installer. docs/CONTRIBUTE.md is the narrative.
+# FROZEN 2026-09-27: both the data track and the site track build against exactly this. Append only; never rename.
+schema_version: 1
+release_id: R2026.2
+package_version: '1.4.0'
+
+# The six worklist fields (package field_name → short name used in column suffixes) and their priority weights
+# (= extraction_worklist v3 weights). priority_score = Σ_{missing f} weight_f × (1 − coverage_f) × log10(n_catalog_scope + 1).
+fields:
+  age:         {field_name: age_at_collection_days, weight: 3.0}
+  delivery:    {field_name: delivery_mode,          weight: 2.0}
+  feeding:     {field_name: feeding_mode,           weight: 2.0}
+  preterm:     {field_name: preterm_status,         weight: 1.5}
+  antibiotics: {field_name: antibiotic_exposure,    weight: 1.0}
+  probiotic:   {field_name: probiotic_exposure,     weight: 0.5}
+field_order: [age, delivery, feeding, preterm, antibiotics, probiotic]
+
+# A field is "missing" for a study when its coverage on catalog_scope samples is below this fraction; a study is
+# "complete" (and therefore NOT in the worklist) when no field is missing. Studies with zero catalog_scope samples are
+# judged on body-site scope (body_site_class ∈ {primary, unknown}) instead.
+missing_threshold: 0.5
+scopes:
+  primary: catalog_scope                     # sample_metadata_wide.catalog_scope == True
+  fallback: body_site_scope                  # body_site_class in {primary, unknown}; used only when n_catalog_scope == 0
+
+# Blocker codes — ONE per study = the dominant reason the study is still open. `order` is the decision order
+# (first matching rule wins) applied to included studies; uncertain studies always get archive_only_uncertain.
+blocker_codes:
+  controlled_access:            "Sequence data or per-sample metadata sit behind a DAC (dbGaP/EGA/GSA-Human) or the cohort is registered as controlled; only derived values may ever be published."
+  no_linked_paper:              "No paper is linked to the study (0 rows in study_paper_links) — nothing to extract from and no supplement to look for."
+  paywalled_abstract_only:      "Linked paper(s) exist but only an abstract/preprint is accessible (extraction_worklist.access_tier C/D/E) — full text and supplements were not readable."
+  tables_unjoinable_need_key:   "Supplementary per-sample tables exist but their sample identifiers do not match any archive accession, library name or alias of the study (R2 rescue gate: no_match) — a submitter key file is needed."
+  pdf_only_supplement:          "Every inventoried supplementary member of the linked paper(s) is a PDF/DOCX — no machine-readable table."
+  no_supplement_found:          "A linked paper is readable but the inventory holds no supplementary table for it."
+  archive_only_uncertain:       "Triage verdict is `uncertain` (human_review_queue): the archive record alone does not settle whether the study is infant shotgun metagenomics."
+  unitless_age_needs_curator:   "A per-sample age column was found but carries no unit in its header (R2 rule 5 rejected it); a curator or the authors must state the unit."
+  partial_coverage:             "Paper and tables exist and were processed, yet at least one of the six fields is still below the coverage threshold — a table with the missing columns is needed."
+  complete:                     "Every one of the six fields reaches the coverage threshold — nothing missing; such studies are not in the worklist (field-level code only)."
+blocker_order:                  # decision order for included studies (first rule that fires wins)
+  - controlled_access           # study/cohort/paper in controlled_access_registry.csv, or extraction_worklist / universe controlled_access == True
+  - no_linked_paper             # 0 rows in study_paper_links
+  - paywalled_abstract_only     # extraction_worklist.access_tier starts with C_/D_/E_ (no A_/B_ tier)
+  - tables_unjoinable_need_key  # study in r2_rescue_studies.csv (= RESCUE_REPORT_v2 per-study table)
+  - pdf_only_supplement         # supp_inventory rows for the linked papers all have member_type == pdf
+  - no_supplement_found         # linked paper(s) but 0 supp_inventory rows
+  - unitless_age_needs_curator  # recoverability.note or RESCUE_REPORT status mentions unitless / unit
+  - partial_coverage            # everything else
+# Input column that decides each code (documented for the site and for docs/CONTRIBUTE.md).
+blocker_inputs:
+  controlled_access:           "controlled_access_registry.csv (accession, cohort or paper_ids) ∪ extraction_worklist.controlled_access ∪ universe_studies_all.controlled_access"
+  no_linked_paper:             "study_paper_links.csv (count of rows per study_accession)"
+  paywalled_abstract_only:     "extraction_worklist_v3.csv access_tier"
+  tables_unjoinable_need_key:  "r2_rescue_studies.csv; RESCUE_REPORT_v2.md 'sid_col forms' (id form) and per-study status"
+  pdf_only_supplement:         "supp_inventory.parquet member_type per paper_id of the study's linked papers"
+  no_supplement_found:         "supp_inventory.parquet (0 rows for the study's paper_ids)"
+  archive_only_uncertain:      "universe_studies_all.triage_verdict == uncertain; detail = human_review_queue review_round + note"
+  unitless_age_needs_curator:  "recoverability.parquet note; RESCUE_REPORT_v2.md status 'unitless_age_header_unit_from_model'"
+  partial_coverage:            "coverage recomputed from sample_metadata_wide on catalog_scope"
+
+# Contribution types (primary ask per blocker) — Issue-form dropdown values.
+contribution_types:
+  per_sample_table: "Upload a per-sample CSV/TSV/XLSX for the study (one row per sample, keyed by run/BioSample accession or library name) with the missing columns."
+  id_key:           "Upload a key file mapping the paper's sample names to BioSample/run accessions of the study."
+  paper_pointer:    "Point to the paper (PMID/DOI) that describes the study's own data."
+  age_schedule:     "State the sampling-age schedule or the unit of the age column (days/weeks/months/years) with the source."
+  verdict_evidence: "Provide evidence that settles the triage verdict (infant shotgun metagenome yes/no): protocol, paper section, or cohort description."
+blocker_to_contribution_type:
+  controlled_access:          per_sample_table
+  no_linked_paper:            paper_pointer
+  paywalled_abstract_only:    per_sample_table
+  tables_unjoinable_need_key: id_key
+  pdf_only_supplement:        per_sample_table
+  no_supplement_found:        per_sample_table
+  archive_only_uncertain:     verdict_evidence
+  unitless_age_needs_curator: age_schedule
+  partial_coverage:           per_sample_table
+
+# unlock_text templates (imperative, ≤200 chars after substitution). Placeholders: {id_form} (from RESCUE_REPORT_v2),
+# {missing_fields} (comma-joined short names), {accession}.
+unlock_templates:
+  controlled_access:          "Share only DERIVED per-sample values ({missing_fields}) keyed by public accession, or a DAC-approved summary; raw controlled data must not be uploaded."
+  no_linked_paper:            "Point to the paper (PMID/DOI) describing {accession}, or upload a per-sample table keyed by run accession (SRR/ERR/DRR) with {missing_fields}."
+  paywalled_abstract_only:    "Upload the journal's per-sample supplementary table (or its URL) keyed by run/BioSample accession with {missing_fields}; derived values only if the licence forbids redistribution."
+  tables_unjoinable_need_key: "Upload a key file mapping {id_form} -> SRR/ERR/DRR or BioSample accessions of {accession}, or a per-sample table already keyed by accession ({missing_fields})."
+  pdf_only_supplement:        "Upload the PDF/DOCX supplement re-typed as CSV/TSV (one row per sample, accession column) with {missing_fields}."
+  no_supplement_found:        "Upload a per-sample table keyed by run accession (SRR/ERR/DRR) or BioSample with {missing_fields}, and state where it came from."
+  archive_only_uncertain:     "Tell us whether {accession} is infant gut shotgun metagenomics: paper section, protocol or cohort description that settles it."
+  unitless_age_needs_curator: "State the unit of the age column (days/weeks/months/years) or the sampling schedule for {accession}, citing the paper section."
+  partial_coverage:           "Upload a per-sample table keyed by run/BioSample accession with the still-missing columns ({missing_fields})."
+default_id_form: "paper-internal sample names"
+
+# Output tables (column order is binding; the three bitemporal columns close every row).
+tables:
+  worklist:
+    file: contribute_worklist.csv
+    key: [study_accession]
+    columns: [rank, study_accession, study_title, cohort_id, cohort_name, triage_verdict, n_samples, n_catalog_scope,
+              n_infant_samples_est, missing_fields, n_missing_fields,
+              coverage_age, coverage_delivery, coverage_feeding, coverage_preterm, coverage_antibiotics, coverage_probiotic,
+              best_tier_age, best_tier_delivery, best_tier_feeding, best_tier_preterm, best_tier_antibiotics, best_tier_probiotic,
+              blocker_code, blocker_detail, unlock_text, contribution_type, n_linked_papers, own_data_pmids,
+              n_supp_tables_inventoried, controlled_access, priority_score, ena_url, ncbi_url, issue_url,
+              release_added, release_retired, package_added]
+    text_limits: {blocker_detail: 200, unlock_text: 200}
+  fields:
+    file: contribute_worklist_fields.csv
+    key: [study_accession, field]
+    columns: [study_accession, field, coverage, n_with_value, n_catalog_scope, best_tier, blocker_code, evidence,
+              release_added, release_retired, package_added]
+    text_limits: {evidence: 120}
+
+# Prefilled GitHub Issue (GitHub prefills form inputs/dropdowns whose ids match the query keys).
+issue:
+  repo: OlmLab/infant-gut-catalog
+  template: catalog-contribution.yml
+  labels: contribution
+  title_template: "[contribution] {accession}: {contribution_type}"
+  url_template: "https://github.com/{repo}/issues/new?template={template}&labels={labels}&title={title}&study_accession={accession}&contribution_type={contribution_type}&release_tag={release_id}"
+  form:                                   # .github/ISSUE_TEMPLATE/catalog-contribution.yml (name 'Catalog contribution')
+    name: Catalog contribution
+    field_ids: [study_accession, contribution_type, source, source_url, licence, note, attachment, release_tag]
+    source_options: [journal_supplement_url, author_correspondence, own_lab_records, other]
+    licence_text: "I confirm the uploaded table may be redistributed under CC-BY-4.0, or I ask that only derived values be published"
+    sensitive_data_warning: "No e-mail addresses or names of study participants in uploads."
+
+archive_urls:
+  ena:  "https://www.ebi.ac.uk/ena/browser/view/{accession}"
+  ncbi: "https://www.ncbi.nlm.nih.gov/bioproject/{accession}"

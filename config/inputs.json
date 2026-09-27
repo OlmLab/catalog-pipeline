@@ -1437,6 +1437,78 @@
     "note": "input of scripts/plot_field_coverage.py (regenerated for package 1.3.0 / R2026.1 from build/package/field_coverage_summary.csv)",
     "dest_subdir": "reports"
    }
+  ],
+  "contribute": [
+   {
+    "filename": "extraction_worklist_v3.csv",
+    "artifact_id": "bcec53ad-55c6-4c50-9868-a9f5471ea660",
+    "version_id": "8197b1d8-2e78-4016-9b72-f1dec0cc30ff",
+    "size_bytes": 110067,
+    "required": true,
+    "sha256": "1b199588937d3f3a7935bea8130feef8abafc27aed57075cd5e307e746dc7ff3",
+    "note": "extraction worklist v3 (429 open included/uncertain studies; access_tier, controlled_access, tier_* per field)",
+    "dest_subdir": "contribute"
+   },
+   {
+    "filename": "recoverability.parquet",
+    "artifact_id": "8706c515-a021-4f6c-939d-de9a0b3d14c9",
+    "version_id": "a22cb74d-7e00-4efc-94dd-969e6efffbb7",
+    "size_bytes": 92920,
+    "required": true,
+    "sha256": "3dbfac021bf842369c650500eb422578dbfdd9064970d9b75f0c3aab345e72ea",
+    "note": "recoverability track: 3,252 study \u00d7 field rows (tier R0\u2013R4, evidence, note)",
+    "dest_subdir": "contribute"
+   },
+   {
+    "filename": "RESCUE_REPORT_v2.md",
+    "artifact_id": "d7c0d86c-caf6-4f8f-b2ce-ec29d5bb1f5e",
+    "version_id": "407d76f5-6a4a-4ea4-9160-56031be8bbf2",
+    "size_bytes": 19320,
+    "required": true,
+    "sha256": "ee6b697eaedb816373c4d37d6a1d1e10c868e5e27d5aa777042980669ede3244",
+    "note": "R2 rescue run v2: per-study table + sample-ID forms of unjoinable supplementary tables (parsed by build_worklist.parse_rescue_report)",
+    "dest_subdir": "contribute"
+   },
+   {
+    "filename": "r2_rescue_studies.csv",
+    "artifact_id": "bc132b71-2bdc-42f9-b621-b27952dc5be0",
+    "version_id": "9284bcff-fc4d-48a4-82d2-9fe9740c80b6",
+    "size_bytes": 9068,
+    "required": true,
+    "sha256": "c1e395c29a3827444d736c418c025b7f5d8cb33cf14d52dcb5332205a2b2ada6",
+    "note": "77 studies whose supplementary tables need a submitter key (blocker tables_unjoinable_need_key)",
+    "dest_subdir": "contribute"
+   },
+   {
+    "filename": "supp_inventory.parquet",
+    "artifact_id": "b352c3b2-97c6-4625-9c4f-6a35e0ad97a7",
+    "version_id": "fc3807b3-a1fd-4c7d-88e1-e3a4308ba82a",
+    "size_bytes": 2479505,
+    "required": true,
+    "sha256": "3dd6aa951cd2d74de5ad601290255f03f33f600adb012b284ad688f228ed8140",
+    "note": "inventoried supplementary members per paper (member_type table/pdf) \u2014 blockers pdf_only_supplement / no_supplement_found",
+    "dest_subdir": "contribute"
+   },
+   {
+    "filename": "controlled_access_registry.csv",
+    "artifact_id": "a13ed466-9485-4a0a-940c-ca455cae4451",
+    "version_id": "c1a9e2c5-77b7-4193-ada5-8a0fc1211b37",
+    "size_bytes": 4162,
+    "required": true,
+    "sha256": "273d98dfe789338d249e829c8e3431358748bef3975193f892b5b5af860cd273",
+    "note": "controlled-access registry (dbGaP/EGA/GSA/cohort accessions) \u2014 blocker controlled_access",
+    "dest_subdir": "contribute"
+   },
+   {
+    "filename": "recoverability_report.md",
+    "artifact_id": "42d8a35b-11a6-4fb6-990b-16269b07651f",
+    "version_id": "98feec1a-3a95-4b3f-ab12-595450c4311d",
+    "size_bytes": 31213,
+    "required": false,
+    "sha256": "1a8caecfca11d90dcc892a29cb6463bd8a204b35784916ba25742615685e117a",
+    "note": "tier definitions (documentation only; not read by build_worklist)",
+    "dest_subdir": "contribute"
+   }
   ]
  }
 }
