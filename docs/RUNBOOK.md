@@ -341,3 +341,26 @@ Contrast: building the catalog cost ≈ 47.3 M tokens (CHANGELOG); a monthly cyc
 5. Run the stage's `make` target; LLM stages: dispatch leaf workers from the root with `SLICE`/`OUT_PREFIX` and the
    budget caps in `config/budgets.yaml`; save every output as an artifact as soon as it exists (workspaces are wiped).
 6. Append the actuals to `docs/CYCLE_LOG.md`; commit code/doc changes to `catalog-pipeline` on a `cycle/<YYYY-MM>` branch.
+
+## Stage 7 — registry tier (scale-up S1, from R2026.4 / package 1.6.0)
+
+The registry of ALL human shotgun metagenomes (docs/EXPANSION.md; spec `config/scope.yaml` + `config/vocab/*.yaml`, frozen columns
+`audit/registry_schema.json`) is rebuilt on every release when `data/inputs/registry/registry_universe_studies.parquet` exists
+(`make release` calls `registry-build` into the package dir; without the universe the registry tables are skipped and the site
+builds without `registry/`).
+
+1. `make registry-enumerate` — ENA slices S1/S2/S3 without a taxon frame → `data/inputs/registry/registry_universe_studies.parquet`,
+   `registry_runs.parquet` (≈ 78 MB, working_data artifact + Release asset), `registry_biosample_index.parquet`, `registry_universe_audit.csv`.
+   Add `REGISTRY_SINCE=<date>` for an incremental pull.
+2. `make registry-classify-det` — deterministic priors/rules for every study → `build/registry/registry_classification_det.parquet`
+   (`needs_llm` flags the studies the LLM stage must see).
+3. LLM stage (leaf workers, `src/catalog/registry/run_llm_shard.py`): shard the LLM-eligible studies (`candidate_class ∈ {prior_human,
+   signal_human_new, ambiguous_new}` and `needs_llm`) into ≈ 290-study parquet files; each leaf runs
+   `run_shard(host, shard, det, out_prefix)` (Sonnet ×2 → Opus adjudication with singleton retries → conservative replicate merge;
+   ≈ 2.8 k tokens/study, ≈ 20 min per shard). Concatenate the shard parquets → `REGISTRY_LLM=<path>`. Re-run only the
+   `classification_stage == pending` accessions as one extra shard when adjudication failures remain (their rows replace the sentinels).
+4. `make release … REGISTRY_LLM=build/registry/registry_llm_classification.parquet` — `registry_studies.parquet`, `registry_universe_audit.csv`
+   and `REGISTRY_REPORT.md` land in the package; `package-docs` documents them; `publish-branch` stages `registry_runs_v<version>.parquet`
+   under the data clone's `assets/` (attached to the GitHub Release by `release.yml`, never committed under `package/`).
+5. Site: `registry/index.html` (facets + DuckDB-WASM explorer over `data/registry_studies.parquet`), `registry/scopes/<id>.html`; the Playwright
+   smoke in `verify.yml` opens `registry/index.html` and `contribute/index.html`.

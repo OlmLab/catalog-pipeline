@@ -38,7 +38,7 @@ scope inside it. Consequences that this track honours:
 * registry tables follow the package conventions — bitemporal columns `release_added / release_retired / package_added`
   appended last (`config/releases.yaml → registry_tables`, `built_with_release_columns: true`), deterministic builds
   (same inputs → byte-identical parquet), F7 (no session identifiers or e-mail addresses in any published text);
-* `registry_runs.parquet` (≈ 1.5 M rows) is too large for the package zip and for Pages: it is ONE working_data artifact,
+* `registry_runs.parquet` (1,980,623 rows in R2026.4) is too large for the package zip and for Pages: it is ONE working_data artifact and, from 1.6.0, a GitHub Release asset of the data repository (`assets/registry_runs_v<version>.parquet`, staged by `make publish-branch`),
   columns restricted to the 43 lean ENA pull fields + `found_by` (`resweep_universe.LEAN_FIELDS`), joined on demand;
 * the explorer of the registry section works on `registry_studies` and run-level summaries, never on per-sample fields
   (R1-12); the separate-repo layout stays available later by moving the tables — nothing here depends on the location.
