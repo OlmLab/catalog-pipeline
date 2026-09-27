@@ -1,0 +1,80 @@
+# config/contribute.yaml — FROZEN schema of the R2026.2 (package 1.4.0) contribution worklist, shared by
+# src/catalog/contribute/ (Data track: build_worklist / ingest_contributions) and site_generator/gen/build_site.py
+# (Site track: contribute/ page + 'Help complete this study' panel). MERGE NOTE: created on the Site track branch
+# (cycle/R2026.2-site) from the frozen schema in the R2026.2 brief; if the Data track's copy differs, the DATA track's
+# file wins. The generator reads ONLY: blocker_codes (+labels), contribution_types (+labels), field_weights,
+# worklist_columns / fields_columns, issue_url template and the fields list.
+schema_version: 1
+release_id: R2026.2
+package_version: '1.4.0'
+
+files:
+  worklist: contribute_worklist.csv
+  worklist_fields: contribute_worklist_fields.csv
+
+# One code per study: the dominant reason the study is still open. 'complete' studies are NOT in the worklist.
+blocker_codes:
+  no_linked_paper:             "No linked paper"
+  paywalled_abstract_only:     "Paper paywalled (abstract only)"
+  no_supplement_found:         "No supplementary table found"
+  tables_unjoinable_need_key:  "Tables unjoinable — sample-ID key needed"
+  pdf_only_supplement:         "Supplement is PDF only"
+  controlled_access:           "Controlled access"
+  archive_only_uncertain:      "Archive only — inclusion uncertain"
+  unitless_age_needs_curator:  "Unitless age labels — curator needed"
+  partial_coverage:            "Partial coverage (paper + tables exist, fields still missing)"
+  complete:                    "Complete (not in the worklist)"
+
+contribution_types:
+  per_sample_table: "Per-sample table (CSV/TSV/XLSX keyed by run or BioSample accession)"
+  id_key:           "ID key (sample name ↔ BioSample/run accession)"
+  paper_pointer:    "Paper pointer (PMID/DOI of the study's own paper)"
+  age_schedule:     "Age schedule (timepoint label → age in days)"
+  verdict_evidence: "Verdict evidence (is this study infant gut shotgun metagenomics?)"
+
+# The six worklist fields: short key -> package field name; weights drive priority_score.
+fields:
+  age:         age_at_collection_days
+  delivery:    delivery_mode
+  feeding:     feeding_mode
+  preterm:     preterm_status
+  antibiotics: antibiotic_exposure
+  probiotic:   probiotic_exposure
+field_weights:
+  age: 3
+  delivery: 2
+  feeding: 2
+  preterm: 1.5
+  antibiotics: 1
+  probiotic: 0.5
+missing_threshold: 0.5      # a field is 'missing' when catalog_scope coverage < this
+# priority_score = sum over missing fields of weight_f * (1 - coverage_f) * log10(n_catalog_scope + 1)
+
+worklist_columns: [rank, study_accession, study_title, cohort_id, cohort_name, triage_verdict, n_samples, n_catalog_scope,
+  n_infant_samples_est, missing_fields, n_missing_fields, coverage_age, coverage_delivery, coverage_feeding, coverage_preterm,
+  coverage_antibiotics, coverage_probiotic, best_tier_age, best_tier_delivery, best_tier_feeding, best_tier_preterm,
+  best_tier_antibiotics, best_tier_probiotic, blocker_code, blocker_detail, unlock_text, contribution_type, n_linked_papers,
+  own_data_pmids, n_supp_tables_inventoried, controlled_access, priority_score, ena_url, ncbi_url, issue_url,
+  release_added, release_retired, package_added]
+fields_columns: [study_accession, field, coverage, n_with_value, n_catalog_scope, best_tier, blocker_code, evidence,
+  release_added, release_retired, package_added]
+text_limits: {blocker_detail: 200, unlock_text: 200, evidence: 120}
+
+# GitHub Issue form (installed in the site repo by `make install-workflows`); ids = query keys GitHub prefills.
+issue_form:
+  repo: OlmLab/infant-gut-catalog
+  template: catalog-contribution.yml
+  label: contribution
+  title: "[contribution] {study_accession}: {contribution_type}"
+  # {title} is URL-encoded by the builder; the other placeholders are plain accession / vocabulary tokens
+  url_template: "https://github.com/{repo}/issues/new?template={template}&labels={label}&title={title}&study_accession={study_accession}&contribution_type={contribution_type}&release_tag={release_id}"
+  field_ids: [study_accession, contribution_type, source, source_url, licence, note, release_tag]
+  sources: [journal_supplement_url, author_correspondence, own_lab_records, other]
+
+# ingest_contributions.py gates (docs/SECURITY.md 'Contributions')
+ingest:
+  max_bytes: 52428800          # 50 MB
+  allowed_extensions: [.csv, .tsv, .txt, .xlsx, .xls]
+  rejected_extensions: [.exe, .sh, .py, .zip, .gz, .tar, .bat, .cmd, .js, .jar, .dmg, .pkg, .msi, .7z, .rar]
+  min_matches: 20              # accepted_for_review when matches >= max(min_matches, match_fraction * rows)
+  match_fraction: 0.5
