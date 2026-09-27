@@ -4,4 +4,6 @@ vocab.py                 controlled vocabularies (config/scope.yaml + config/voc
 classify_deterministic   host / assay / body site / life stage / population flags with evidence rows, needs_llm flag
 classify_llm             Sonnet ×2 + Opus adjudication stage (batch builder, parser, validator, agreement, cost log)
 build_registry           registry_studies.parquet + REGISTRY_REPORT.md from universe + classifications + infant verdicts
+enumerate_registry       S1a: registry UNIVERSE enumeration (frame-free ENA slices S1-S3, human-signal rule, study aggregation,
+                         infant-universe join, candidate classes) -> registry_universe_studies / registry_runs / registry_biosample_index
 """

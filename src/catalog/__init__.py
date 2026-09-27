@@ -6,6 +6,7 @@ Layout (src/catalog/):
     triage/       batched LLM judgment (llm_batch_common), Sonnet rubric/confirm, Haiku paper screen,
                   validators (curation_kernel[_ext].py == the infant-curation-rules skill kernel)
     extraction/   per-sample metadata routes R1–R4, merge, subject resolution, wide table, sample-unit fix
+    registry/     scale-up registry tier: universe enumeration over all ENA (enumerate_registry.py)
     prompts/      system prompts used by the LLM routes (*_system.txt)
     legacy/       superseded versions kept for provenance (v1/v2 enumeration, v1 scope constants)
     apply_findings.py, make_version.py, models.py   (new in the repo skeleton, 2026-09-26)
@@ -25,7 +26,7 @@ SRC_DIR = _os.path.dirname(PKG_DIR)
 REPO_DIR = _os.path.dirname(SRC_DIR)
 CONFIG_DIR = _os.environ.get("CATALOG_CONFIG_DIR", _os.path.join(REPO_DIR, "config"))
 
-STAGES = ("enumeration", "harvest", "triage", "extraction", "prompts", "legacy")
+STAGES = ("enumeration", "harvest", "triage", "extraction", "prompts", "registry", "legacy")
 
 
 def register_stage_paths() -> list[str]:

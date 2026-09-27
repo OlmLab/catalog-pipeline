@@ -164,3 +164,26 @@ evidence and infant verdict), `registry/scopes/<scope_id>.html` (one per scope),
 Registry-only studies have no page (36k+ pages would exceed the Pages budget); included infant studies link to their study page.
 Invariants: `in_infant_catalog = include` == `study_metadata_wide` studies; `in_infant_catalog` == `universe_studies_all.triage_verdict`;
 all codes within the vocabularies; facet sums == row counts; F7/F13, 2 MB/page, 0 broken links, deterministic build.
+## 7. Registry tier — universe enumeration (scale-up S1a; SCALE_UP_PLAN §3, owner-authorised in-repo layout)
+
+The registry of *all* human shotgun metagenomes lives inside the existing repos as `registry_*` tables; the infant
+catalog is its first curated scope. `src/catalog/registry/enumerate_registry.py` (`make registry-enumerate`) builds the
+registry **universe** deterministically, with no taxon frame and no date window:
+
+| slice | ENA read_run query | purpose |
+|---|---|---|
+| S1 `shotgun_frame_free` | `library_source="METAGENOMIC" AND strategy in (WGS, WXS)` — partitioned by `first_public` year; a run_accession-only index of the whole slice is the completeness reference and runs missing from every partition are fetched by accession | primary universe |
+| S2 `misfiled_genomic_human_taxa` | `library_source="GENOMIC" AND strategy in (WGS, WXS) AND tax_eq(<21 human-metagenome taxa>)` | community sequencing filed as GENOMIC |
+| S3 `adjudication_other_tc_wga` | strategy in (OTHER, Targeted-Capture, WGA) AND ((source in (METAGENOMIC, OTHER) AND (host_tax_id=9606 OR tax_eq(9606) OR human taxa)) OR (source=GENOMIC AND human taxa)) | depth-signature adjudication |
+
+METATRANSCRIPTOMIC (S4) is never pulled. The 21 taxids are verified against ENA `scientific_name` at run time.
+Outputs: `registry_runs.parquet` (45 `PULL_FIELDS` + `found_by`; one working_data artifact), `registry_study_meta.parquet`,
+`registry_universe_studies.parquet` (one row per study: frozen registry_studies universe columns, top-10 sample-field
+summaries as json `top_<field>`, depth stats, `human_signal`/`human_signal_rule` A|B|C|none from
+`resweep_universe.human_signal` verbatim plus `taxon_name_rule`, `ambiguous`, the infant join `in_infant_catalog` /
+`infant_reason_code` / `infant_body_site_call` / `infant_universe_slice` (`not_screened` when absent) and
+`candidate_class` ∈ {prior_nonhuman, prior_human, signal_human_new, ambiguous_new, nosignal_new}),
+`registry_biosample_index.parquet` (distinct BioSamples of the human-candidate classes — the S2 attribute harvest keys
+on it), `registry_universe_audit.csv` (per slice/partition ENA count vs rows pulled) and `ENUMERATION_REGISTRY_REPORT.md`.
+Bitemporal release columns are appended by `catalog.release.bitemporal` when the tables enter a package; the
+classification stage (S1b) adds the host/body-site/life-stage/assay columns of the frozen spec.
