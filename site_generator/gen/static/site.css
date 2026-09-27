@@ -120,3 +120,6 @@ tr.retired td{color:var(--muted)}tr.retired td b{color:var(--ink)}
 .wl-filters select,.wl-filters input{font-size:.9rem;padding:.25rem .4rem;border:1px solid var(--cu-dark-gray);border-radius:4px;background:#fff}
 table.wl td{font-size:.85rem}table.wl td:nth-child(5){min-width:260px}table.wl td:nth-child(7){max-width:320px}
 a.card.contribute-card{text-decoration:none;color:var(--ink);border-left-color:var(--cu-black);background:var(--cu-pale-gold)}
+
+/* nav group label for the curated-scope pages (rebrand 2026-09-28) */
+.topnav .navgroup{color:#7a7f87;font-size:.85em;margin-left:.9rem;margin-right:-.2rem;white-space:nowrap}

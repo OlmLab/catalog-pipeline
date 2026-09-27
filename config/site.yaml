@@ -2,7 +2,12 @@
 # targets and by site_generator/gen/build_site.py via --base-url. The generator must refuse to build
 # for publish while base_url still contains the USERNAME/REPOSITORY placeholder.
 site:
-  title: "Infant Gut Shotgun-Metagenome Catalog"
+  # Names live HERE only (owner decision 2026-09-28: site rebranded to the all-human catalog; repository names / URL unchanged until a final name is chosen)
+  title: "Human Shotgun-Metagenome Catalog"
+  short_title: "Human Metagenome Catalog"
+  tagline: "every public human shotgun-metagenome study in ENA/SRA/DDBJ — all body sites, all ages — plus curated, evidence-linked scopes"
+  curated_scope_title: "Infant Gut Shotgun-Metagenome Catalog"     # the first curated scope (infant_gut); its pages keep this name
+  curated_scope_short: "Infant gut"
   base_url: "https://olmlab.github.io/infant-gut-catalog/"
   placeholder_base_url: "https://USERNAME.github.io/REPOSITORY/"   # build fails if base_url == this
   build_date_source: package_release_date   # never wall-clock (A2 determinism); taken from VERSION.json

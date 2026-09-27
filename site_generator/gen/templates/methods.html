@@ -2,6 +2,7 @@
 {% block title %}Methods and caveats — {{ site.title }}{% endblock %}
 {% block content %}
 <h1>Methods and caveats</h1>
+<p class="small">Sections up to “Registry classification” describe the curated <b>{{ site.curated_scope_title }}</b> scope; the registry section describes the archive-only tier that covers all human shotgun metagenomes.</p>
 <p class="lead">Condensed from the release reports; counts below are recomputed from the release tables at build time, method descriptions and audit statistics are taken from the reports. All documents: {% for d in docs %}<a href="{{ d.href }}">{{ d.title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}.</p>
 <p class="note"><b>Age scope (v1.2).</b> "Infant-scope" on this site means <i>age evidence</i>: <span class="mono">age_scope ∈ {infant_evidenced, study_all_infant}</span> ({{ stats.n_age_scope_infant|fmt }} samples). The older body-site definition (primary or unknown site; {{ stats.n_infant_scope|fmt }} samples) is kept as the denominator of the package coverage summary. {{ stats.n_mixed }} included studies are mixed-age deposits. <span class="mono">role</span> is shown as evidenced and is <i>unknown</i> when unevidenced.</p>
 

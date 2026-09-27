@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Screened universe — {{ site.title }}{% endblock %}
 {% block content %}
-<h1>Screened universe ({{ n_total|fmt }} studies)</h1>
+<h1>Screened universe of the {{ site.curated_scope_short|lower }} scope ({{ n_total|fmt }} studies)</h1>
+<p class="small">This is the infant-gut screening frame (the curated scope). The all-human frame is the <a href="registry/index.html">registry</a>.</p>
 <p class="lead">Every ENA study with METAGENOMIC WGS/WXS runs and a human signal that entered triage, with its final status and (for exclusions) the controlled-vocabulary reason code. Included studies link to their catalog page. Use the status filter, the reason-code filter and the search box — the search also matches <b>first author</b> and <b>submitting organisation</b> (columns from <span class="mono">study_authors_summary.csv</span>; string-matched names, see <a href="authors/index.html">Authors</a>). Think a study is wrong or missing? Use the <a href="authors/index.html">Authors page</a> report button or open an issue from the study page.</p>
 <div class="cards">
 {% for k,v in status_counts %}<div class="card"><div class="num">{{ v|fmt }}</div><div class="lbl">{{ k }}</div></div>{% endfor %}

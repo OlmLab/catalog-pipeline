@@ -1,8 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ site.title }}</h1>
-<p class="lead">A curated, evidence-linked catalog of every public shotgun-metagenome study of the human infant gut (0–36 months) in the INSDC archives (ENA/SRA/DDBJ), with per-sample metadata recovered from archive attributes, supplementary tables and papers. Every value carries a verbatim evidence quote, a route (R1–R4) and a confidence.</p>
+<p class="lead">{{ site.tagline[:1]|upper }}{{ site.tagline[1:] }}. Two tiers: the <b>registry</b> lists every public ENA study with a human shotgun-metagenome signal{% if stats.has_registry %} — {{ stats.n_registry|fmt }} studies, {{ stats.n_registry_runs|fmt }} sequencing runs, all body sites and ages — each classified from the archive record (host, UBERON-anchored body sites, life stages, assay, access) and, where harvested, with per-BioSample site / age / sex / country{% endif %}; <b>curated scopes</b> go deeper, recovering per-sample metadata from supplementary tables and papers with a verbatim evidence quote, a route (R1–R4) and a confidence on every value. The first curated scope is the <b>{{ site.curated_scope_title }}</b> ({{ stats.n_studies|fmt }} studies, {{ stats.n_samples|fmt }} samples); the adult gut is next.</p>
 
+{% if stats.has_registry %}
+<h2 id="registry">Registry: all human shotgun metagenomes</h2>
+<div class="cards">
+<a class="card" href="registry/index.html"><div class="num">{{ stats.n_registry|fmt }}</div><div class="lbl"><b>registry studies</b> (ENA BioProjects) — {{ stats.n_registry_human|fmt }} host = human, {{ stats.n_registry_runs|fmt }} runs; {{ stats.n_registry_scopes }} scopes: gut (infant / child / adult), oral, skin, vaginal-urogenital, respiratory, milk, blood/tissue, other</div></a>
+<a class="card" href="registry/index.html#explorer"><div class="num">explore</div><div class="lbl">filter the registry by body site, life stage, assay, host, classification stage or scope in the browser; CSV export; one page per scope with its largest studies</div></a>
+</div>
+{% endif %}
+
+<h2 id="curated">Curated scope 1: {{ site.curated_scope_title }}</h2>
+<p class="small">Every public shotgun-metagenome study of the human infant gut (0–36 months) in ENA/SRA/DDBJ, with per-sample metadata recovered from archive attributes, supplementary tables and papers. The pages linked in the navigation bar (Studies, Cohorts, Sample explorer, Fields, Authors, Universe) belong to this scope.</p>
 <div class="cards">
 <div class="card"><div class="num">{{ stats.n_studies|fmt }}</div><div class="lbl">included studies (BioProjects)</div></div>
 <div class="card"><div class="num">{{ stats.n_samples|fmt }}</div><div class="lbl">samples: {{ stats.n_biosamples|fmt }} BioSample units + {{ stats.n_run_units|fmt }} run units; {{ stats.n_parents }} parent BioSamples listed separately</div></div>
@@ -14,7 +24,6 @@
 <div class="card"><div class="num">{{ stats.gold_age_precision }}</div><div class="lbl">age precision vs {{ stats.gold_n_age|fmt }} independently curated samples</div></div>
 <div class="card"><div class="num">{{ stats.n_universe|fmt }}</div><div class="lbl">studies screened ({{ stats.n_excluded|fmt }} excluded, {{ stats.n_review|fmt }} in human review)</div></div>
 <div class="card"><div class="num">{{ stats.n_cohorts|fmt }}</div><div class="lbl">cohorts ({{ stats.n_papers|fmt }} linked papers)</div></div>
-{% if stats.has_registry %}<a class="card" href="registry/index.html"><div class="num">{{ stats.n_registry|fmt }}</div><div class="lbl"><b>Registry: all human shotgun metagenomes</b> — {{ stats.n_registry_human|fmt }} human-host studies, {{ stats.n_registry_runs|fmt }} runs, all body sites and ages; {{ stats.n_registry_scopes }} scopes, the infant gut being the first curated one</div></a>{% endif %}
 {% if stats.has_contribute %}<a class="card contribute-card" href="contribute/index.html"><div class="num">{{ stats.n_contribute|fmt }}</div><div class="lbl"><b>studies need metadata — contribute</b> ({{ stats.n_contribute_samples|fmt }} samples): a per-sample table, an ID key or a paper pointer unlocks them</div></a>{% endif %}
 </div>
 

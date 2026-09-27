@@ -94,6 +94,14 @@ releases:
     data_tag: data-v1.7.0
     site_tag: site-v1.7.0
     label: "scale-up S2 — registry sample tier (registry_biosamples = BioSample attributes of the human_all studies normalised to the vocabularies), papers / authors / BioProject records for registry studies, Sandpiper coverage per study"
+  - release_id: R2026.6
+    package_version: '1.7.1'
+    previous_package_version: '1.7.0'
+    previous_release_id: R2026.5
+    notes_file: RELEASE_NOTES_R2026.6.md
+    data_tag: data-v1.7.1
+    site_tag: site-v1.7.1
+    label: "rebrand — the site and package are the Human Shotgun-Metagenome Catalog (registry tier first); the infant gut catalog is its first curated scope; no data change"
 
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:

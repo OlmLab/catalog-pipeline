@@ -99,6 +99,22 @@ def update_readme(pkg: str, package_version: str, release_id: str, build_date: s
     s = open(p, encoding="utf-8").read()
     s, n = re.subn(r"data package v\d+(?:\.\d+)* \(\d{4}-\d{2}-\d{2}\)", f"data package v{package_version} ({build_date})", s, count=1)
     assert n == 1, "README heading 'data package vX.Y.Z (date)' not found"
+    # Rebrand (R2026.6): the package carries both tiers; the heading names the whole catalog, the infant catalog is its first curated scope.
+    # The title comes from config/site.yaml (site.title / site.curated_scope_title) so a later rename is a one-line config change.
+    try:
+        import yaml as _y
+        _site = _y.safe_load(open(os.path.join(os.path.dirname(__file__), "..", "..", "..", "config", "site.yaml"), encoding="utf-8"))["site"]
+        _title, _scope = _site.get("title"), _site.get("curated_scope_title")
+    except Exception:
+        _title, _scope = None, None
+    if _title and s.startswith(f"# {_scope} — data package"):
+        s = s.replace(f"# {_scope} — data package", f"# {_title} — data package", 1)
+        intro = ("\n\n**Two tiers in one package.** The `registry_*` tables cover every public human shotgun-metagenome study in ENA/SRA/DDBJ "
+                 "(all body sites, all ages; archive-only classification plus the harvested BioSample tier). All other tables belong to the first "
+                 f"**curated scope**, the {_scope} — the description below is that scope's.\n")
+        if "**Two tiers in one package.**" not in s:
+            first_blank = s.index("\n\n") if "\n\n" in s else len(s)
+            s = s[:first_blank] + intro + s[first_blank:]
     marker = "## Release model"
     if marker not in s:
         rows = [f"| `sample_determinations_all.parquet` | {counts.get('n_determinations_all', ''):,} | Current **and retired** determinations: `sample_determinations` columns + `release_added`, `release_retired` (null = current), `package_added`, `retired_reason`, `retired_change_stage` — the per-field value timeline — {release_id} |",

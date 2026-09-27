@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Contribute — {{ site.title }}{% endblock %}
-{% block desc %}{{ cs.n_open|fmt }} studies of the Infant Gut Shotgun-Metagenome Catalog still lack per-sample metadata; the ranked worklist says what is missing, why, and what would unlock each study.{% endblock %}
+{% block desc %}{{ cs.n_open|fmt }} studies of the {{ site.curated_scope_title }} (curated scope of the {{ site.title }}) still lack per-sample metadata; the ranked worklist says what is missing, why, and what would unlock each study.{% endblock %}
 {% block content %}
 <h1>Contribute: {{ cs.n_open|fmt }} studies need metadata</h1>
 <p class="lead">The pipeline recovers per-sample metadata from archive attributes, supplementary tables and papers — but for the studies below it could not. Each row says <b>what is missing</b>, <b>why</b> (the blocker) and <b>what would unlock it</b>. If you know the study (you are an author, a lab member, or you have read the paper) you can often supply the missing table or key in minutes.</p>

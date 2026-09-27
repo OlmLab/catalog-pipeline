@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Static site generator v2 for the Infant Gut Shotgun-Metagenome Catalog.
+"""Static site generator v2 for the Human Shotgun-Metagenome Catalog (registry tier + curated scopes; the infant gut catalog is the first curated scope).
 
 Usage:  python build_site.py --package PKG_DIR --out site [--reports DIR] [--package-zip ZIP] [--base-url URL]
                              [--config ../../config/site.yaml] [--allow-placeholder-base-url]
@@ -255,6 +255,18 @@ def read_vocabs(repo_root, spec):
 
 def split_list(v):
     return [x for x in str(v).split(';') if x] if not isnull(v) and v != '' else []
+
+
+def read_site_names(cfg_path):
+    """config/site.yaml site.{title, short_title, tagline, curated_scope_title, curated_scope_short} — the only place the catalog's names live."""
+    site = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8'))['site']
+    d = {k: site.get(k) for k in ('title', 'short_title', 'tagline', 'curated_scope_title', 'curated_scope_short')}
+    d['short_title'] = d['short_title'] or d['title']
+    d['tagline'] = d['tagline'] or ''
+    d['curated_scope_title'] = d['curated_scope_title'] or 'Infant Gut Shotgun-Metagenome Catalog'
+    d['curated_scope_short'] = d['curated_scope_short'] or 'Infant gut'
+    assert d['title'], 'config/site.yaml site.title missing'
+    return d
 
 
 def read_github_repo(cfg_path, key):
@@ -521,14 +533,15 @@ def main():
     assert stats['n_catalog_scope'] == stats['n_age_scope_infant'] - stats['n_body_site_excluded'], 'F9: catalog_scope must equal age-scope minus body-site excluded/linked'
     gen_sha = vj.get('generator_git_sha', 'nogit')
     doi = cur_rel.get('doi') or ''
-    site = dict(title='Infant Gut Shotgun-Metagenome Catalog', version=version, release_tag=vj['release_tag'], build_date=build_date,
+    names = read_site_names(a.config)
+    site = dict(title=names['title'], short_title=names['short_title'], tagline=names['tagline'], curated_scope_title=names['curated_scope_title'], curated_scope_short=names['curated_scope_short'], version=version, release_tag=vj['release_tag'], build_date=build_date,
                 sha8=gen_sha[:8], base_url=base_url, issue_repo=ISSUE_REPO,
                 release_id=release_id, previous_release_id=vj.get('previous_release_id'), release_date=cur_rel['release_date'], doi=doi,
                 data_release_url=rspec['site_pages']['data_release_url'].format(data_tag=cur_rel['data_tag']) if cur_rel['data_tag'] else None,
                 zenodo_badge=f'https://zenodo.org/badge/{data_repo_id}.svg', zenodo_latest=f'https://zenodo.org/badge/latestdoi/{data_repo_id}', data_repo_id=data_repo_id,
                 upstream=UPSTREAM_CITATIONS, releases_page=rspec['site_pages']['releases_index'], changes_page=rspec['site_pages']['changes_index'],
                 description='Curated, evidence-linked catalog of public shotgun-metagenome studies of the human infant gut with per-sample metadata and Sandpiper community profiles.',
-                citation=f'Infant Gut Shotgun-Metagenome Catalog, release {release_id} (data package {version}), OlmLab, {cur_rel["release_date"]}.' + (f' doi:{doi}' if doi else ''),
+                citation=f'{names["title"]}, release {release_id} (data package {version}), OlmLab, {cur_rel["release_date"]}.' + (f' doi:{doi}' if doi else ''),
                 sri=json.loads((HERE / 'static' / 'vendor' / 'SRI.json').read_text()), has_contribute=has_contribute, contribute_page='contribute/index.html',
                 has_registry=has_registry, registry_page='registry/index.html')
 
