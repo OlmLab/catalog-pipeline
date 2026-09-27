@@ -183,6 +183,29 @@ package tables. Expected: 6 studies × ≈ 50 k = **0.3 M tokens**; 2–3 h wall
 **Stop rule:** a study with > 5,000 samples or > 3 own-data papers → run it as its own leaf worker and check the
 mixed-age banner logic (B1) before merging.
 
+### 3b. New samples in an included study (deterministic; ≈ 15 min + network; 0 tokens) — added R2026.2
+
+When stage 1 reports new runs for a study that is ALREADY included (`resweep` → `<study>_new_runs.parquet`), do not re-triage:
+run `make gapfill GAPFILL_STUDY=<acc> GAPFILL_NEW_RUNS=<parquet>` (module `src/catalog/extraction/gapfill_samples.py`). It
+harvests the new BioSamples cache-through (ENA XML, NCBI efetch fallback, study + experiment XML), writes
+`attribute_comparison.json` (attribute keys / value shifts vs the study's existing samples — read it: the R2026.2 case,
+PRJNA1140720, added 150 *saliva* samples of mothers/fathers/siblings to a stool study), then runs the same deterministic R1
+stack as stage 3 (`config/attribute_field_map.csv` parsers, `r1_title_parser`, U1/U2 unit rules) plus two gapfill-specific
+rules: **U3** (a linked paper's per-individual supplementary table whose age column header names the unit and agrees with the
+bare attribute per sample; disagreeing samples stay sentinels) and **composite subject ids** (when the study's existing
+`subject_id` convention is `<family>_<subject>`). R2 is deterministic only (exact-ID gate ≥ 50 % / ≥ 20 rows; header-named
+columns); R3/R4 rows are never minted — existing `cohort_default` statements of the study are extended verbatim. Every
+committed row passes `validate_row`; ages > 1,100 d are committed under the v1.2 `out_of_scope_adult` convention. With
+`GAPFILL_SANDPIPER=1` the per-run Sandpiper API is checked (≤ 0.5 req/s; runs newer than the snapshot horizon get
+`published_after_snapshot_horizon`). Outputs (`build/gapfill_<release>/`): `runs_new`, `samples_new_wide` (148 package
+columns), `sample_determinations_new` (+ `_superseded`, `_rejected`, `_sentinels`), `sample_subjects_new`,
+`sandpiper_run_qc_new`, `sandpiper_sample_summary_new`, `study_metadata_wide_delta.json`, `GAPFILL_<study>_REPORT.md`. Read
+the report, then `make apply-gapfill` appends the rows to the package tables, updates `study_metadata_wide` (counts, cov_*,
+sp_*), `universe_studies_all` and `build_counts.json`, and asserts that no existing row changed
+(`APPLY_GAPFILL_<study>.json` holds the before/after counts and row hashes). Then continue with stage 4/5.
+Known limits: `t_index`/`n_timepoints_subject` of the new rows are computed within the new series (existing rows are never
+rewritten); a study with > 2,000 new runs exceeds the Sandpiper delta budget — split across cycles.
+
 ## 4. Findings — apply audit results (deterministic; 5 min; 0 tokens)
 
 ```
