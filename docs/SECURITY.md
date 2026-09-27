@@ -103,7 +103,7 @@ Read-only by construction: no host grants, no credentials, network limited to pu
   clones are created by the owner (`git clone`) and the agent works inside them afterwards.
 
 
-## 6. Contributions through GitHub Issues (R2026.2)
+## 7. Contributions through GitHub Issues (R2026.2)
 
 Contributions (form `.github/ISSUE_TEMPLATE/catalog-contribution.yml`, label `contribution`) are **data only**. `make ingest-contributions`
 (`src/catalog/contribute/ingest_contributions.py`) downloads Issue attachments into `audit/contributions/<issue>/` and never executes,
