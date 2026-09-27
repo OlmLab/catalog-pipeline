@@ -36,7 +36,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: help bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: gapfill apply-gapfill help bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -121,6 +121,24 @@ triage:          ## stage 2 — LLM triage of new candidates (Claude session; le
 
 extract:         ## stage 3 — per-sample extraction R1–R4 for NEW included studies (Claude session)
 	@echo "LLM stage: follow docs/RUNBOOK.md §3"; exit 2
+
+# ---- stage 3b: new samples in an INCLUDED study (RUNBOOK §3 'new samples in an included study'; deterministic, network) ----
+# GAPFILL_STUDY: study accession; GAPFILL_NEW_RUNS: ENA read_run rows of the new runs (resweep output); GAPFILL_SANDPIPER=1 calls the
+# per-run Sandpiper API (<= 0.5 req/s, cache-through); GAPFILL_OUT defaults to build/gapfill_$(RELEASE_ID)
+GAPFILL_STUDY    ?=
+GAPFILL_NEW_RUNS ?=
+GAPFILL_OUT      ?= $(BUILD)/gapfill_$(RELEASE_ID)
+GAPFILL_SANDPIPER ?= 1
+gapfill:         ## stage 3b — build package-shaped rows for new runs of an included study (GAPFILL_STUDY=PRJ… GAPFILL_NEW_RUNS=…parquet)
+	@test -n "$(GAPFILL_STUDY)" -a -n "$(GAPFILL_NEW_RUNS)" || { echo "usage: make gapfill GAPFILL_STUDY=PRJNA… GAPFILL_NEW_RUNS=path/new_runs.parquet"; exit 2; }
+	@test -f $(PKG_SRC)/sample_metadata_wide.parquet || { echo "run make unpack first"; exit 1; }
+	CATALOG_CACHE_DIR=$(CACHE_DIR) $(PY) -m catalog.extraction.gapfill_samples --study $(GAPFILL_STUDY) --new-runs $(GAPFILL_NEW_RUNS) --package $(PKG_SRC) \
+	  --out $(GAPFILL_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) --field-map config/attribute_field_map.csv --harvest-existing \
+	  $(if $(filter 1,$(GAPFILL_SANDPIPER)),--sandpiper,)
+
+apply-gapfill:   ## stage 3b — append $(GAPFILL_OUT) to the package dir (no existing row changes; asserted) — run before `make package`
+	@test -f $(GAPFILL_OUT)/samples_new_wide.parquet || { echo "run make gapfill first ($(GAPFILL_OUT))"; exit 1; }
+	$(PY) -m catalog.release.apply_gapfill --package $(PKG_SRC) --gapfill $(GAPFILL_OUT)
 
 findings:        ## stage 4 — apply audit/findings/*.csv with validators; rebuilds wide + study lists; output in $(APPLIED) (versioned, R1-16)
 	@test -f "$(PKG_SRC)/sample_metadata_wide.parquet" || { echo "run make unpack first"; exit 1; }

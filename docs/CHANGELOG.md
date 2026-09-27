@@ -22,6 +22,9 @@ data-package **semver** (`config/version.txt`, `VERSION.json`), and release bund
 
 Cumulative LLM spend to v11: ≈ 47.3 M tokens (CATALOG_REPORT §1; BUDGET.md).
 
+## R2026.2 (in progress) — stage 3b gapfill
+* `src/catalog/extraction/gapfill_samples.py` + `src/catalog/release/apply_gapfill.py` (+ `make gapfill` / `make apply-gapfill`, `tests/test_gapfill.py`, RUNBOOK §3b): package-shaped rows for new runs of an already-included study — cache-through harvest, deterministic R1 (field map vendored as `config/attribute_field_map.csv`), U3 paper-table unit rule with per-sample corroboration, composite subject ids, deterministic R2 gate, per-run Sandpiper API delta, no-existing-row-change assertion on apply. First run: PRJNA1140720 +150 saliva samples (mothers/fathers/siblings; body_site_class excluded), report `docs/reports/GAPFILL_PRJNA1140720_R2026.2.md`.
+
 ## 1.3.0 — 2026-09-26 — release R2026.1 (first numbered release; bitemporal data; deterministic, 0 LLM tokens)
 Data (package CHANGELOG 1.3.0; `data_package_v1.3.0.zip`): release columns `release_added` / `release_retired` / `package_added` on 9 fact
 tables (10 files), `sample_determinations_all.parquet` (618,898 current + 1,316 retired), `releases.csv`, `RELEASE_NOTES_R2026.1.md`,
