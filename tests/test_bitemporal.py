@@ -190,5 +190,7 @@ def test_real_release_ids_exist_in_registry_and_tables_unchanged(built):
     allrows = pd.read_parquet(os.path.join(out, "sample_determinations_all.parquet"))
     assert set(allrows["release_added"]) | set(allrows["release_retired"].dropna()) <= ids
     sd = pd.read_parquet(os.path.join(out, "sample_determinations.parquet"))
-    assert sd["release_added"].value_counts().to_dict() == {"1.0.0": 605_707, "1.1.0": 3_632, "1.2.0": 9_559}
+    vc = sd["release_added"].value_counts().to_dict()
+    # historical ids are fixed; later releases (R2026.3 gap-fill rows, …) add their own keys when PKG_SRC is a newer package
+    assert {k: vc.get(k) for k in ("1.0.0", "1.1.0", "1.2.0")} == {"1.0.0": 605_707, "1.1.0": 3_632, "1.2.0": 9_559}, vc
     assert (sd["package_added"] == sd["release_added"]).all()  # pre-1.3.0 ids ARE package versions
