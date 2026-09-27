@@ -103,6 +103,29 @@ def apply(package, gapfill, out=None):
         assert _row_hash(ua.drop(index=i)) == others_before
         ua.to_parquet(p, index=False)
     # build_counts
+    # Sandpiper study-level tables (F13: build_site asserts n_samples_study == wide-table rows per study)
+    n_new = report["tables"].get("sample_metadata_wide.parquet", {}).get("added", 0)
+    n_new_runs = report["tables"].get("runs.parquet", {}).get("added", 0)
+    n_new_profiled = report["tables"].get("sandpiper_sample_summary.parquet", {}).get("added", 0)
+    for fn in ("sandpiper_study_panel_status.csv", "sandpiper_study_coverage.csv", "sandpiper_study_qc_flags.csv"):
+        pth = os.path.join(out, fn)
+        if not os.path.exists(pth):
+            continue
+        t = pd.read_csv(pth)
+        m = t.study_accession == study
+        if not m.any():
+            continue
+        for c, add in (("n_samples_study", n_new), ("n_samples", n_new), ("n_runs", n_new_runs), ("n_infant_scope_samples", 0),
+                       ("n_profiled", n_new_profiled), ("n_samples_profiled", n_new_profiled), ("n_runs_profiled", n_new_profiled)):
+            if c in t.columns and add:
+                t.loc[m, c] = t.loc[m, c].astype(int) + int(add)
+        if "miss_published_after_snapshot_horizon" in t.columns and n_new_runs and not n_new_profiled:
+            t.loc[m, "miss_published_after_snapshot_horizon"] = t.loc[m, "miss_published_after_snapshot_horizon"].astype(int) + int(n_new_runs)
+        for num, den, col in (("n_runs_profiled", "n_runs", "frac_runs_profiled"), ("n_samples_profiled", "n_samples", "frac_samples_profiled"), ("n_profiled", "n_samples_study", "frac_samples_profiled")):
+            if col in t.columns and num in t.columns and den in t.columns:
+                t.loc[m, col] = (t.loc[m, num].astype(float) / t.loc[m, den].replace(0, pd.NA).astype(float)).round(3)
+        t.to_csv(pth, index=False)
+        report["tables"][fn] = {"updated_rows": int(m.sum())}
     p = os.path.join(out, "build_counts.json")
     if os.path.exists(p):
         bc = json.load(open(p))

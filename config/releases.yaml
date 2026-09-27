@@ -70,6 +70,14 @@ releases:
     data_tag: data-v1.4.0
     site_tag: site-v1.4.0
     label: contribute worklist (contribute_worklist.csv, contribute_worklist_fields.csv; config/contribute.yaml) + GitHub-Issue contribution intake
+  - release_id: R2026.3
+    package_version: '1.5.0'
+    previous_package_version: '1.4.0'
+    previous_release_id: R2026.2
+    notes_file: RELEASE_NOTES_R2026.3.md
+    data_tag: data-v1.5.0
+    site_tag: site-v1.5.0
+    label: monthly cycle 2026-09b — re-sweep (2 new studies judged in R2026.2) + gap-fill of 150 new PRJNA1140720 samples (family saliva, body_site excluded)
 
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:

@@ -1,3 +1,8 @@
+# 1.5.0 — 2026-09-27 (release R2026.3, monthly cycle 2026-09b)
+* **Re-sweep** of ENA for deposits first public since 2026-08-20 (`make resweep`): 225 studies not in the catalog, 2 with a human signal, both judged `exclude` / `site_excluded` in R2026.2 (PRJEB108618 adult skin; PRJEB124241 maternal reproductive-tract and tracheal samples). Universe 9,581 studies.
+* **Gap-fill of an included study** (`make gapfill` / `make apply-gapfill`, new in this cycle): PRJNA1140720 (Modelling human microbiome transmission in a nursery setting) gained 150 BioSamples / 150 WGS runs published 2026-09-02. They are saliva samples of mothers (81), fathers (62) and siblings (7) — `body_site_class = excluded`, `catalog_scope = False`, roles mother/other — so the catalog-scope headline is unchanged while the study's sample count now matches ENA (1,013 → 1,163). 749 validated R1 determinations (country, sex, subject_id, timepoint_label; 149 ages, 145 of them adult and committed under the out-of-scope-adult convention; 1 age rejected as disagreeing with the paper table); subjects joined to the study's existing family keys (149/150). Sandpiper has not profiled any of these runs (per-run API confirmed; miss reason `published_after_snapshot_horizon`).
+* Counts: 154,356 sample units (+150), 619,647 current determinations (+749), catalog_scope 72,358 (unchanged), 389 included studies.
+
 # CHANGELOG — Infant Gut Shotgun-Metagenome Catalog
 
 Reconstructed 2026-09-26 from the artifact store (11 versions of `release_bundle.tar.gz` / `CATALOG_REPORT.md`,

@@ -138,9 +138,9 @@ gapfill:         ## stage 3b — build package-shaped rows for new runs of an in
 	  --out $(GAPFILL_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) --field-map config/attribute_field_map.csv --harvest-existing \
 	  $(if $(filter 1,$(GAPFILL_SANDPIPER)),--sandpiper,)
 
-apply-gapfill:   ## stage 3b — append $(GAPFILL_OUT) to the package dir (no existing row changes; asserted) — run before `make package`
+apply-gapfill:   ## stage 3b — append $(GAPFILL_OUT) to $(PKG_OUT) (no existing row changes; asserted) — runs inside `make release` when GAPFILL_OUT holds outputs
 	@test -f $(GAPFILL_OUT)/samples_new_wide.parquet || { echo "run make gapfill first ($(GAPFILL_OUT))"; exit 1; }
-	$(PY) -m catalog.release.apply_gapfill --package $(PKG_SRC) --gapfill $(GAPFILL_OUT)
+	$(PY) -m catalog.release.apply_gapfill --package $(PKG_OUT) --gapfill $(GAPFILL_OUT)   # on the ASSEMBLED dir: PKG_SRC stays the pristine previous package for bitemporal/release-notes
 
 findings:        ## stage 4 — apply audit/findings/*.csv with validators; rebuilds wide + study lists; output in $(APPLIED) (versioned, R1-16)
 	@test -f "$(PKG_SRC)/sample_metadata_wide.parquet" || { echo "run make unpack first"; exit 1; }
@@ -187,9 +187,10 @@ release-notes:   ## stage 5d — RELEASE_NOTES_<release_id>.md from PKG_SRC (pre
 
 release:         ## stage 5 (R2026.n) — unpack → findings → assemble → bitemporal → worklist → package-docs → VERSION.json → release notes → VERSION.json+zip → check
 	@test -n "$(RELEASE_ID)" || { echo "config/releases.yaml has no release for package $(VERSION)"; exit 1; }
-	$(MAKE) unpack
+	@if [ -z "$(SKIP_UNPACK)" ]; then $(MAKE) unpack; else echo "SKIP_UNPACK set: using the already unpacked $(PKG_SRC)"; fi
 	$(MAKE) package-assemble
 	@if [ -n "$(VERDICTS)" ]; then $(MAKE) apply-verdicts; else echo "no VERDICTS given (no new studies this cycle)"; fi
+	@if [ -f "$(GAPFILL_OUT)/samples_new_wide.parquet" ]; then $(MAKE) apply-gapfill; else echo "no gap-fill outputs in $(GAPFILL_OUT)"; fi
 	$(MAKE) bitemporal
 	$(MAKE) worklist
 	$(MAKE) package-docs
