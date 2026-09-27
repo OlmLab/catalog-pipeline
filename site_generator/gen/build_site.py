@@ -257,6 +257,12 @@ def split_list(v):
     return [x for x in str(v).split(';') if x] if not isnull(v) and v != '' else []
 
 
+def read_github_repo(cfg_path, key):
+    """config/site.yaml github.org + github.repos.<key> → 'Org/repo' (PyYAML)."""
+    g = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8'))['github']
+    return f"{g['org']}/{g['repos'][key]}"
+
+
 def read_data_repo_id(cfg_path):
     """config/site.yaml github.data_repo_id (GitHub repository id of the data repo; Zenodo badge/latestdoi URLs are built from it)."""
     txt = Path(cfg_path).read_text(encoding='utf-8') if cfg_path and Path(cfg_path).exists() else ''
@@ -1092,7 +1098,7 @@ def main():
                       in_infant_catalog=list(sspec['in_infant_catalog_values']))
         render('registry.html', site['registry_page'], '../', nav='registry', rs=rstats, scopes=scope_rows, facets=facets, vocab=rvocab,
                parquet_size=human(reg_path.stat().st_size), n_cols=int(rg.shape[1]), audit_name=sspec['files']['audit'],
-               package_version=version, runs_asset_url=f"https://github.com/{site['github']['org']}/{site['github']['repos']['data']}/releases/download/data-v{version}/registry_runs_v{version}.parquet",
+               package_version=version, runs_asset_url=f"https://github.com/{read_github_repo(a.config, 'data')}/releases/download/data-v{version}/registry_runs_v{version}.parquet",
                scope_labels={sc['id']: sc['label'] for sc in sspec['scopes']}, site_labels=vocabs['body_site'], stage_labels=stage_labels, included_accs=included,
                crumbs=[dict(label='Home', href='../index.html'), dict(label='Registry')])
         TOP_COLS = ['study_accession', 'study_title', 'n_samples', 'n_runs', 'body_sites', 'life_stages', 'assay', 'classification_stage', 'in_infant_catalog']
