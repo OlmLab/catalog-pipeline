@@ -1,0 +1,312 @@
+"""Assemble registry_studies.parquet (+ REGISTRY_REPORT.md) from
+    (a) the enumeration track's registry_universe_studies.parquet   (frozen columns; audit/registry_schema.json)
+    (b) deterministic classification                                  (classify_deterministic.classify_frame)
+    (c) an optional LLM classification table                          (classify_llm.to_registry_row rows; parquet/json)
+    (d) infant verdicts                                                (universe_studies_all.parquet of the current package)
+and derive scope_memberships from config/scope.yaml. Deterministic: same inputs → byte-identical parquet.
+
+CLI:
+    python -m catalog.registry.build_registry --universe <registry_universe_studies.parquet> --infant <universe_studies_all.parquet>
+        [--llm <llm_rows.parquet|json>] [--audit <registry_universe_audit.csv>] --out <dir> --release-id R2026.4 --package-version 1.6.0
+    python -m catalog.registry.build_registry --make-fixture --v3-studies <universe_v3_full_studies.parquet>
+        --frame-free <frame_free_study_signal.parquet> --infant <universe_studies_all.parquet> --out tests/data/registry_fixture_universe.parquet
+The fixture path (200 studies drawn deterministically from the 1.5.0 universe) is what tests use when the enumeration track's
+table is absent.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from collections import Counter
+
+import pandas as pd
+
+from catalog.registry import vocab as V
+from catalog.registry.classify_deterministic import classify_frame, split_multi
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
+SCHEMA_PATH = os.path.join(REPO, "audit", "registry_schema.json")
+
+# universe column → classifier input column (whichever exists first wins)
+INPUT_ALIASES = {
+    "description": ["description", "description_short"],
+    "scientific_names": ["scientific_names", "scientific_names_top"],
+    "sample_titles_sample": ["sample_titles_sample", "sample_titles"],
+    "isolation_sources": ["isolation_sources", "isolation_source"],
+    "environmental_medium": ["environmental_medium", "environmental_media"],
+    "host_body_sites": ["host_body_sites", "host_body_site"],
+    "host_scientific_names": ["host_scientific_names", "host_scientific_name"],
+    "target_genes": ["target_genes", "target_gene"],
+    "instrument_models": ["instrument_models", "instrument_model"],
+    "library_selections": ["library_selections", "library_selection"],
+    "library_layouts": ["library_layouts", "library_layout"],
+    "ages": ["ages", "age"], "dev_stages": ["dev_stages", "dev_stage"],
+}
+FIXTURE_STRATA = [("include", None, 40), ("exclude", "host_nonhuman", 40), ("exclude", "host_environmental", 20),
+                  ("exclude", "host_synthetic", 10), ("exclude", "age_adult_only", 30), ("exclude", "age_child_over_36m", 15),
+                  ("exclude", "age_maternal_only", 10), ("exclude", "site_excluded", 15), ("exclude", "site_unknown", 5),
+                  ("exclude", "age_unknown_no_evidence", 10), ("uncertain", None, 5)]
+
+
+def load_schema() -> dict:
+    return json.load(open(SCHEMA_PATH, encoding="utf-8"))
+
+
+def study_columns() -> list[str]:
+    return [c["name"] for c in load_schema()["tables"]["registry_studies.parquet"]["columns"]]
+
+
+def normalise_universe(df: pd.DataFrame) -> pd.DataFrame:
+    """Make every classifier input column available under its canonical name (missing → empty string)."""
+    out = df.copy()
+    for canon, cands in INPUT_ALIASES.items():
+        if canon in out.columns:
+            continue
+        src = next((c for c in cands if c in out.columns), None)
+        out[canon] = out[src] if src else ""
+    return out
+
+
+def _sci_strip_counts(v) -> str:
+    """'human gut metagenome (120); pig gut metagenome (3)' → 'human gut metagenome | pig gut metagenome'."""
+    import re
+
+    parts = [re.sub(r"\s*\(\d+\)\s*$", "", p).strip() for p in split_multi(v)]
+    return " | ".join(p for p in parts if p)
+
+
+# --------------------------------------------------------------------------- scope derivation
+def derive_scope_memberships(host_human: str, body_sites: list[str], life_stages: list[str], assay: str, in_infant: str) -> list[str]:
+    """Deterministic rule documented in config/scope.yaml (order = scope order there)."""
+    out = []
+    bs, ls = set(body_sites or []), set(life_stages or [])
+    human = host_human in ("yes", "mixed")
+    for s in V.load_scope()["scopes"]:
+        sid = s["id"]
+        hit = False
+        if sid == "human_all":
+            hit = human and assay in ("shotgun_dna", "mixed")
+        elif sid == "infant_gut":
+            hit = in_infant == "include"
+        elif not human:
+            hit = False
+        elif sid == "gut_child":
+            hit = "gut_stool" in bs and bool(ls & {"child", "adolescent"})
+        elif sid == "gut_adult":
+            hit = "gut_stool" in bs and bool(ls & {"adult", "elderly"})
+        elif sid == "respiratory":
+            hit = bool(bs & {"nasal_nasopharyngeal", "respiratory_lower"})
+        elif sid == "other_site":
+            hit = bool(bs & {"other_site", "eye_ear"})
+        elif sid == "unknown_site":
+            hit = not bs or bs == {"unknown_site"}
+        else:  # oral, skin, vaginal_urogenital, milk, blood_tissue: same-named body-site code
+            hit = sid in bs
+        if hit:
+            out.append(sid)
+    return out
+
+
+# --------------------------------------------------------------------------- assembly
+def _first_public(df: pd.DataFrame, col: str) -> pd.Series:
+    return df[col].astype("string").fillna("") if col in df.columns else pd.Series([""] * len(df), index=df.index, dtype="string")
+
+
+def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | None, release_id: str, package_version: str) -> pd.DataFrame:
+    uni = normalise_universe(universe)
+    uni["scientific_names"] = uni["scientific_names"].map(_sci_strip_counts)
+    inf = infant.rename(columns={"triage_verdict": "infant_verdict", "reason_code": "infant_reason_code", "body_site_call": "infant_body_site_call"})
+    inf_cols = [c for c in ("study_accession", "infant_verdict", "infant_reason_code", "infant_body_site_call", "controlled_access", "n_biosamples") if c in inf.columns]
+    inf = inf[inf_cols].drop_duplicates("study_accession")
+    if "release_retired" in infant.columns:  # current verdict rows only
+        inf = inf[infant.loc[inf.index, "release_retired"].isna()] if len(inf) == len(infant) else inf
+    merged = uni.merge(inf, on="study_accession", how="left", suffixes=("", "_inf"))
+    det = classify_frame(merged)  # priors come from the merged infant_* columns
+    det = det.set_index("study_accession")
+    if llm is not None and len(llm):
+        llm = llm.drop_duplicates("study_accession").set_index("study_accession")
+        llm = llm[llm.get("classification_stage", pd.Series(dtype=str)).isin(["sonnet_x2", "opus_adjudicated"])]
+        common = det.index.intersection(llm.index)
+        for c in ("host_human", "host_evidence", "assay", "assay_evidence", "body_sites", "body_site_primary", "body_site_evidence",
+                  "life_stages", "life_stage_primary", "life_stage_evidence", "population_flags", "population_evidence",
+                  "classification_stage", "classification_confidence", "classification_model"):
+            if c in llm.columns:
+                det.loc[common, c] = llm.loc[common, c]
+        det["health_context"] = None
+        if "health_context" in llm.columns:
+            det.loc[common, "health_context"] = llm.loc[common, "health_context"]
+        det.loc[det.index.difference(common) & det.index[det["needs_llm"].astype(bool)], "classification_stage"] = "pending"
+    else:
+        det["health_context"] = None
+        det.loc[det["needs_llm"].astype(bool), "classification_stage"] = "pending"
+    det = det.reset_index()
+
+    m = merged.merge(det, on="study_accession", how="left", suffixes=("_uni", ""))
+    n = len(m)
+
+    def col(name, default=""):
+        return m[name] if name in m.columns else pd.Series([default] * n, index=m.index)
+
+    in_inf = col("infant_verdict", None).fillna("not_screened").replace({"": "not_screened"})
+    ctrl = col("controlled_access", False)
+    ctrl = ctrl.map(lambda v: str(v).lower() in ("true", "1", "yes")) if ctrl.dtype == object else ctrl.fillna(False).astype(bool)
+    n_runs = pd.to_numeric(col("n_runs", 0), errors="coerce").fillna(0).astype(int)
+    access = pd.Series(["open"] * n, index=m.index)
+    access[n_runs == 0] = "unknown"
+    access[ctrl] = "controlled"
+    scientific_top = universe["scientific_names_top"] if "scientific_names_top" in universe.columns else uni["scientific_names"]
+    out = pd.DataFrame({
+        "study_accession": m["study_accession"],
+        "secondary_study_accession": col("secondary_study_accession"),
+        "study_title": col("study_title"),
+        "description_short": col("description").astype("string").fillna("").str.slice(0, 300),
+        "center_name": col("center_name"),
+        "first_public_min": _first_public(m, "first_public_min"), "first_public_max": _first_public(m, "first_public_max"),
+        "n_runs": n_runs,
+        "n_samples": pd.to_numeric(col("n_samples", 0), errors="coerce").fillna(0).astype(int),
+        "n_biosamples": pd.to_numeric(col("n_biosamples", 0), errors="coerce").fillna(0).astype(int),
+        "library_strategies": col("library_strategies"), "library_sources": col("library_sources"),
+        "instrument_platforms": col("instrument_platforms"),
+        "scientific_names_top": scientific_top.reindex(m.index).fillna("") if len(scientific_top) == n else uni["scientific_names"],
+        "host_tax_ids": col("host_tax_ids"),
+        "n_runs_host_9606": pd.to_numeric(col("n_runs_host_9606", 0), errors="coerce").fillna(0).astype(int),
+        "n_runs_nonhuman_host": pd.to_numeric(col("n_runs_nonhuman_host", 0), errors="coerce").fillna(0).astype(int),
+        "human_signal": col("human_signal", False).fillna(False).astype(bool),
+        "human_signal_rule": col("human_signal_rule", "none").fillna("none").replace({"": "none"}),
+        "ambiguous": col("ambiguous", False).fillna(False).astype(bool),
+        "host_human": m["host_human"], "host_evidence": m["host_evidence"], "assay": m["assay"], "access": access,
+        "body_sites": m["body_sites"].fillna(""), "body_site_primary": m["body_site_primary"], "body_site_evidence": m["body_site_evidence"],
+        "life_stages": m["life_stages"].fillna(""), "life_stage_primary": m["life_stage_primary"], "life_stage_evidence": m["life_stage_evidence"],
+        "population_flags": m["population_flags"].fillna(""), "health_context": m["health_context"],
+        "classification_stage": m["classification_stage"], "classification_confidence": m["classification_confidence"].astype(float),
+        "classification_model": m["classification_model"],
+        "in_infant_catalog": in_inf, "infant_reason_code": col("infant_reason_code", None),
+        "universe_slice": col("universe_slice"),
+    })
+    out["scope_memberships"] = [";".join(derive_scope_memberships(h, b.split(";") if b else [], l.split(";") if l else [], a, i))
+                                for h, b, l, a, i in zip(out.host_human, out.body_sites, out.life_stages, out.assay, out.in_infant_catalog)]
+    out["release_added"], out["release_retired"], out["package_added"] = release_id, None, package_version
+    out = out[study_columns()].sort_values("study_accession").reset_index(drop=True)
+    for c in out.columns:
+        if out[c].dtype == object or str(out[c].dtype) == "string":
+            out[c] = out[c].astype(object).where(out[c].notna(), None)
+    validate_registry(out)
+    return out
+
+
+def validate_registry(df: pd.DataFrame) -> None:
+    sch = load_schema()["tables"]["registry_studies.parquet"]
+    cols = [c["name"] for c in sch["columns"]]
+    assert list(df.columns) == cols, f"registry_studies columns != schema: {set(df.columns) ^ set(cols)}"
+    assert df.study_accession.is_unique, "duplicate study_accession"
+    for c in sch["columns"]:
+        if "vocabulary" in c:
+            bad = set(df[c["name"]].dropna()) - set(c["vocabulary"])
+            assert not bad, f"{c['name']}: values outside vocabulary {bad}"
+        if "vocabulary_ref" in c:
+            ref = c["vocabulary_ref"]
+            allowed = set(V.scope_ids()) if ref == "scopes" else set(V.codes(ref))
+            vals = set()
+            for v in df[c["name"]].dropna():
+                vals.update(x for x in str(v).split(";") if x)
+            bad = vals - allowed
+            assert not bad, f"{c['name']}: codes outside {ref}: {bad}"
+    for c in sch["columns"]:
+        if c.get("max_length"):
+            assert df[c["name"]].dropna().astype(str).str.len().max() <= c["max_length"] or df[c["name"]].dropna().empty, f"{c['name']} exceeds {c['max_length']}"
+    for c in ("host_evidence", "body_site_evidence", "life_stage_evidence"):
+        for v in df[c].dropna():
+            rows = json.loads(v)
+            assert isinstance(rows, list)
+            for r in rows:
+                assert len(str(r["quote"]).split()) <= 12, f"{c}: quote > 12 words: {r}"
+
+
+# --------------------------------------------------------------------------- report
+def write_report(df: pd.DataFrame, path: str, release_id: str, fixture: bool, audit: pd.DataFrame | None) -> None:
+    def table(col, title):
+        vc = df[col].fillna("(null)").value_counts()
+        lines = [f"### {title}", "", "| value | studies |", "|---|---:|"] + [f"| {k} | {v:,} |" for k, v in vc.items()] + [""]
+        return lines
+
+    scopes = Counter(s for v in df.scope_memberships for s in (v.split(";") if v else []))
+    lines = [f"# REGISTRY_REPORT — registry_studies ({release_id})", "",
+             f"*{'FIXTURE RUN — 200-study sample drawn from the 1.5.0 infant universe; counts are provisional and describe the fixture, not the registry universe.' if fixture else 'Full registry universe.'}*",
+             "", f"Studies: **{len(df):,}** · runs: **{int(df.n_runs.sum()):,}** · samples: **{int(df.n_samples.sum()):,}** · needs-LLM (stage pending): **{int((df.classification_stage == 'pending').sum()):,}**", ""]
+    lines += table("host_human", "host_human") + table("body_site_primary", "body_site_primary") + table("life_stage_primary", "life_stage_primary")
+    lines += table("assay", "assay") + table("classification_stage", "classification_stage") + table("in_infant_catalog", "in_infant_catalog") + table("access", "access")
+    lines += ["### scope_memberships (a study can be in several)", "", "| scope | studies |", "|---|---:|"] + [f"| {k} | {v:,} |" for k, v in sorted(scopes.items(), key=lambda kv: -kv[1])] + [""]
+    if audit is not None:
+        lines += ["### registry_universe_audit (enumeration track)", "", audit.to_markdown(index=False), ""]
+    open(path, "w", encoding="utf-8").write("\n".join(lines))
+
+
+# --------------------------------------------------------------------------- fixture from 1.5.0 inputs
+def make_fixture(v3_studies: str, frame_free: str, infant_universe: str, out_path: str, strata=FIXTURE_STRATA) -> pd.DataFrame:
+    u3 = pd.read_parquet(v3_studies)
+    ff = pd.read_parquet(frame_free, columns=["study_accession", "description", "human_signal", "signal_rule", "ambiguous", "n_runs_human_host", "n_runs_nonhuman_host"])
+    ua = pd.read_parquet(infant_universe)
+    ua = ua[ua.release_retired.isna()] if "release_retired" in ua.columns else ua
+    u = u3.merge(ua[["study_accession", "triage_verdict", "reason_code", "universe_slice", "n_biosamples", "controlled_access"]], on="study_accession", how="inner")
+    picks = []
+    for verdict, code, k in strata:
+        sub = u[(u.triage_verdict == verdict) & ((u.reason_code == code) if code else True)].sort_values("study_accession")
+        picks.append(sub.head(k))
+    fx = pd.concat(picks).drop_duplicates("study_accession").merge(ff, on="study_accession", how="left")
+    has_h = fx.host_tax_ids.fillna("").str.contains(r"\b9606\b")
+    out = pd.DataFrame({
+        "study_accession": fx.study_accession, "secondary_study_accession": fx.secondary_study_accession, "study_title": fx.study_title,
+        "description_short": fx.description.fillna("").str.slice(0, 300), "center_name": fx.center_name,
+        "first_public_min": fx.first_public_min.astype(str), "first_public_max": fx.first_public_max.astype(str),
+        "n_runs": fx.n_runs.astype(int), "n_samples": fx.n_samples.astype(int), "n_biosamples": pd.to_numeric(fx.n_biosamples, errors="coerce").fillna(0).astype(int),
+        "library_strategies": fx.library_strategies, "library_sources": fx.library_sources, "instrument_platforms": fx.instrument_platforms,
+        "scientific_names_top": fx.scientific_names, "host_tax_ids": fx.host_tax_ids,
+        "n_runs_host_9606": pd.to_numeric(fx.n_runs_human_host, errors="coerce").fillna(has_h.astype(int) * fx.n_runs).astype(int),
+        "n_runs_nonhuman_host": pd.to_numeric(fx.n_runs_nonhuman_host, errors="coerce").fillna(0).astype(int),
+        "human_signal": fx.human_signal.fillna(has_h).astype(bool),
+        "human_signal_rule": fx.signal_rule.fillna("").map(lambda s: s[:1] if s and s[:1] in "ABC" else ("A" if False else "none")),
+        "ambiguous": fx.ambiguous.fillna(False).astype(bool), "universe_slice": fx.universe_slice,
+        # classifier inputs beyond the frozen columns (the enumeration track carries the same aggregates)
+        "sample_titles_sample": fx.sample_titles_sample, "isolation_sources": fx.isolation_sources, "environmental_medium": fx.environmental_medium,
+        "host_body_sites": fx.host_body_sites, "host_scientific_names": fx.host_scientific_names, "ages": fx.ages, "dev_stages": fx.dev_stages,
+        "instrument_models": fx.instrument_models, "library_selections": fx.library_selections, "library_layouts": fx.library_layouts,
+        "base_count_median": fx.base_count_median, "read_count_median": fx.read_count_median, "serovars": fx.serovars,
+        "sub_species": fx.sub_species, "strains": fx.strains,
+    }).sort_values("study_accession").reset_index(drop=True)
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    out.to_parquet(out_path, index=False)
+    return out
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--universe"), ap.add_argument("--infant", required=True), ap.add_argument("--llm"), ap.add_argument("--audit")
+    ap.add_argument("--out", required=True), ap.add_argument("--release-id", default="R2026.4"), ap.add_argument("--package-version", default="1.6.0")
+    ap.add_argument("--make-fixture", action="store_true"), ap.add_argument("--v3-studies"), ap.add_argument("--frame-free")
+    ap.add_argument("--fixture", action="store_true", help="mark the report as a fixture run")
+    a = ap.parse_args(argv)
+    if a.make_fixture:
+        fx = make_fixture(a.v3_studies, a.frame_free, a.infant, a.out)
+        print(f"fixture {len(fx)} studies → {a.out}")
+        return 0
+    universe = pd.read_parquet(a.universe)
+    infant = pd.read_parquet(a.infant)
+    llm = None
+    if a.llm:
+        llm = pd.read_parquet(a.llm) if a.llm.endswith(".parquet") else pd.DataFrame(json.load(open(a.llm)).get("rows", []))
+    audit = pd.read_csv(a.audit) if a.audit and os.path.exists(a.audit) else None
+    os.makedirs(a.out, exist_ok=True)
+    df = assemble(universe, infant, llm, a.release_id, a.package_version)
+    df.to_parquet(os.path.join(a.out, "registry_studies.parquet"), index=False)
+    if audit is not None:
+        audit.to_csv(os.path.join(a.out, "registry_universe_audit.csv"), index=False)
+    write_report(df, os.path.join(a.out, "REGISTRY_REPORT.md"), a.release_id, a.fixture, audit)
+    print(f"registry_studies {len(df)} rows → {a.out}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

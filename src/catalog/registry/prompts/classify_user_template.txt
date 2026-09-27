@@ -1,0 +1,9 @@
+Classify the {n_studies} studies below. Return exactly {n_studies} objects in "studies", one per study_accession listed here: {ids}.
+
+Each record is compact JSON with these fields (blank fields omitted):
+study_accession, study_title, description (<=1200 chars), n_runs, n_samples, library_strategies (strategy: run count), library_sources, target_genes, instrument_models, base_count_median, read_length_median, scientific_names (taxon: run count, top 5), host_tax_ids, host_scientific_names, host_body_sites, isolation_sources, environmental_medium, sample_titles (sample of <=8), ages, dev_stages, serovars, sub_species, strains, deterministic_hint (the rule-based classifier's current values and why it asked for review — verify, do not copy).
+
+Quotes must be copied from these fields; label the source with the field's evidence label (study.title, study.description, sample.title, sample.attr.isolation_source, sample.attr.host_body_site, sample.attr.environmental_medium, sample.attr.age, sample.attr.dev_stage, run.library_strategy, run.library_source, run.target_gene, run.instrument_model, run.base_count, run.scientific_name, run.host_tax_id, run.host_scientific_name).
+
+RECORDS:
+{records_json}

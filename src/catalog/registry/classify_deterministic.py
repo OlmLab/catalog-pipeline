@@ -411,6 +411,9 @@ def classify_body_site(rec: dict, host_human: str) -> dict:
     elif len(strong_codes) == 2 and abs(scores[strong_codes[0]] - scores[strong_codes[1]]) < 0.5 and prior_code is None:
         reasons.append("site_two_strong_tie")
         conf = min(conf, 0.7)
+    if verdict == "include":  # curated verdict wins: infant catalog == gut/stool scope (task spec prior)
+        primary, conf = "gut_stool", max(conf, 0.9)
+        reasons = [r for r in reasons if not r.startswith("site_")]
     rows = []
     for c in kept[:4]:
         rows.extend(evid[c][:2])
@@ -490,6 +493,12 @@ def classify_life_stage(rec: dict, host_human: str) -> dict:
         primary = "mixed_ages"
         reasons.append("life_stage_mixed")
         conf = min(conf, 0.75)
+    if verdict == "include":  # curated verdict wins: 0-3 y scope → primary infant (neonate/child kept in the list)
+        primary, conf = "infant", max(conf, 0.9)
+        reasons = [r for r in reasons if not r.startswith("life_stage_")]
+    elif prior in PRIOR_LIFE_STAGE and PRIOR_LIFE_STAGE[prior] in kept:
+        primary, conf = PRIOR_LIFE_STAGE[prior], max(conf, 0.85)
+        reasons = [r for r in reasons if not r.startswith("life_stage_")]
     rows = []
     for c in kept[:4]:
         rows.extend(evid.get(c, [])[:2])
