@@ -557,6 +557,8 @@ def main():
     IN_DATA = ['sample_metadata_wide.parquet', 'sample_determinations.parquet', 'value_history.parquet', 'sandpiper_top_genera.parquet', rspec['files']['determinations_all']]
     if has_registry:
         IN_DATA.append(sspec['files']['studies'])   # registry explorer reads data/registry_studies.parquet; registry_runs is never a site file
+        if (pkg / 'registry_biosamples.parquet').exists():
+            IN_DATA.append('registry_biosamples.parquet')   # sample tier (R2026.5): download + future explorer facet; ≈ 5 MB
     for name in IN_DATA:
         shutil.copyfile(pkg / name, out / 'data' / name)
     pkg_files = []
@@ -1078,8 +1080,17 @@ def main():
         host_counts = {k: int((rg.host_human == k).sum()) for k in sspec['host_human_values']}
         n_pending = int((rg.classification_stage == 'pending').sum())
         _sp = rg['n_runs_sandpiper'].fillna(0) if 'n_runs_sandpiper' in rg.columns else pd.Series(0, index=rg.index)
+        def _sample_tier(frame):
+            if 'n_biosamples_harvested' not in frame.columns:
+                return dict(n_harvested=0, n_studies_harvested=0, n_with_site=0, n_with_age=0, n_with_sex=0)
+            h = pd.to_numeric(frame['n_biosamples_harvested'], errors='coerce').fillna(0)
+            return dict(n_harvested=int(h.sum()), n_studies_harvested=int((h > 0).sum()),
+                        n_with_site=int(pd.to_numeric(frame['n_biosamples_with_site'], errors='coerce').fillna(0).sum()),
+                        n_with_age=int(pd.to_numeric(frame['n_biosamples_with_age'], errors='coerce').fillna(0).sum()),
+                        n_with_sex=int(pd.to_numeric(frame['n_biosamples_with_sex'], errors='coerce').fillna(0).sum()))
+        _bio_path = pkg / 'registry_biosamples.parquet'
         rstats = dict(n_studies=len(rg), n_runs=int(rg.n_runs.fillna(0).sum()), n_biosamples=int(rg.n_biosamples.fillna(0).sum()), host=host_counts,
-                      n_runs_sandpiper=int(_sp.sum()), n_studies_sandpiper=int((_sp > 0).sum()),
+                      n_runs_sandpiper=int(_sp.sum()), n_studies_sandpiper=int((_sp > 0).sum()), has_biosamples=_bio_path.exists(), **_sample_tier(rg),
                       n_pending=n_pending, n_classified=len(rg) - n_pending, pct_classified=int(round(100 * (len(rg) - n_pending) / max(1, len(rg)))),
                       n_infant_include=int((rg.in_infant_catalog == 'include').sum()), n_scopes=len(sspec['scopes']))
         scope_rows, scope_pages = [], []
@@ -1087,7 +1098,7 @@ def main():
             m = rg[rg.scope_memberships.map(lambda v: sc['id'] in split_list(v))]
             _sr = sspec.get('scope_rules', {}).get(sc['id'], {})
             d = dict(id=sc['id'], label=sc['label'], definition=sc['definition'], rule=sc.get('rule') or _sr.get('rule') or '', curated=bool(sc.get('curated')),
-                     n_studies=len(m), n_runs=int(m.n_runs.fillna(0).sum()), n_biosamples=int(m.n_biosamples.fillna(0).sum()), n_runs_sandpiper=int(m['n_runs_sandpiper'].fillna(0).sum()) if 'n_runs_sandpiper' in m.columns else 0,
+                     n_studies=len(m), n_runs=int(m.n_runs.fillna(0).sum()), n_biosamples=int(m.n_biosamples.fillna(0).sum()), n_runs_sandpiper=int(m['n_runs_sandpiper'].fillna(0).sum()) if 'n_runs_sandpiper' in m.columns else 0, **_sample_tier(m),
                      n_pending=int((m.classification_stage == 'pending').sum()))
             d['n_classified'] = d['n_studies'] - d['n_pending']
             scope_rows.append(d)

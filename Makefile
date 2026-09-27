@@ -298,7 +298,7 @@ registry-classify-det: ## registry — deterministic classification of the regis
 
 registry-biosamples: ## registry S2 — registry_biosamples.parquet + study roll-up columns (needs REGISTRY_ATTRIBUTES + REGISTRY_NORM; studies from REGISTRY_OUT)
 	$(PY) -m catalog.registry.build_biosamples --attributes $(REGISTRY_ATTRIBUTES) --norm $(REGISTRY_NORM) --studies $(REGISTRY_OUT)/registry_studies.parquet \
-	  --out $(REGISTRY_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) $$( [ -f $(PKG_SRC)/registry_biosamples.parquet ] && echo --previous $(PKG_SRC)/registry_biosamples.parquet )
+	  --out $(REGISTRY_OUT) --summary $(BUILD)/registry/registry_biosamples_summary.json --release-id $(RELEASE_ID) --package-version $(VERSION) $$( [ -f $(PKG_SRC)/registry_biosamples.parquet ] && echo --previous $(PKG_SRC)/registry_biosamples.parquet )
 
 registry-build:  ## registry — registry_studies.parquet + REGISTRY_REPORT.md (uses the fixture when REGISTRY_UNIVERSE is absent; REGISTRY_LLM optional)
 	mkdir -p $(REGISTRY_OUT)

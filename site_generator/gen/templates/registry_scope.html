@@ -9,6 +9,8 @@
 <div class="card"><div class="num">{{ s.n_studies|fmt }}</div><div class="lbl">studies</div></div>
 <div class="card"><div class="num">{{ s.n_runs|fmt }}</div><div class="lbl">runs</div></div>
 <div class="card"><div class="num">{{ s.n_biosamples|fmt }}</div><div class="lbl">BioSamples</div></div>
+{% if s.n_harvested %}<div class="card"><div class="num">{{ s.n_harvested|fmt }}</div><div class="lbl">BioSamples with harvested attributes — site known {{ (100 * s.n_with_site / s.n_harvested)|round|int }} %, age {{ (100 * s.n_with_age / s.n_harvested)|round|int }} %, sex {{ (100 * s.n_with_sex / s.n_harvested)|round|int }} %</div></div>{% endif %}
+{% if s.n_runs_sandpiper %}<div class="card"><div class="num">{{ s.n_runs_sandpiper|fmt }}</div><div class="lbl">runs with a Sandpiper profile ({{ (100 * s.n_runs_sandpiper / s.n_runs)|round|int if s.n_runs else 0 }} %)</div></div>{% endif %}
 <div class="card"><div class="num">{{ s.n_classified|fmt }}</div><div class="lbl">classified · {{ s.n_pending|fmt }} pending</div></div>
 </div>
 <p><a class="btn" href="../index.html?scope={{ s.id }}#explorer">Open in the registry explorer (pre-filtered)</a> <a class="btn sec" href="../index.html#scopes">All scopes</a></p>

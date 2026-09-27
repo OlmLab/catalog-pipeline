@@ -28,6 +28,7 @@ import pandas as pd
 
 MIN_CONF = 0.5
 SHARE_ADD = 0.10          # a sample-derived code joins the study's body_sites / life_stages list at >= 10 % of harvested samples (>= 3 samples)
+MAX_AGE_DAYS = 120 * 365.25   # ages above 120 years are unit errors
 SHARE_PRIMARY = 0.60      # ... and replaces an unknown_* primary at >= 60 %
 ROLLUP_COLS = ["n_biosamples_harvested", "n_biosamples_with_site", "n_biosamples_with_age", "n_biosamples_with_sex",
                "sample_body_sites", "sample_life_stages", "sample_countries", "sample_age_days_median"]
@@ -63,6 +64,7 @@ def build_biosamples(att: pd.DataFrame, norm: pd.DataFrame) -> pd.DataFrame:
         out[f"{raw_prefix}_raw_value"] = out["sample_accession"].map(best["attr_value"])
         if field == "age":
             out["age_days"] = pd.to_numeric(out["sample_accession"].map(best["age_days"]), errors="coerce")
+            out.loc[out["age_days"] > MAX_AGE_DAYS, "age_days"] = float("nan")   # unit misread (e.g. months taken as years): keep the stage, drop the number
         # a sample that HAS a value for the field but no accepted code → the unknown code (distinct from "no attribute")
         has_any = set(f["sample_acc"])
         if code_col in UNKNOWN:
@@ -169,6 +171,7 @@ def main(argv=None) -> int:
     ap.add_argument("--attributes", required=True), ap.add_argument("--norm", required=True), ap.add_argument("--studies", required=True)
     ap.add_argument("--out", required=True), ap.add_argument("--release-id", default="R2026.5"), ap.add_argument("--package-version", default="1.7.0")
     ap.add_argument("--previous", help="registry_biosamples.parquet of the previous package (release columns carried)")
+    ap.add_argument("--summary", help="where to write the JSON summary (outside the package dir)")
     a = ap.parse_args(argv)
     att = pd.read_parquet(a.attributes)
     norm = pd.read_parquet(a.norm)
@@ -192,7 +195,9 @@ def main(argv=None) -> int:
                "sex_coverage": round(float(bios.sex.isin(["female", "male"]).mean()), 4),
                "country_coverage": round(float(bios.country_iso2.notna().mean()), 4), **stats}
     print(json.dumps(summary))
-    json.dump(summary, open(os.path.join(a.out, "registry_biosamples_summary.json"), "w"), indent=1)
+    if a.summary:
+        os.makedirs(os.path.dirname(a.summary) or ".", exist_ok=True)
+        json.dump(summary, open(a.summary, "w"), indent=1)
     return 0
 
 
