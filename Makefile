@@ -97,6 +97,12 @@ resweep:         ## stage 1 — frame-free monthly re-sweep of ENA (deterministi
 	{ [ -e harvest_cache ] || ln -s $(CACHE_DIR)/harvest_cache harvest_cache; } && \
 	$(PY) $(CURDIR)/src/catalog/enumeration/resweep_universe.py --since $(SINCE) --catalog catalog_studies.parquet --out . 2>&1 | tee resweep.log
 
+registry-enumerate: ## scale-up S1a — registry UNIVERSE: every ENA study that could hold human shotgun metagenomes (frame-free S1 + misfiled GENOMIC S2 + OTHER/TC/WGA adjudication S3; deterministic, network, ≈ 1 h; REGISTRY_SLICES="S1 S2 S3", REGISTRY_SINCE= optional)
+	mkdir -p $(BUILD)/registry && \
+	CATALOG_CACHE_DIR=$(CACHE_DIR) $(PY) $(CURDIR)/src/catalog/registry/enumerate_registry.py --out $(BUILD)/registry \
+	  --slices $(or $(REGISTRY_SLICES),S1 S2 S3) $(if $(REGISTRY_SINCE),--since $(REGISTRY_SINCE),) \
+	  --infant-universe $(PKG_SRC)/universe_studies_all.parquet 2>&1 | tee $(BUILD)/registry/run.log
+
 sandpiper-refresh: ## stage 1c — NEW Sandpiper Zenodo version: download bulk, prepare inputs, filter, build tables, report (≈ 70 min, 1 GB RAM/24 GB DuckDB)
 	mkdir -p $(SP_DIR)/sp $(SP_DIR)/handoff && cd $(SP_DIR) && \
 	{ [ -f sp/sandpiper$(SANDPIPER_VERSION).gtdb.csv.gz ] || [ ! -f $(EXTERNAL)/sandpiper/$(SANDPIPER_VERSION)/sandpiper$(SANDPIPER_VERSION).gtdb.csv.gz ] || ln -s $(EXTERNAL)/sandpiper/$(SANDPIPER_VERSION)/sandpiper$(SANDPIPER_VERSION).gtdb.csv.gz sp/; } && \

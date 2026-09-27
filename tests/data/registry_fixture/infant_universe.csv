@@ -1,0 +1,3 @@
+study_accession,triage_verdict,reason_code,body_site_call,universe_slice
+PRJTEST01,include,,gut,enumeration_v1
+PRJTEST04,exclude,host_nonhuman,,enumeration_v1
