@@ -85,6 +85,8 @@ FILE_DESC = {
     'sample_determinations_all.parquet': 'Bitemporal determinations: current rows (release_retired null) plus every retired row with release_added / release_retired / retired_reason / retired_change_stage (R2026.1).',
     'contribute_worklist.csv': 'Contribution worklist (R2026.2): one row per open study — missing fields, coverage, recoverability tiers, blocker code, unlock text, prefilled Issue URL.',
     'contribute_worklist_fields.csv': 'Contribution worklist, study × field: coverage, n_with_value, best tier, field-level blocker, evidence.',
+    'registry_studies.parquet': 'Registry tier (R2026.4): one row per ENA study with a human shotgun-metagenome signal — host, body sites (UBERON-anchored codes), life stages, assay, access, evidence rows, classification stage, infant-catalog verdict, scope memberships.',
+    'registry_universe_audit.csv': 'Registry enumeration audit: per ENA slice, archive count vs rows pulled and completeness.',
     'releases.csv': 'Release registry: one row per release id (release date, package version, tags, DOI, headline counts).',
     'VERSION.json': 'Package version, release id, release tag, build date, sha256 + rows per table.',
     'DATA_DICTIONARY.md': 'Every column, every vocabulary.', 'README.md': 'Package overview and how to read a value.',
@@ -230,6 +232,31 @@ def contribute_issue_url(spec, acc, ctype, release_id):
     return f['url_template'].format(repo=f['repo'], template=f['template'], label=f['label'], title=title, study_accession=acc, contribution_type=ctype, release_id=release_id)
 
 
+def read_scope_spec(cfg_path):
+    """config/scope.yaml — the frozen registry spec shared with src/catalog/registry (scale-up S0/S1). The generator reads only:
+    scopes[].{id,label,definition,rule,curated}, registry_columns, the value lists, files and vocab_dir."""
+    spec = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8'))
+    for k in ('scopes', 'registry_columns', 'classification_stages', 'host_human_values', 'access_values', 'assay_values', 'in_infant_catalog_values', 'files', 'vocab_dir', 'release_id'):
+        assert k in spec, f'config/scope.yaml lacks {k}'
+    assert len({sc['id'] for sc in spec['scopes']}) == len(spec['scopes']), 'scope ids must be unique'
+    return spec
+
+
+def read_vocabs(repo_root, spec):
+    """config/vocab/{body_site,life_stage,assay,population_flags}.yaml -> {name: {code: label}} (ordered as in the file)."""
+    vd = Path(repo_root) / spec['vocab_dir']
+    out = {}
+    files = {'body_site': 'body_sites.yaml', 'life_stage': 'life_stages.yaml', 'assay': 'assay.yaml', 'population_flags': 'population_flags.yaml'}  # S0 file names
+    for name in ('body_site', 'life_stage', 'assay', 'population_flags'):
+        v = yaml.safe_load((vd / files[name]).read_text(encoding='utf-8'))
+        out[name] = {code: (d.get('label') if isinstance(d, dict) else str(d)) for code, d in v['codes'].items()}
+    return out
+
+
+def split_list(v):
+    return [x for x in str(v).split(';') if x] if not isnull(v) and v != '' else []
+
+
 def read_data_repo_id(cfg_path):
     """config/site.yaml github.data_repo_id (GitHub repository id of the data repo; Zenodo badge/latestdoi URLs are built from it)."""
     txt = Path(cfg_path).read_text(encoding='utf-8') if cfg_path and Path(cfg_path).exists() else ''
@@ -272,6 +299,7 @@ def main():
     ap.add_argument('--base-url', default=None, help='overrides config/site.yaml site.base_url')
     ap.add_argument('--releases-config', default=str(HERE.parent.parent / 'config' / 'releases.yaml'), help='frozen bitemporal/release spec shared with src/catalog/release')
     ap.add_argument('--contribute-config', default=str(HERE.parent.parent / 'config' / 'contribute.yaml'), help='frozen contribution-worklist spec shared with src/catalog/contribute (R2026.2)')
+    ap.add_argument('--scope-config', default=str(HERE.parent.parent / 'config' / 'scope.yaml'), help='frozen registry-tier spec shared with src/catalog/registry (scale-up S0/S1); vocabularies in config/vocab/')
     ap.add_argument('--allow-placeholder-base-url', action='store_true', help='test builds only')
     ap.add_argument('--build-date', default=None, help='overrides VERSION.json build_date (tests only)')
     ap.add_argument('--max-rows-html', type=int, default=2000)
@@ -287,7 +315,7 @@ def main():
         sys.exit(f'refusing to build: base_url is the placeholder {placeholder!r} (A15). Set site.base_url in config/site.yaml or pass --base-url.')
     if out.exists():
         shutil.rmtree(out)
-    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes', 'contribute']:
+    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes', 'contribute', 'registry/scopes']:
         (out / d).mkdir(parents=True, exist_ok=True)
 
     # ---------- load ----------
@@ -376,6 +404,38 @@ def main():
         _ncs = st.set_index('study_accession').n_catalog_scope
         _bad = [acc for acc, n in zip(_inc_wl.study_accession, _inc_wl.n_catalog_scope) if int(_ncs.get(acc, -1)) != int(n)]
         assert not _bad, f'F13: worklist n_catalog_scope differs from study_metadata_wide for {_bad[:5]}'
+    # ---------- registry tier (scale-up S1: config/scope.yaml + config/vocab/*.yaml is the one spec both tracks read) ----------
+    sspec = read_scope_spec(a.scope_config)
+    vocabs = read_vocabs(Path(a.scope_config).parent.parent, sspec)
+    reg_path = pkg / sspec['files']['studies']
+    has_registry = reg_path.exists()
+    if rel_key(release_id) >= rel_key(sspec['release_id']):
+        assert has_registry, f"{sspec['files']['studies']} missing from a package of release {release_id} (>= {sspec['release_id']})"
+    rg = None
+    if has_registry:
+        rg = pd.read_parquet(reg_path)
+        assert list(rg.columns) == list(sspec['registry_columns']), f"{reg_path.name} columns differ from config/scope.yaml registry_columns: {sorted(set(rg.columns) ^ set(sspec['registry_columns']))}"
+        assert rg.study_accession.is_unique, 'registry_studies: one row per study'
+        rg = rg[rg[RR].isna()].reset_index(drop=True)
+        for col, allowed in (('classification_stage', sspec['classification_stages']), ('host_human', sspec['host_human_values']), ('access', sspec['access_values']),
+                             ('assay', sspec['assay_values']), ('in_infant_catalog', sspec['in_infant_catalog_values'])):
+            bad = set(rg[col].dropna().astype(str)) - set(map(str, allowed))
+            assert not bad, f'registry_studies.{col} outside the vocabulary: {sorted(bad)[:5]}'
+        _codes = set(vocabs['body_site']); _bad = {c for v in rg.body_sites.dropna() for c in split_list(v)} - _codes
+        assert not _bad, f'registry_studies.body_sites codes outside config/vocab/body_site.yaml: {sorted(_bad)[:5]}'
+        _codes = set(vocabs['life_stage']); _bad = {c for v in rg.life_stages.dropna() for c in split_list(v)} - _codes
+        assert not _bad, f'registry_studies.life_stages codes outside config/vocab/life_stage.yaml: {sorted(_bad)[:5]}'
+        _sids = {sc['id'] for sc in sspec['scopes']}; _bad = {c for v in rg.scope_memberships.dropna() for c in split_list(v)} - _sids
+        assert not _bad, f'registry_studies.scope_memberships outside config/scope.yaml: {sorted(_bad)[:5]}'
+        assert (set(rg[RA].dropna().astype(str)) | set(rg[RR].dropna().astype(str))) <= known_ids, 'registry_studies: release ids missing from releases.csv'
+        _inc = set(rg.loc[rg.in_infant_catalog == 'include', 'study_accession'])
+        assert _inc == set(st.study_accession), f'F13: registry in_infant_catalog=include ({len(_inc)}) must equal the included studies ({len(st)})'
+        _u = uni.set_index('study_accession').triage_verdict
+        _mis = [acc for acc, v in zip(rg.study_accession, rg.in_infant_catalog) if acc in _u.index and str(_u[acc]) != str(v)]
+        assert not _mis, f'F13: registry in_infant_catalog differs from universe_studies_all.triage_verdict for {_mis[:5]}'
+        for df_ in (rg,):
+            for c in ('health_context', 'description_short', 'study_title'):
+                df_[c] = df_[c].map(strip_frame_tokens)
     fcs = pd.read_csv(pkg / 'field_coverage_summary.csv')
     gold = pd.read_csv(pkg / 'extraction_gold_eval_hires.csv').rename(columns={'Unnamed: 0': 'field'})
     tiers = pd.read_csv(pkg / 'confidence_tiers.csv')
@@ -441,6 +501,11 @@ def main():
     stats['n_contribute'] = int(len(wl)) if has_contribute else 0
     stats['n_contribute_samples'] = int(wl.n_samples.sum()) if has_contribute else 0
     stats['has_contribute'] = has_contribute
+    stats['has_registry'] = has_registry
+    stats['n_registry'] = int(len(rg)) if has_registry else 0
+    stats['n_registry_runs'] = int(rg.n_runs.fillna(0).sum()) if has_registry else 0
+    stats['n_registry_human'] = int((rg.host_human == 'yes').sum()) if has_registry else 0
+    stats['n_registry_scopes'] = len(sspec['scopes'])
     assert stats['n_biosamples'] + stats['n_run_units'] == stats['n_samples'], 'F4: BioSample units + run units must equal the sample count'
     assert stats['n_studies_profiled'] == int((spcov.n_samples_profiled > 0).sum()) == int((st.sp_n_samples_profiled.fillna(0) > 0).sum()), 'F6: profiled-study definition disagrees between tables'
     assert stats['n_catalog_scope'] == stats['n_age_scope_infant'] - stats['n_body_site_excluded'], 'F9: catalog_scope must equal age-scope minus body-site excluded/linked'
@@ -454,7 +519,8 @@ def main():
                 upstream=UPSTREAM_CITATIONS, releases_page=rspec['site_pages']['releases_index'], changes_page=rspec['site_pages']['changes_index'],
                 description='Curated, evidence-linked catalog of public shotgun-metagenome studies of the human infant gut with per-sample metadata and Sandpiper community profiles.',
                 citation=f'Infant Gut Shotgun-Metagenome Catalog, release {release_id} (data package {version}), OlmLab, {cur_rel["release_date"]}.' + (f' doi:{doi}' if doi else ''),
-                sri=json.loads((HERE / 'static' / 'vendor' / 'SRI.json').read_text()), has_contribute=has_contribute, contribute_page='contribute/index.html')
+                sri=json.loads((HERE / 'static' / 'vendor' / 'SRI.json').read_text()), has_contribute=has_contribute, contribute_page='contribute/index.html',
+                has_registry=has_registry, registry_page='registry/index.html')
 
     env = Environment(loader=FileSystemLoader(HERE / 'templates'), autoescape=select_autoescape(['html']))
     env.filters.update(fmt=f_fmt, pct=f_pct, pct1=f_pct1, num2=f_num2, numint=f_numint)
@@ -479,6 +545,8 @@ def main():
 
     # ---------- data files ----------
     IN_DATA = ['sample_metadata_wide.parquet', 'sample_determinations.parquet', 'value_history.parquet', 'sandpiper_top_genera.parquet', rspec['files']['determinations_all']]
+    if has_registry:
+        IN_DATA.append(sspec['files']['studies'])   # registry explorer reads data/registry_studies.parquet; registry_runs is never a site file
     for name in IN_DATA:
         shutil.copyfile(pkg / name, out / 'data' / name)
     pkg_files = []
@@ -883,8 +951,8 @@ def main():
                     median_bifido=float(sp_prof.sp_ra_g_Bifidobacterium.median()) if len(sp_prof) else None,
                     version=str(sp_prof.sandpiper_version.dropna().iloc[0]) if len(sp_prof) else '', zenodo='20419175',
                     miss_reasons=[(k.replace('miss_', ''), int(spcov[k].sum())) for k in sorted(spcov.columns) if k.startswith('miss_') and k != 'miss_profiled'])
-    render('methods.html', 'methods.html', '', nav='methods', stats=stats, status_counts=status_counts, stage_counts=stage_counts, sp=sp_stats,
-           route_counts=route_counts, gold=gold_rows, flagdefs=flagdefs, flag_rows=flag_rows, docs=doc_list, crumbs=[dict(label='Home', href='index.html'), dict(label='Methods')])
+    _methods_ctx = dict(stats=stats, status_counts=status_counts, stage_counts=stage_counts, sp=sp_stats, route_counts=route_counts, gold=gold_rows, flagdefs=flagdefs, flag_rows=flag_rows, docs=doc_list)
+    # rendered after the registry block (it needs reg_methods) — see 'methods (deferred)'
 
     # ---------- releases (registry + notes + cite) ----------
     releases = []
@@ -983,6 +1051,72 @@ def main():
         assert _html.count('class="btn xs contribute"') == len(wl), 'contribute page must carry one Contribute button per worklist study'
         print(f'[{time.time()-t0:.0f}s] contribute page: {len(wl)} studies', file=sys.stderr)
 
+    # ---------- registry tier pages (scale-up S1: registry/index.html + registry/scopes/<id>.html) ----------
+    reg_methods = None
+    if has_registry:
+        def facet(df_, col, labels=None, explode=False):
+            """(value, n_studies, n_runs) rows sorted by studies desc; list columns are exploded on ';' (a study counts once per code)."""
+            d = df_[[col, 'n_runs']].copy()
+            d[col] = d[col].map(split_list) if explode else d[col].map(lambda v: [] if isnull(v) or v == '' else [str(v)])
+            d = d.explode(col).dropna(subset=[col])
+            g = d.groupby(col).agg(n_studies=('n_runs', 'size'), n_runs=('n_runs', lambda x: int(x.fillna(0).sum())))
+            rows_ = sorted(((str(k), int(r.n_studies), int(r.n_runs)) for k, r in g.iterrows()), key=lambda x: (-x[1], x[0]))
+            return dict(column=col, rows=rows_, labels=labels or {})
+        stage_labels = {'deterministic_prior': 'prior carried over from the infant triage (reason code / body-site call) or deterministic term match',
+                        'deterministic_rule': 'ENA-field rule (host taxon 9606, library fields, numeric age with unit)', 'sonnet_x2': 'two replicate model classifications in agreement',
+                        'opus_adjudicated': 'replicate disagreement adjudicated by the stronger model', 'pending': 'not yet classified'}
+        host_counts = {k: int((rg.host_human == k).sum()) for k in sspec['host_human_values']}
+        n_pending = int((rg.classification_stage == 'pending').sum())
+        rstats = dict(n_studies=len(rg), n_runs=int(rg.n_runs.fillna(0).sum()), n_biosamples=int(rg.n_biosamples.fillna(0).sum()), host=host_counts,
+                      n_pending=n_pending, n_classified=len(rg) - n_pending, pct_classified=int(round(100 * (len(rg) - n_pending) / max(1, len(rg)))),
+                      n_infant_include=int((rg.in_infant_catalog == 'include').sum()), n_scopes=len(sspec['scopes']))
+        scope_rows, scope_pages = [], []
+        for sc in sspec['scopes']:
+            m = rg[rg.scope_memberships.map(lambda v: sc['id'] in split_list(v))]
+            d = dict(id=sc['id'], label=sc['label'], definition=sc['definition'], rule=sc.get('rule', ''), curated=bool(sc.get('curated')),
+                     n_studies=len(m), n_runs=int(m.n_runs.fillna(0).sum()), n_biosamples=int(m.n_biosamples.fillna(0).sum()),
+                     n_pending=int((m.classification_stage == 'pending').sum()))
+            d['n_classified'] = d['n_studies'] - d['n_pending']
+            scope_rows.append(d)
+            scope_pages.append((d, m))
+        facets = [facet(rg, 'body_site_primary', vocabs['body_site']), facet(rg, 'life_stage_primary', vocabs['life_stage']), facet(rg, 'assay', vocabs['assay']),
+                  facet(rg, 'scope_memberships', {sc['id']: sc['label'] for sc in sspec['scopes']}, explode=True), facet(rg, 'classification_stage', stage_labels),
+                  facet(rg, 'host_human'), facet(rg, 'access')]
+        facets[0]['label'], facets[1]['label'], facets[2]['label'], facets[3]['label'], facets[4]['label'], facets[5]['label'], facets[6]['label'] = (
+            'Primary body site', 'Primary life stage', 'Assay', 'Scope membership (a study counts once per scope)', 'Classification stage', 'Host human', 'Access')
+        assert sum(n for _, n, _ in facets[0]['rows']) == int(rg.body_site_primary.notna().sum()), 'F13: body-site facet must sum to the rows with a primary site'
+        assert sum(n for _, n, _ in facets[4]['rows']) == len(rg), 'F13: classification-stage facet must sum to the registry rows'
+        rvocab = dict(body_site=list(vocabs['body_site'].items()), life_stage=list(vocabs['life_stage'].items()), assay=list(vocabs['assay'].items()),
+                      access=list(sspec['access_values']), host_human=list(sspec['host_human_values']), classification_stage=list(sspec['classification_stages']),
+                      in_infant_catalog=list(sspec['in_infant_catalog_values']))
+        render('registry.html', site['registry_page'], '../', nav='registry', rs=rstats, scopes=scope_rows, facets=facets, vocab=rvocab,
+               parquet_size=human(reg_path.stat().st_size), n_cols=int(rg.shape[1]), audit_name=sspec['files']['audit'],
+               scope_labels={sc['id']: sc['label'] for sc in sspec['scopes']}, site_labels=vocabs['body_site'], stage_labels=stage_labels, included_accs=included,
+               crumbs=[dict(label='Home', href='../index.html'), dict(label='Registry')])
+        TOP_COLS = ['study_accession', 'study_title', 'n_samples', 'n_runs', 'body_sites', 'life_stages', 'assay', 'classification_stage', 'in_infant_catalog']
+        for d, m in scope_pages:
+            top = m.sort_values(['n_samples', 'study_accession'], ascending=[False, True], kind='mergesort', na_position='last').head(25)
+            top_rows = [dict(clean(r), has_page=(r['in_infant_catalog'] == 'include' and r['study_accession'] in set(included))) for r in top[TOP_COLS].to_dict('records')]
+            sf = [facet(m, 'body_site_primary'), facet(m, 'life_stage_primary'), facet(m, 'assay'), facet(m, 'classification_stage')]
+            for f_, lab in zip(sf, ('Primary body site', 'Primary life stage', 'Assay', 'Classification stage')):
+                f_['label'] = lab
+            render('registry_scope.html', f"registry/scopes/{d['id']}.html", '../../', nav='registry', s=d, top=top_rows, facets=sf,
+                   crumbs=[dict(label='Home', href='../../index.html'), dict(label='Registry', href='../index.html'), dict(label=d['label'])])
+        assert (out / site['registry_page']).stat().st_size < 2_000_000, 'registry/index.html over the 2 MB budget'
+        _html = (out / site['registry_page']).read_text(encoding='utf-8')
+        assert "data/registry_studies.parquet" in _html and 'USERNAME' not in _html and 'REPOSITORY' not in _html, 'registry page must reference the registry parquet and carry no placeholder'
+        _vd = Path(a.scope_config).parent / sspec['vocab_dir'].split('/')[-1]
+        _bs = yaml.safe_load((_vd / 'body_site.yaml').read_text(encoding='utf-8'))['codes']
+        _ls = yaml.safe_load((_vd / 'life_stage.yaml').read_text(encoding='utf-8'))['codes']
+        reg_methods = dict(stats=rstats, stage_labels=stage_labels, assay=vocabs['assay'], scopes=scope_rows, facets=facets,
+                           n_uberon=sum(len(d_.get('uberon') or []) for d_ in _bs.values()),
+                           uberon_rows=[(c, d_['label'], ', '.join(f"{u['id']} ({u['label']})" for u in (d_.get('uberon') or [])), ', '.join(map(str, d_.get('terms') or []))) for c, d_ in _bs.items()],
+                           life_rows=[(c, d_['label'], (f"{d_['days'][0]}–{d_['days'][1] - 1} d" if d_.get('days') and d_['days'][1] else (f"≥ {d_['days'][0]} d" if d_.get('days') else '—')), ', '.join(map(str, d_.get('terms') or []))) for c, d_ in _ls.items()])
+        print(f'[{time.time()-t0:.0f}s] registry: {len(rg)} studies, {len(scope_rows)} scope pages', file=sys.stderr)
+
+    if not has_registry:  # packages < R2026.4: no empty registry/ directory on the published site
+        shutil.rmtree(out / 'registry', ignore_errors=True)
+
     # ---------- downloads + manifest ----------
     def dirstat(sub, pattern='*'):
         fs = [f for f in (out / sub).glob(pattern) if f.is_file()]
@@ -998,7 +1132,8 @@ def main():
         dict(path='data/cohorts/<COH>.csv.gz|.parquet', desc='Per-cohort sample slices (multi-study cohorts)', **dirstat('data/cohorts')),
         dict(path='data/package/', desc='The complete package, file by file, plus the zip', **dirstat('data/package')),
         dict(path='authors/idx/<letter>.json', desc='Author index shards', **dirstat('authors/idx')),
-    ] + ([dict(path='data/contribute_worklist.json', desc='Contribution worklist (one object per open study; same content as contribute_worklist.csv)', **dirstat('data', 'contribute_worklist.json'))] if has_contribute else [])
+    ] + ([dict(path='data/' + sspec['files']['studies'], desc='Registry tier: one row per human shotgun-metagenome study, loaded by the registry explorer', **dirstat('data', sspec['files']['studies']))] if has_registry else []
+      ) + ([dict(path='data/contribute_worklist.json', desc='Contribution worklist (one object per open study; same content as contribute_worklist.csv)', **dirstat('data', 'contribute_worklist.json'))] if has_contribute else [])
     offsite = [dict(o, desc=o['desc'].replace('{v}', version)) for o in OFFSITE]
     render('downloads.html', 'downloads.html', '', nav='downloads', files=pkg_files, zip_name=zip_name, zip_size=zip_size, sitedata=sitedata, offsite=offsite, vj=vj,
            crumbs=[dict(label='Home', href='index.html'), dict(label='Downloads')])
@@ -1008,11 +1143,16 @@ def main():
     (out / 'data' / 'manifest.json').write_text(json.dumps(manifest, indent=1, sort_keys=True), encoding='utf-8')
     (out / 'data' / 'VERSION.json').write_text(json.dumps(vj, indent=1, sort_keys=True), encoding='utf-8')
 
+    # ---------- methods (deferred: needs the registry summary) ----------
+    render('methods.html', 'methods.html', '', nav='methods', reg=reg_methods, crumbs=[dict(label='Home', href='index.html'), dict(label='Methods')], **_methods_ctx)
+
     # ---------- home, search index, sitemap ----------
     sidx = [dict(t='study', id=s['study_accession'], n=s['study_title'] or '', u=f"studies/{s['study_accession']}.html",
                  k=f"{s['study_accession']} {s['study_title'] or ''} {s['cohort_name'] or ''} {s.get('first_author') or ''}".lower()) for s in studies]
     sidx += [dict(t='cohort', id=c['cohort_id'], n=c['cohort_name'], u=f"cohorts/{c['cohort_id']}.html",
                   k=f"{c['cohort_id']} {c['cohort_name']} {c.get('study_accessions') or ''}".lower()) for c in cohorts]
+    if has_registry:
+        sidx += [dict(t='scope', id=d['id'], n=d['label'], u=f"registry/scopes/{d['id']}.html", k=f"{d['id']} {d['label']} registry scope".lower()) for d in scope_rows]
     (out / 'search_index.json').write_text(dumps(sidx), encoding='utf-8')
     render('index.html', 'index.html', '', nav='home', stats=stats, readme_version_warning=readme_version_warning, n_releases=len(releases))
     urls = ''.join(f'<url><loc>{base_url}{p}</loc></url>' for p in sorted(written))  # F21: docs pages included

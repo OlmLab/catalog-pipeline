@@ -142,3 +142,25 @@ matched exactly against the declared study's run accessions (`runs.parquet`), `s
 key type), `duplicate_of_existing` (sha256 seen), `unjoinable` (top-3 candidate columns + observed ID form reported), `rejected`
 (type/size/no table/no attachment). `--comment` posts REPORT.md to the Issue. Curation of accepted tables is the normal R2 extraction
 contract (RUNBOOK §4b); nothing enters the package without it.
+
+## 7. Registry tier inside the catalog (scale-up S1 / R2026.4 — SCALE_UP_PLAN §2; owner-authorised deviation from §3)
+
+**Decision.** The registry tier ("all human shotgun metagenomes", all body sites and ages) lives INSIDE the existing repos rather than in
+separate `human-metagenome-registry*` repos: new `registry_*` tables in the data package and a `registry/` section on the site. The infant
+gut catalog becomes the first *curated* scope (routes R2–R4, study pages); registry rows are archive-only classifications (route R1).
+
+**Spec.** `config/scope.yaml` (scopes with deterministic membership rules, `registry_columns` order, value lists, files) and
+`config/vocab/*.yaml` (body sites with UBERON anchors + whole-word match terms + negatives; life stages with day bounds; assay rules from
+ENA fields; population flags). Written first by the S1 track from the frozen spec; the S0 (registry data) copies win at merge.
+
+**Tables.** `registry_studies.parquet` — one row per ENA study in the registry universe (host, sites, stages, assay, access, evidence JSON
+lists of `{source, quote ≤ 12 words}`, classification_stage ∈ deterministic_prior | deterministic_rule | sonnet_x2 | opus_adjudicated |
+pending, confidence, `in_infant_catalog` = the infant verdict, `infant_reason_code`, `scope_memberships`, `universe_slice`, bitemporal
+columns). `registry_runs.parquet` — every run with the 46 ENA read_run PULL_FIELDS + found_by + study_accession (Release asset, never a site
+file). `registry_universe_audit.csv` — per-slice ENA count vs rows pulled.
+
+**Site.** `registry/index.html` (landing + facets + DuckDB-WASM explorer over `data/registry_studies.parquet`, CSV export, row detail with
+evidence and infant verdict), `registry/scopes/<scope_id>.html` (one per scope), home card, nav link, Methods › Registry classification.
+Registry-only studies have no page (36k+ pages would exceed the Pages budget); included infant studies link to their study page.
+Invariants: `in_infant_catalog = include` == `study_metadata_wide` studies; `in_infant_catalog` == `universe_studies_all.triage_verdict`;
+all codes within the vocabularies; facet sums == row counts; F7/F13, 2 MB/page, 0 broken links, deterministic build.

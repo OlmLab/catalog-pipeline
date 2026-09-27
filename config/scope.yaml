@@ -140,3 +140,119 @@ classification:
   replicates: 2
   batch_size: 6
   confidence_floor_no_llm: 0.8                                # deterministic results below this go to the LLM stage
+
+# ---- keys read by site_generator (merged from the registry-site track). registry_columns is the frozen registry_studies column order. ----
+registry_columns:
+- study_accession
+- secondary_study_accession
+- study_title
+- description_short
+- center_name
+- first_public_min
+- first_public_max
+- n_runs
+- n_samples
+- n_biosamples
+- library_strategies
+- library_sources
+- instrument_platforms
+- scientific_names_top
+- host_tax_ids
+- n_runs_host_9606
+- n_runs_nonhuman_host
+- human_signal
+- human_signal_rule
+- ambiguous
+- host_human
+- host_evidence
+- assay
+- access
+- body_sites
+- body_site_primary
+- body_site_evidence
+- life_stages
+- life_stage_primary
+- life_stage_evidence
+- population_flags
+- health_context
+- classification_stage
+- classification_confidence
+- classification_model
+- in_infant_catalog
+- infant_reason_code
+- scope_memberships
+- universe_slice
+- release_added
+- release_retired
+- package_added
+classification_stages:
+- deterministic_prior
+- deterministic_rule
+- sonnet_x2
+- opus_adjudicated
+- pending
+host_human_values:
+- 'yes'
+- 'no'
+- mixed
+- unknown
+access_values:
+- open
+- controlled
+- unknown
+assay_values:
+- shotgun_dna
+- amplicon_misfiled
+- amplicon
+- rna
+- isolate_genome
+- assembly_only
+- other
+- mixed
+- unknown
+in_infant_catalog_values:
+- include
+- exclude
+- uncertain
+- not_screened
+files:
+  studies: registry_studies.parquet
+  runs: registry_runs.parquet
+  audit: registry_universe_audit.csv
+  site_studies_path: data/registry_studies.parquet
+vocab_dir: config/vocab
+release_id: R2026.4
+scope_rules:
+  infant_gut:
+    rule: in_infant_catalog == include
+    site: https://olmlab.github.io/infant-gut-catalog/
+  gut_child:
+    rule: gut_stool in body_sites AND (child in life_stages OR adolescent in life_stages)
+    site: null
+  gut_adult:
+    rule: gut_stool in body_sites AND (adult in life_stages OR elderly in life_stages)
+    site: null
+  oral:
+    rule: oral in body_sites
+    site: null
+  skin:
+    rule: skin in body_sites
+    site: null
+  vaginal_urogenital:
+    rule: vaginal_urogenital in body_sites
+    site: null
+  respiratory:
+    rule: nasal_nasopharyngeal in body_sites OR respiratory_lower in body_sites
+    site: null
+  milk:
+    rule: milk in body_sites
+    site: null
+  blood_tissue:
+    rule: blood_tissue in body_sites
+    site: null
+  other_site:
+    rule: other_site in body_sites OR eye_ear in body_sites
+    site: null
+  unknown_site:
+    rule: unknown_site in body_sites OR body_sites empty
+    site: null

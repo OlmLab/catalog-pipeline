@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Registry: all human shotgun metagenomes — {{ site.title }}{% endblock %}
+{% block desc %}Registry tier of the catalog: every public human shotgun-metagenome study in ENA with archive-only classification (host, body site, life stage, assay, access) and the infant-catalog verdict.{% endblock %}
+{% block content %}
+<h1>Registry: all human shotgun metagenomes</h1>
+<p class="lead">The <b>registry tier</b> lists every public ENA study with shotgun-metagenome runs and a human signal — all body sites, all ages ({{ rs.n_studies|fmt }} studies, {{ rs.n_runs|fmt }} runs, {{ rs.n_biosamples|fmt }} BioSamples in release {{ site.release_id }}). Each study carries <i>archive-only</i> metadata (route R1): host, body site(s) anchored to UBERON, life stage(s), assay, access, and the classification stage that produced them. The <b>curated tier</b> goes deeper — per-sample fields recovered from supplementary tables and papers (routes R2–R4) — and is built scope by scope; the <a href="../index.html">infant gut catalog</a> ({{ rs.n_infant_include|fmt }} included studies with study pages) is the first curated scope. Registry classification is cheap (deterministic rules plus one replicated model pass per study) and is meant to be immediately useful for finding studies; exclusion is reserved for non-human, non-metagenome and non-shotgun deposits.</p>
+<p class="note">Registry rows are <b>classifications, not inclusions</b>: a study can carry several body sites and life stages. Every committed site or stage value carries an evidence row (labelled source, ≤ 12-word quote); rows at stage <span class="mono">pending</span> have not been classified yet and are shown for completeness. See <a href="../methods.html#registry">Methods › Registry classification</a> for the cascade, the vocabularies and what the confidence means.</p>
+
+<div class="cards">
+<div class="card"><div class="num">{{ rs.n_studies|fmt }}</div><div class="lbl">registry studies (ENA BioProjects)</div></div>
+<div class="card"><div class="num">{{ rs.n_runs|fmt }}</div><div class="lbl">sequencing runs</div></div>
+<div class="card"><div class="num">{{ rs.n_biosamples|fmt }}</div><div class="lbl">BioSamples</div></div>
+<div class="card"><div class="num">{{ rs.host.yes|fmt }}</div><div class="lbl">host human = yes · {{ rs.host.mixed|fmt }} mixed · {{ rs.host.unknown|fmt }} unknown · {{ rs.host.no|fmt }} non-human (screened, kept for provenance)</div></div>
+<div class="card"><div class="num">{{ rs.n_classified|fmt }}</div><div class="lbl">classified ({{ rs.pct_classified }}%) · {{ rs.n_pending|fmt }} pending</div></div>
+<div class="card"><div class="num">{{ rs.n_scopes }}</div><div class="lbl">registry scopes; {{ rs.n_infant_include|fmt }} studies in the curated infant gut scope</div></div>
+</div>
+
+<h2 id="scopes">Scopes</h2>
+<p class="small">Scope memberships derive deterministically from (host, body sites, life stages, assay) — see <span class="mono">config/scope.yaml</span>. A study can belong to several scopes. Click a scope for its definition, counts and largest studies.</p>
+<table class="tbl" style="max-width:900px"><thead><tr><th>scope</th><th>definition</th><th class="num">studies</th><th class="num">runs</th><th class="num">BioSamples</th><th></th></tr></thead><tbody>
+{% for s in scopes %}<tr><td><a href="scopes/{{ s.id }}.html">{{ s.label }}</a>{% if s.curated %} <span class="tag included">curated</span>{% endif %}</td><td class="small">{{ s.definition }}</td><td class="num">{{ s.n_studies|fmt }}</td><td class="num">{{ s.n_runs|fmt }}</td><td class="num">{{ s.n_biosamples|fmt }}</td><td><a class="small" href="index.html?scope={{ s.id }}#explorer">explore</a></td></tr>{% endfor %}
+</tbody></table>
+
+<h2 id="facets">Facets</h2>
+<div class="sections" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+{% for f in facets %}
+<div class="card"><b>{{ f.label }}</b> <span class="small">(<span class="mono">{{ f.column }}</span>)</span>
+<table class="tbl small" style="margin-top:.4rem"><thead><tr><th>value</th><th class="num">studies</th><th class="num">runs</th></tr></thead><tbody>
+{% for k, ns, nr in f.rows %}<tr><td><span class="mono">{{ k }}</span>{% if f.labels.get(k) %} <span class="small">{{ f.labels.get(k) }}</span>{% endif %}</td><td class="num">{{ ns|fmt }}</td><td class="num">{{ nr|fmt }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% endfor %}
+</div>
+
+<h2 id="explorer">Registry explorer</h2>
+<p class="small">Filters {{ rs.n_studies|fmt }} registry studies in your browser using <a href="https://duckdb.org/docs/api/wasm/overview">DuckDB-WASM</a> over <span class="mono">data/registry_studies.parquet</span> ({{ parquet_size }}); nothing is sent to a server. Click a row for every column, the evidence rows behind host / body site / life stage and the infant-catalog verdict. The URL updates with your filters so you can share a view. Registry-only studies have no page on this site (they link to ENA); studies included in the infant catalog link to their study page.</p>
+<noscript><p class="note">The explorer needs JavaScript (and WebAssembly). Without it, download the table: <a href="../data/registry_studies.parquet">registry_studies.parquet</a>.</p></noscript>
+<div id="boot" class="note" role="status" aria-live="polite">Loading DuckDB-WASM (from cdn.jsdelivr.net, pinned 1.29.0) and the registry table… <span id="boot-msg"></span></div>
+<div class="exp" id="exp" style="display:none">
+<aside class="filters">
+  <label for="f-q">Title word or study accession</label><input id="f-q" placeholder="PRJ…, or a title word">
+  <label for="f-body_site">Body site (any of the study's sites)</label><select id="f-body_site" data-list="body_sites"><option value="">(any)</option>{% for c, l in vocab.body_site %}<option value="{{ c }}">{{ c }} — {{ l }}</option>{% endfor %}</select>
+  <label for="f-life_stage">Life stage (any of the study's stages)</label><select id="f-life_stage" data-list="life_stages"><option value="">(any)</option>{% for c, l in vocab.life_stage %}<option value="{{ c }}">{{ c }} — {{ l }}</option>{% endfor %}</select>
+  <label for="f-scope">Scope membership</label><select id="f-scope" data-list="scope_memberships"><option value="">(any)</option>{% for s in scopes %}<option value="{{ s.id }}">{{ s.id }} — {{ s.label }}</option>{% endfor %}</select>
+  <label for="f-assay">Assay</label><select id="f-assay" data-field="assay"><option value="">(any)</option>{% for c, l in vocab.assay %}<option value="{{ c }}">{{ c }} — {{ l }}</option>{% endfor %}</select>
+  <label for="f-access">Access</label><select id="f-access" data-field="access"><option value="">(any)</option>{% for v in vocab.access %}<option>{{ v }}</option>{% endfor %}</select>
+  <label for="f-host_human">Host human</label><select id="f-host_human" data-field="host_human"><option value="">(any)</option>{% for v in vocab.host_human %}<option>{{ v }}</option>{% endfor %}</select>
+  <label for="f-classification_stage">Classification stage</label><select id="f-classification_stage" data-field="classification_stage"><option value="">(any)</option>{% for v in vocab.classification_stage %}<option>{{ v }}</option>{% endfor %}</select>
+  <label for="f-in_infant_catalog">Infant-catalog verdict</label><select id="f-in_infant_catalog" data-field="in_infant_catalog"><option value="">(any)</option>{% for v in vocab.in_infant_catalog %}<option>{{ v }}</option>{% endfor %}</select>
+  <label for="f-min_runs">Minimum runs</label><input id="f-min_runs" type="number" min="0" placeholder="e.g. 50">
+  <div class="btns"><button class="btn" id="apply">Apply</button><button class="btn sec" id="reset">Reset</button></div>
+</aside>
+<section>
+  <div class="pager">
+    <span class="status" id="count">…</span>
+    <button class="btn sec" id="prev">‹ prev</button><span class="status" id="pageinfo"></span><button class="btn sec" id="next">next ›</button>
+    <span style="flex:1"></span>
+    <button class="btn" id="dl-csv">Download CSV</button>
+  </div>
+  <div class="status" id="dl-status"></div>
+  <div id="result-wrap"><table class="tbl" id="result-table"><thead></thead><tbody></tbody></table></div>
+  <p class="small">Columns shown are a subset; the CSV export carries all {{ n_cols }} columns of the filtered rows. Full table: <a href="../data/registry_studies.parquet" download>registry_studies.parquet</a>. Per-slice enumeration completeness: <a href="../data/package/{{ audit_name }}" download>{{ audit_name }}</a>. The run-level table (<span class="mono">registry_runs.parquet</span>, {{ rs.n_runs|fmt }} rows) is a GitHub Release asset, not a site file.</p>
+</section>
+</div>
+<div class="detail" id="detail" role="dialog" aria-modal="false" aria-label="Study details" tabindex="-1"><button class="close" id="detail-close" title="close (Escape)" aria-label="close study details">×</button><div id="detail-body"></div></div>
+{% endblock %}
+{% block scripts %}
+<script>window.REGISTRY_CFG={parquet:'../data/registry_studies.parquet',studiesUrl:'../studies/',releaseId:'{{ site.release_id }}',enaUrl:'https://www.ebi.ac.uk/ena/browser/view/',scopeLabels:{{ scope_labels|tojson }},siteLabels:{{ site_labels|tojson }},stageLabels:{{ stage_labels|tojson }},includedStudies:{{ included_accs|tojson }}};</script>
+<script>setTimeout(function(){ if (!window.__registryReady) { var b=document.getElementById('boot'); if (b && b.style.display !== 'none') { var C=window.REGISTRY_CFG; b.innerHTML='<b>The explorer could not start within 20 s.</b> DuckDB-WASM (pinned 1.29.0) is loaded from cdn.jsdelivr.net; the CDN may be blocked on your network or the browser blocks WebAssembly/Workers. Everything the explorer shows is also downloadable: <a href="'+C.parquet+'">registry_studies.parquet</a>.'; } } }, 20000);</script>
+<script type="module" src="../static/registry_explorer.js"></script>
+{% endblock %}
