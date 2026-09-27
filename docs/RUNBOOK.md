@@ -364,3 +364,10 @@ builds without `registry/`).
    under the data clone's `assets/` (attached to the GitHub Release by `release.yml`, never committed under `package/`).
 5. Site: `registry/index.html` (facets + DuckDB-WASM explorer over `data/registry_studies.parquet`), `registry/scopes/<id>.html`; the Playwright
    smoke in `verify.yml` opens `registry/index.html` and `contribute/index.html`.
+6. Sample tier (S2, from R2026.5 / 1.7.0): BioSample attribute harvest in leaves (pattern: artifact `harvest_pilot.py` + `fields.py`; ENA browser
+   XML batches of 100 with 2 workers per leaf, NCBI BioSample `esearch [accn] → efetch` for misses, an identifier guard against same-digit
+   substitutions) → `registry_biosample_attributes.parquet` (working_data). Distinct (field, key, value) pairs of age / body_site / sex / country →
+   utility-model normalisation in leaves (`normalise_pairs.py`, batches of 40, ≈ 213 tokens per pair, ≤ 1.5 M tokens per leaf — the root frame's
+   host.llm ceiling is 2.0 M) → `registry_pairs_normalised.parquet`. `make release` then runs `registry-biosamples` (registry_biosamples.parquet +
+   study roll-up / refinement) and `add_registry_tables` (papers / authors / BioProject side tables) when the inputs are in data/inputs/registry/.
+   Measured budgets: config/budgets.yaml `registry_s2`; reports docs/REGISTRY_S2_PILOT.md, docs/REGISTRY_S2_REPORT.md, docs/REGISTRY_S2_PAPERS.md.
