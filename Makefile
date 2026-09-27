@@ -26,6 +26,8 @@ DATA_CLONE ?= $(HOME)/catalog/infant-gut-catalog-data
 BASE_URL   := $(shell $(PY) -c "import yaml;print(yaml.safe_load(open('config/site.yaml'))['site']['base_url'])")
 PLACEHOLDER_URL := $(shell $(PY) -c "import yaml;print(yaml.safe_load(open('config/site.yaml'))['site'].get('placeholder_base_url',''))")
 BUILD_DATE ?= $(shell date +%F)
+# VERDICTS: optional parquet of validated triage verdicts for NEW studies judged this cycle (RUNBOOK §2); applied before bitemporal
+VERDICTS   ?=
 CYCLE      ?= $(shell date +%Y-%m)
 REPORTS    ?= $(DATA)/reports
 # Sandpiper snapshot (R3-4 / R1-14): override for a new Zenodo version
@@ -36,7 +38,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: help ingest-contributions bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: help ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -169,6 +171,7 @@ release:         ## stage 5 (R2026.n) — unpack → findings → assemble → b
 	@test -n "$(RELEASE_ID)" || { echo "config/releases.yaml has no release for package $(VERSION)"; exit 1; }
 	$(MAKE) unpack
 	$(MAKE) package-assemble
+	@if [ -n "$(VERDICTS)" ]; then $(MAKE) apply-verdicts; else echo "no VERDICTS given (no new studies this cycle)"; fi
 	$(MAKE) bitemporal
 	$(MAKE) worklist
 	$(MAKE) package-docs
@@ -179,6 +182,10 @@ release:         ## stage 5 (R2026.n) — unpack → findings → assemble → b
 	$(PY) -m catalog.make_version --package $(PKG_OUT) --build-date $(BUILD_DATE) --zip $(PKG_ZIP_OUT)
 	$(PY) -m catalog.make_version --package $(PKG_OUT) --check --zip $(PKG_ZIP_OUT)
 	@ls -la $(PKG_ZIP_OUT) $(RELEASE_NOTES) && cat $(PKG_ZIP_OUT).sha256
+
+apply-verdicts:  ## stage 2→5 — append validated verdicts for NEW studies (VERDICTS=<parquet>) to universe_studies_all + study_verdict_history
+	@test -f "$(VERDICTS)" || { echo "VERDICTS=$(VERDICTS) not found"; exit 1; }
+	$(PY) -m catalog.triage.apply_verdicts --package $(PKG_OUT) --verdicts $(VERDICTS) --stage $(notdir $(basename $(VERDICTS)))_session_review --date $(BUILD_DATE)
 
 package-merge:   ## assemble a package from parts (v1.2 tables + Sandpiper dir + authors dir) with build_package.py — used for 1.2.x
 	$(PY) -m catalog.build_package --v12 $(PKG_SRC) --sandpiper $(SP_DIR)/sp --authors $(BUILD)/authors_$(CYCLE) --out $(PKG_OUT) --build-date $(BUILD_DATE) --package-version $(VERSION) --zip $(PKG_ZIP_OUT)

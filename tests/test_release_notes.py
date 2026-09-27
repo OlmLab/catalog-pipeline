@@ -37,7 +37,7 @@ def test_synthetic_pair_sections_and_flip(tmp_path):
     for s in SECTIONS:
         assert s in md, s
     assert "| catalog samples | 2 | 3 | 1 | 0 |" in md
-    assert "**1 flips.**" in md and "| PRJ2 | exclude | include |" in md
+    assert "**1 flips**" in md and "| PRJ2 | exclude | include |" in md
     assert "| `age_at_collection_days` | 1 | 50.0% | 2 | 66.7% | +1 |" in md
     assert "LLM tokens this cycle: not recorded" in md
     assert md == rn.build(a, b, cycle_log=str(tmp_path / "none.md"))  # deterministic
@@ -64,7 +64,7 @@ def test_real_pair_1_2_2_to_1_3_0(tmp_path):
     md = rn.build(PKG, out)
     assert "| included studies | 389 | 389 | 0 | 0 |" in md
     assert "| catalog samples | 154,206 | 154,206 | 0 | 0 |" in md
-    assert "**0 flips.**" in md
+    assert "**0 flips**" in md
     if not incremental:
         assert "New files: `bitemporal_log.json`, `releases.csv`, `sample_determinations_all.parquet`" in md
     assert "| 1.0.0 | 605,707 |" in md and "| 1.2.2 | 701 |" in md

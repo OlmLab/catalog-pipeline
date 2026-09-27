@@ -665,7 +665,8 @@ def main():
     vh_by_sample = vh.groupby('sample_key').size()
 
     # ---------- contribute: per-study 'Help complete this study' panels ----------
-    CFIELDS = cspec['fields']                      # short key -> package field name
+    # short key -> package field name (merged spec stores {short: {field_name, weight}}; the mock stored {short: field_name})
+    CFIELDS = {k: (v['field_name'] if isinstance(v, dict) else v) for k, v in cspec['fields'].items()}
     CSHORT = {v: k for k, v in CFIELDS.items()}
     # short UI labels (merged spec): blocker_labels / contribution_type_labels; fall back to the code->definition maps
     BLABEL, TLABEL = cspec.get('blocker_labels', cspec['blocker_codes']), cspec.get('contribution_type_labels', cspec['contribution_types'])
@@ -675,7 +676,8 @@ def main():
         for r in wl.sort_values('rank', kind='mergesort').to_dict('records'):
             r = clean(r)
             acc = r['study_accession']
-            missing = [f for f in str(r['missing_fields']).split(';') if f]
+            # missing_fields carries the short keys (age;delivery;...) in the shipped worklist; the mock carried package field names — accept both
+            missing = [CFIELDS.get(f, f) for f in str(r['missing_fields']).split(';') if f]
             chips = []
             for k, f in CFIELDS.items():
                 cov = float(r.get(f'coverage_{k}') or 0)

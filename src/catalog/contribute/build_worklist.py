@@ -24,6 +24,17 @@ from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
+import re as _re
+
+# F7: nothing published may carry a session identifier (same pattern as site_generator/gen/build_site.py)
+FRAME_TOKEN_RE = re.compile(r'\s*\((?:frame|session)\s+[0-9a-f]{6,}[^)]*\)|\b(?:frame|session)\s+[0-9a-f]{8,}\b')
+
+
+def _strip_tokens(text):
+    if text is None or (isinstance(text, float) and text != text) or text == '':
+        return text
+    return _re.sub(r'\s{2,}', ' ', FRAME_TOKEN_RE.sub('', str(text))).strip()
+
 import yaml
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -298,7 +309,7 @@ def build(package: str, inputs: str, cfg: dict, release_id: str, package_version
         for k in fields_short:
             row[f"best_tier_{k}"] = bt["tier"].get((acc, k), "R0") if (acc, k) in bt.index else "R0"
         row.update({
-            "blocker_code": code, "blocker_detail": _clip(detail, cfg["tables"]["worklist"]["text_limits"]["blocker_detail"]),
+            "blocker_code": code, "blocker_detail": _clip(_strip_tokens(detail), cfg["tables"]["worklist"]["text_limits"]["blocker_detail"]),
             "unlock_text": _clip(unlock, cfg["tables"]["worklist"]["text_limits"]["unlock_text"]), "contribution_type": ctype,
             "n_linked_papers": nl, "own_data_pmids": own_pmids.get(acc, ""), "n_supp_tables_inventoried": ns_t,
             "controlled_access": acc in ctrl,

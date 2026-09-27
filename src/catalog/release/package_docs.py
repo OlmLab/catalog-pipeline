@@ -25,6 +25,30 @@ import re
 import sys
 
 import pandas as pd
+import re as _re
+
+FRAME_TOKEN_RE = re.compile(r'\s*\((?:frame|session)\s+[0-9a-f]{6,}[^)]*\)|\b(?:frame|session)\s+[0-9a-f]{8,}\b')
+
+
+def sanitise_session_tokens(package: str) -> dict:
+    """F7: strip session/frame identifiers from free-text columns of published tables (note, evidence, validator_msg)."""
+    out = {}
+    for fn, cols in (("human_review_queue.csv", ["note", "validator_msg"]), ("universe_studies_all.parquet", ["note", "validator_msg"])):
+        path = os.path.join(package, fn)
+        if not os.path.exists(path):
+            continue
+        df = pd.read_csv(path, low_memory=False) if fn.endswith(".csv") else pd.read_parquet(path)
+        n = 0
+        for c in cols:
+            if c in df.columns and (df[c].dtype == object or str(df[c].dtype).startswith(('str', 'string'))):
+                m = df[c].astype(str).str.contains(FRAME_TOKEN_RE.pattern, regex=True, na=False)
+                n += int(m.sum())
+                df.loc[m, c] = df.loc[m, c].astype(str).map(lambda t: _re.sub(r'\s{2,}', ' ', FRAME_TOKEN_RE.sub('', t)).strip())
+        if n:
+            (df.to_csv(path, index=False) if fn.endswith(".csv") else df.to_parquet(path, index=False))
+        out[fn] = n
+    return out
+
 import pyarrow.parquet as pq
 import yaml
 
@@ -281,7 +305,8 @@ def main(argv=None):
     worklist_doc = update_docs_worklist(a.package, a.package_version, a.release_id, counts)
     json.dump(counts, open(os.path.join(a.package, "build_counts.json"), "w"), indent=1, sort_keys=True)
     changed = prepend_changelog(a.package, a.changelog_entry)
-    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed, "worklist_documented": worklist_doc}))
+    sanitised = sanitise_session_tokens(a.package)  # F7
+    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed, "worklist_documented": worklist_doc, "session_tokens_stripped": sanitised}))
     return 0
 
 

@@ -136,9 +136,11 @@ def build(prev: str, new: str, cfg: dict | None = None, cycle_log: str | None = 
         a = pd.read_parquet(up, columns=["study_accession", "triage_verdict"]).astype(str).set_index("study_accession")["triage_verdict"]
         b = pd.read_parquet(un, columns=["study_accession", "triage_verdict"]).astype(str).set_index("study_accession")["triage_verdict"]
         j = pd.concat([a.rename("prev"), b.rename("new")], axis=1)
-        flips = j[(j["prev"] != j["new"])].fillna("(absent)").sort_index()
+        both = j["prev"].notna() & j["new"].notna()
+        n_new_studies, n_gone = int((~j["prev"].notna()).sum()), int((~j["new"].notna()).sum())
+        flips = j[(j["prev"] != j["new"])].fillna("(absent)").sort_index()  # includes new/removed studies, labelled (absent)
         L += [f"Universe {len(a):,} → {len(b):,} studies; verdict distribution {pv_new}: " +
-              ", ".join(f"{k} {v:,}" for k, v in b.value_counts().sort_index().items()) + f". **{len(flips):,} flips.**", ""]
+              ", ".join(f"{k} {v:,}" for k, v in b.value_counts().sort_index().items()) + f". **{int((both & (j['prev'] != j['new'])).sum()):,} flips** among studies present in both packages; {n_new_studies:,} studies new to the universe, {n_gone:,} removed.", ""]
         if len(flips):
             L += [_md_table([[i, r["prev"], r["new"]] for i, r in flips.head(200).iterrows()], ["study", pv_prev, pv_new]), ""]
     else:
