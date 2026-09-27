@@ -59,7 +59,8 @@ def test_vocabularies():
         for u in spec.get('uberon') or []:
             assert re.fullmatch(r'UBERON:\d{7}', u['id']), (code, u)
     ls_yaml = yaml.safe_load((REPO / 'config' / 'vocab' / 'life_stages.yaml').read_text())
-    assert ls_yaml['codes']['neonate']['days'] == [0, 29] and ls_yaml['codes']['infant']['days'] == [29, 1101] and ls_yaml['infant_catalog_window_days'] == [0, 1100]
+    # S0 vocabulary: inclusive day bins live in age_days_bins (neonate 0-28 d, infant 29-1100 d = the catalog's 0-1,100 d window)
+    assert ls_yaml['age_days_bins']['neonate'] == [0, 28] and ls_yaml['age_days_bins']['infant'] == [29, 1100]
 
 
 def test_mock_builder_has_no_real_looking_synthetic_accessions():
