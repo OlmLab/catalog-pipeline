@@ -273,3 +273,7 @@ audit_columns:
 - n_studies
 - completeness
 - pulled_at
+# columns appended to registry_studies after R2026.4 (package 1.6.0): the site generator back-fills them (0 / empty) when it builds an
+# older package, so every release stays rebuildable from its own package (docs/RELEASES.md reconstruction rule)
+registry_columns_added:
+  n_runs_sandpiper: R2026.5

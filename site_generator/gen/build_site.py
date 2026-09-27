@@ -236,7 +236,7 @@ def read_scope_spec(cfg_path):
     """config/scope.yaml — the frozen registry spec shared with src/catalog/registry (scale-up S0/S1). The generator reads only:
     scopes[].{id,label,definition,rule,curated}, registry_columns, the value lists, files and vocab_dir."""
     spec = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8'))
-    for k in ('scopes', 'registry_columns', 'classification_stages', 'host_human_values', 'access_values', 'assay_values', 'in_infant_catalog_values', 'files', 'vocab_dir', 'release_id'):
+    for k in ('scopes', 'registry_columns', 'classification_stages', 'host_human_values', 'access_values', 'assay_values', 'in_infant_catalog_values', 'files', 'vocab_dir', 'release_id', 'registry_columns_added'):
         assert k in spec, f'config/scope.yaml lacks {k}'
     assert len({sc['id'] for sc in spec['scopes']}) == len(spec['scopes']), 'scope ids must be unique'
     return spec
@@ -420,6 +420,10 @@ def main():
     rg = None
     if has_registry:
         rg = pd.read_parquet(reg_path)
+        for _c, _since in (sspec.get('registry_columns_added') or {}).items():  # later-added columns: back-fill for packages that predate them
+            if _c not in rg.columns:
+                rg[_c] = 0 if _c.startswith('n_') else ''
+        rg = rg[[c for c in sspec['registry_columns'] if c in rg.columns] + [c for c in rg.columns if c not in sspec['registry_columns']]]
         assert list(rg.columns) == list(sspec['registry_columns']), f"{reg_path.name} columns differ from config/scope.yaml registry_columns: {sorted(set(rg.columns) ^ set(sspec['registry_columns']))}"
         assert rg.study_accession.is_unique, 'registry_studies: one row per study'
         rg = rg[rg[RR].isna()].reset_index(drop=True)
