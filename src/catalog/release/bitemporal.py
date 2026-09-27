@@ -4,6 +4,10 @@
 Spec: config/releases.yaml + docs/RELEASES.md (MATURITY_PLAN §2). Deterministic; no LLM; never alters an existing
 value or the row order of a table — it only APPENDS columns (release_added, release_retired, package_added) and
 writes two new files: sample_determinations_all.parquet (current ∪ retired determinations) and releases.csv.
+R2026.2+: when the source package already carries the release columns (≥ 1.3.0) the run is INCREMENTAL — prior
+release_added/package_added are carried, rows new or changed since --previous-package get the new release id, previously
+published retired rows are copied from the previous sample_determinations_all.parquet, and releases.csv carries the
+previously published registry rows verbatim.
 
     python -m catalog.release.bitemporal --package build/package --out build/package \
         --release-id R2026.1 --package-version 1.3.0 --previous-package-version 1.2.2 \
@@ -24,6 +28,7 @@ import re
 import shutil
 import sys
 
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -74,16 +79,54 @@ def _key_index(df: pd.DataFrame, key: list[str]) -> pd.Index:
     return pd.MultiIndex.from_frame(df[key].astype(str))
 
 
-def append_cols(df: pd.DataFrame, release_added: pd.Series, cfg: dict, release_id: str, package_version: str) -> pd.DataFrame:
-    """Append the three release columns; every row is current (release_retired null)."""
+def strip_prior(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame | None]:
+    """Split an already-bitemporal table (package ≥ 1.3.0) into (data columns, prior release columns) — R2026.2 incremental mode."""
+    if all(c in df.columns for c in COLS):
+        prior = df[list(COLS)].copy().reset_index(drop=True)
+        return df.drop(columns=[c for c in ALL_EXTRA if c in df.columns]).reset_index(drop=True), prior
+    return df, None
+
+
+def append_cols(df: pd.DataFrame, release_added: pd.Series, cfg: dict, release_id: str, package_version: str,
+                prior: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Append the three release columns; every row is current (release_retired null). With `prior` (incremental mode) the
+    package_added of carried rows is preserved; rows whose release_added became `release_id` get `package_version`."""
     for c in COLS:
         assert c not in df.columns, f"{c} already present"
     out = df.copy()
     ra = pd.Series(release_added, index=df.index).astype("string")
     out["release_added"] = ra
     out["release_retired"] = pd.Series([pd.NA] * len(df), index=df.index, dtype="string")
-    out["package_added"] = ra.map(lambda r: package_version if r == release_id else package_of(cfg, r)).astype("string")
+    if prior is not None:
+        pa = pd.Series(prior["package_added"].to_numpy(), index=df.index).astype("string")
+        out["package_added"] = pa.where(ra != release_id, package_version).astype("string")
+    else:
+        out["package_added"] = ra.map(lambda r: package_version if r == release_id else package_of(cfg, r)).astype("string")
     return out
+
+
+def _row_signature(df: pd.DataFrame, cols: list[str]) -> pd.Series:
+    return pd.Series(df[cols].astype(str).agg("\x1f".join, axis=1).to_numpy(), index=df.index)
+
+
+def seed_incremental(df: pd.DataFrame, prior: pd.DataFrame, prev: pd.DataFrame | None, key: list[str], release_id: str,
+                     diff_cols: list[str] | None) -> tuple[pd.Series, pd.Series]:
+    """Incremental release_added: carry the prior value; rows new since `prev` or whose `diff_cols` changed → release_id.
+    Returns (release_added, changed_mask)."""
+    ra = pd.Series(prior["release_added"].to_numpy(), index=df.index, dtype=object)
+    changed = pd.Series(False, index=df.index)
+    if prev is not None:
+        idx, pidx = _key_index(df, key), _key_index(prev, key)
+        is_new = ~idx.isin(pidx)
+        ra[is_new] = release_id
+        if diff_cols:
+            cols = [c for c in diff_cols if c in df.columns and c in prev.columns]
+            if cols:
+                pv = pd.Series(_row_signature(prev, cols).to_numpy(), index=pidx)
+                pv = pv[~pv.index.duplicated()]
+                changed = pd.Series((_row_signature(df, cols).to_numpy() != pv.reindex(idx).to_numpy()) & np.asarray(idx.isin(pidx)), index=df.index)
+                ra[changed] = release_id
+    return ra, changed
 
 
 # ----------------------------------------------------------------------------------------------- determinations
@@ -147,26 +190,54 @@ def build_determinations(pkg: str, out_dir: str, cfg: dict, rank: dict, release_
                          prev_pkg: str | None, log: dict) -> pd.DataFrame:
     spec = next(t for t in cfg["fact_tables"] if t["file"] == "sample_determinations.parquet")
     default = spec["default_release_added"]
-    sd = pd.read_parquet(os.path.join(pkg, "sample_determinations.parquet"))
+    sd, prior = strip_prior(pd.read_parquet(os.path.join(pkg, "sample_determinations.parquet")))
     vh = pd.read_parquet(os.path.join(pkg, "value_history.parquet"))
     sup_p = os.path.join(pkg, "sample_determinations_superseded.parquet")
     sup = pd.read_parquet(sup_p) if os.path.exists(sup_p) else None
-    prev_sd = pd.read_parquet(os.path.join(prev_pkg, "sample_determinations.parquet")) if prev_pkg else None
-    ra, prov = seed_determinations(sd, vh, cfg, rank, default, prev_sd, release_id)
-    cur = append_cols(sd, ra, cfg, release_id, package_version)
+    prev_sd, prev_prior = (strip_prior(pd.read_parquet(os.path.join(prev_pkg, "sample_determinations.parquet"))) if prev_pkg else (None, None))
+    key = ["sample_key", "field_name"]
+    value_cols = [c for c in ("value_normalized", "value_raw", "value", "route", "confidence", "evidence_source") if c in sd.columns]
+    if prior is None:  # first numbered release (R2026.1): reconstruct from value_history / src_track
+        ra, prov = seed_determinations(sd, vh, cfg, rank, default, prev_sd, release_id)
+        changed = pd.Series(False, index=sd.index)
+    else:              # incremental (R2026.2+): carry prior release columns; new/changed rows → release_id
+        ra, changed = seed_incremental(sd, prior, prev_sd, key, release_id, value_cols)
+        prov = {"mode": "incremental", "carried": int((ra != release_id).sum()), "new_in_release": int(((ra == release_id) & ~changed).sum()),
+                "changed_in_release": int(changed.sum())}
+    cur = append_cols(sd, ra, cfg, release_id, package_version, prior)
     assert cur.drop(columns=list(COLS)).equals(sd), "sample_determinations changed beyond the appended columns"
     _write(cur, os.path.join(out_dir, "sample_determinations.parquet"))
-    ret = retired_rows(list(sd.columns), vh, cfg, sup, default)
+    if prior is None:
+        ret = retired_rows(list(sd.columns), vh, cfg, sup, default)
+    else:  # retired rows already published in the previous package's *_all table are carried verbatim
+        prev_all_p = os.path.join(prev_pkg or pkg, cfg["files"]["determinations_all"])
+        assert os.path.exists(prev_all_p), f"incremental mode needs {prev_all_p}"
+        pa = pd.read_parquet(prev_all_p)
+        ret = pa[pa["release_retired"].notna()].reset_index(drop=True)
+        ret = ret[[c for c in list(sd.columns) + list(ALL_EXTRA) if c in ret.columns]]
     n_gone = 0
-    if prev_sd is not None:  # rows of the previous package that disappeared in this release → retired now
-        key = ["sample_key", "field_name"]
-        gone = prev_sd[~pd.MultiIndex.from_frame(prev_sd[key].astype(str)).isin(pd.MultiIndex.from_frame(sd[key].astype(str)))]
-        n_gone = len(gone)
+    if prev_sd is not None:  # rows of the previous package that disappeared or changed in this release → retired now
+        pidx = pd.MultiIndex.from_frame(prev_sd[key].astype(str))
+        cidx = pd.MultiIndex.from_frame(sd[key].astype(str))
+        gone_m = ~pidx.isin(cidx)
+        changed_keys = cidx[changed.to_numpy()] if changed.any() else None
+        changed_m = pidx.isin(changed_keys) if changed_keys is not None and len(changed_keys) else pd.Series(False, index=prev_sd.index).to_numpy()
+        sel = gone_m | changed_m
+        n_gone = int(sel.sum())
         if n_gone:
-            g = gone.copy()
-            g["release_added"], g["release_retired"], g["package_added"] = default, release_id, default
-            g["retired_reason"] = "row absent from package " + package_version
+            g = prev_sd[sel].copy()
+            if prev_prior is not None:
+                g["release_added"] = prev_prior.loc[sel, "release_added"].to_numpy()
+                g["package_added"] = prev_prior.loc[sel, "package_added"].to_numpy()
+            else:
+                g["release_added"], g["package_added"] = default, default
+            g["release_retired"] = release_id
+            g["retired_reason"] = pd.Series(["value changed in package " + package_version if c else "row absent from package " + package_version
+                                             for c in changed_m[sel]], index=g.index)
             g["retired_change_stage"] = "apply_findings"
+            for c in ret.columns:
+                if c not in g.columns:
+                    g[c] = None
             ret = pd.concat([ret, g[list(ret.columns)]], ignore_index=True)
     cur_all = cur.copy()
     cur_all["retired_reason"] = pd.Series([pd.NA] * len(cur_all), dtype="string")
@@ -224,17 +295,22 @@ def build_fact_table(pkg: str, out_dir: str, spec: dict, cfg: dict, release_id: 
     if not os.path.exists(src):
         log[spec["file"]] = "absent"
         return
-    df = _read(src)
+    df, prior = strip_prior(_read(src))
     prev = _read(os.path.join(prev_pkg, spec["file"])) if prev_pkg and os.path.exists(os.path.join(prev_pkg, spec["file"])) else None
-    ra = seed_generic(df, spec, cfg, prev, release_id, pkg)
-    out = append_cols(df, ra, cfg, release_id, package_version)
+    if prev is not None:
+        prev, _ = strip_prior(prev)
+    if prior is None:
+        ra = seed_generic(df, spec, cfg, prev, release_id, pkg)
+    else:
+        ra, _ = seed_incremental(df, prior, prev, spec["key"], release_id, [spec["diff_column"]] if spec.get("diff_column") else None)
+    out = append_cols(df, ra, cfg, release_id, package_version, prior)
     assert out.drop(columns=list(COLS)).equals(df), f"{spec['file']} changed beyond the appended columns"
     _write(out, os.path.join(out_dir, spec["file"]))
     if spec.get("csv_twin") and os.path.exists(os.path.join(pkg, spec["csv_twin"])):
-        t = _read(os.path.join(pkg, spec["csv_twin"]))
+        t, _tp = strip_prior(_read(os.path.join(pkg, spec["csv_twin"])))
         assert len(t) == len(df), f"{spec['csv_twin']} row count differs from {spec['file']}"
         assert (t[spec["key"]].astype(str).to_numpy() == df[spec["key"]].astype(str).to_numpy()).all(), "csv twin key order differs"
-        tw = append_cols(t, ra, cfg, release_id, package_version)
+        tw = append_cols(t, ra, cfg, release_id, package_version, prior)
         for c in COLS:
             tw[c] = tw[c].fillna("")
         _write(tw, os.path.join(out_dir, spec["csv_twin"]))
@@ -248,16 +324,22 @@ def _registry_row(rid: str, pkg_ver: str, date: str, meta: dict, counts: dict, n
             **{k: counts.get(k, "") for k in COUNT_KEYS}, "notes_file": notes or ""}
 
 
-def build_registry(cfg: dict, out_dir: str, release_id: str, package_version: str, release_date: str, counts: dict) -> pd.DataFrame:
+def build_registry(cfg: dict, out_dir: str, release_id: str, package_version: str, release_date: str, counts: dict,
+                   prev_registry: pd.DataFrame | None = None) -> pd.DataFrame:
+    """releases.csv: historical rows from config, earlier numbered releases from the PREVIOUS package's registry (dates, counts and
+    DOI as published — never re-derived), then the current release row."""
     rows = [_registry_row(h["id"], h["package_version"], h["release_date"], h, h.get("counts") or {}, h.get("notes_file", "")) for h in cfg["history"]]
+    published = {} if prev_registry is None else {str(r["release_id"]): r for _, r in prev_registry.iterrows()}
     for r in cfg["releases"]:
         notes = r.get("notes_file") or cfg["files"]["release_notes"].format(release_id=r["release_id"])
         if r["release_id"] == release_id:
             assert r["package_version"] == package_version, f"config/releases.yaml says {release_id} = {r['package_version']}, got {package_version}"
             rows.append(_registry_row(release_id, package_version, release_date, r, counts, notes))
-        elif r.get("release_date"):  # an earlier numbered release already cut
+        elif r["release_id"] in published:  # an earlier numbered release: copy the published registry row verbatim
+            rows.append({k: published[r["release_id"]].get(k, "") for k in cfg["registry_columns"]})
+        elif r.get("release_date"):  # an earlier numbered release already cut but no previous registry available
             rows.append(_registry_row(r["release_id"], r["package_version"], r["release_date"], r, r.get("counts") or {}, notes))
-    reg = pd.DataFrame(rows, columns=cfg["registry_columns"]).astype(str).replace({"nan": "", "None": ""})
+    reg = pd.DataFrame(rows, columns=cfg["registry_columns"]).astype(str).replace({"nan": "", "None": "", "<NA>": ""})
     reg.to_csv(os.path.join(out_dir, cfg["files"]["registry"]), index=False)
     return reg
 
@@ -299,7 +381,9 @@ def run(package: str, out_dir: str, release_id: str, package_version: str, previ
         vj = os.path.join(package, "VERSION.json")
         release_date = json.load(open(vj)).get("build_date") if os.path.exists(vj) else None
     assert release_date, "--release-date required (no VERSION.json build_date to fall back on); never wall-clock"
-    reg = build_registry(cfg, out_dir, release_id, package_version, release_date, counts)
+    prev_reg_p = os.path.join(previous_package or package, cfg["files"]["registry"])
+    prev_reg = pd.read_csv(prev_reg_p, **CSV_READ) if os.path.exists(prev_reg_p) else None
+    reg = build_registry(cfg, out_dir, release_id, package_version, release_date, counts, prev_reg)
     used = set()
     for v in log.values():
         if isinstance(v, dict):

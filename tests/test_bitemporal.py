@@ -18,11 +18,30 @@ from catalog.release import bitemporal as bt  # noqa: E402
 
 PKG = os.environ.get("CATALOG_PACKAGE_DIR", os.path.join(REPO, "data", "inputs", "data_package"))
 CFG = bt.load_config()
-RID, PV, PREV = "R2026.1", "1.3.0", "1.2.2"
+RID, PV, PREV = "R2026.1", "1.3.0", "1.2.2"          # the first numbered release (reconstruction mode)
+LAST = bt.release_order(CFG)[-1]                       # newest declared release (R2026.2 → incremental mode from a 1.3.0 package)
 
 
 def _has_pkg():
     return os.path.exists(os.path.join(PKG, "sample_determinations.parquet")) and os.path.exists(os.path.join(PKG, "value_history.parquet"))
+
+
+def _pkg_is_bitemporal():
+    import pyarrow.parquet as pq
+    return _has_pkg() and "release_added" in pq.ParquetFile(os.path.join(PKG, "sample_determinations.parquet")).schema_arrow.names
+
+
+def _run_args():
+    """(release_id, package_version, previous_version) for bt.run on the unpacked package: reconstruction from a 1.2.2 package,
+    incremental from a package that already carries the release columns (its VERSION.json names the previous release)."""
+    if not _pkg_is_bitemporal():
+        return RID, PV, PREV
+    import json as _j
+    v = _j.load(open(os.path.join(PKG, "VERSION.json")))
+    prev_pv = v["package_version"]
+    nxt = next((r for r in CFG["releases"] if r["previous_package_version"] == prev_pv), None)
+    assert nxt, f"config/releases.yaml has no release following package {prev_pv}"
+    return nxt["release_id"], nxt["package_version"], prev_pv
 
 
 # ------------------------------------------------------------------------------------------------ config
@@ -30,7 +49,9 @@ def test_config_ids_and_columns():
     assert re.match(CFG["release_id"]["regex"], RID)
     assert not re.match(CFG["release_id"]["regex"], "1.2.2")
     assert [h["id"] for h in CFG["history"]] == ["1.0.0", "1.1.0", "1.2.0", "1.2.1", "1.2.2"]
-    assert bt.release_order(CFG)[-1] == RID and bt.package_of(CFG, RID) == PV
+    assert bt.release_order(CFG)[-1] == LAST and bt.package_of(CFG, RID) == PV and bt.package_of(CFG, "R2026.2") == "1.4.0"
+    rel = {r["release_id"]: r for r in CFG["releases"]}
+    assert rel["R2026.2"]["previous_release_id"] == "R2026.1" and rel["R2026.2"]["previous_package_version"] == "1.3.0"
     assert tuple(CFG["columns"][c] for c in ("release_added", "release_retired", "package_added")) == bt.COLS
     assert {t["file"] for t in CFG["fact_tables"]} >= {"sample_determinations.parquet", "universe_studies_all.parquet", "cohorts.csv",
                                                        "study_paper_links.csv", "sandpiper_sample_summary.parquet", "sandpiper_run_qc.parquet",
@@ -116,7 +137,8 @@ def built(tmp_path_factory):
     if not _has_pkg():
         pytest.skip(f"no unpacked package at {PKG}")
     out = str(tmp_path_factory.mktemp("bt"))
-    log = bt.run(PKG, out, RID, PV, PREV, previous_package=PKG, release_date="2026-09-26")
+    rid, pv, prev = _run_args()
+    log = bt.run(PKG, out, rid, pv, prev, previous_package=PKG, release_date="2026-09-26")
     return out, log
 
 
@@ -152,13 +174,17 @@ def test_real_release_ids_exist_in_registry_and_tables_unchanged(built):
     out, _ = built
     reg = pd.read_csv(os.path.join(out, "releases.csv"), dtype=str, keep_default_na=False)
     ids = set(reg["release_id"])
-    assert reg["release_id"].tolist()[-1] == RID
+    assert reg["release_id"].tolist()[-1] == _run_args()[0]
+    if _pkg_is_bitemporal():  # incremental mode: the previous release's registry row is carried verbatim
+        assert "R2026.1" in ids and reg.set_index("release_id").loc["R2026.1", "package_version"] == "1.3.0"
     for spec in CFG["fact_tables"]:
         f = spec["file"]
         new = bt._read(os.path.join(out, f))
-        old = bt._read(os.path.join(PKG, f))
+        old, _prior = bt.strip_prior(bt._read(os.path.join(PKG, f)))
         assert list(new.columns[-3:]) == list(bt.COLS), f
         assert new.drop(columns=list(bt.COLS)).equals(old), f"{f} content changed"
+        if _prior is not None:  # nothing changed between 1.3.0 and this rebuild → release columns reproduced exactly
+            assert (new[list(bt.COLS)].astype(str).fillna("").to_numpy() == _prior.astype(str).fillna("").to_numpy()).all(), f"{f} release columns not carried"
         assert set(new["release_added"].dropna()) <= ids, f
         assert new["release_retired"].isna().all() or (new["release_retired"].astype(str) == "").all(), f
     allrows = pd.read_parquet(os.path.join(out, "sample_determinations_all.parquet"))

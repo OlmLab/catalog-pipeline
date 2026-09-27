@@ -205,6 +205,23 @@ study turned `excluded` leave the wide table (kept in `sample_metadata_wide_excl
 Tables are emitted only when ≥ 1 row applied (`build/applied_<version>/APPLIED`); `make package` re-runs `findings` and
 copies them only then. Review the diff before stage 5.
 
+## 4b. Contribute worklist + contribution ingest (deterministic; 1 min; 0 tokens) — R2026.2
+The community-contribution loop (MATURITY_PLAN §3.2–3.4; `config/contribute.yaml` frozen schema; `docs/CONTRIBUTE.md` narrative).
+* **Worklist** — `make worklist` (runs inside `make release` after `bitemporal`, before `package-docs`): `python -m catalog.contribute.build_worklist
+  --package build/package --inputs data/inputs/contribute --out build/package --release-id $(RELEASE_ID) --package-version $(VERSION)`
+  writes `contribute_worklist.csv` (one row per OPEN included/uncertain study, ranked) and `contribute_worklist_fields.csv` (study × 6 fields)
+  plus `build/WORKLIST_REPORT.md` (blocker distribution, top-25, deviations). Inputs = `config/inputs.json` group `contribute`
+  (bootstrap.py materialises them under `data/inputs/contribute/`). No LLM, no network; `tests/test_contribute_worklist.py` recomputes
+  priority_score from every row and checks vocabularies, coverages ∈ [0,1], six field rows per study, issue_url round-trip.
+* **Intake** — contributors open the prefilled GitHub Issue (`issue_url`; form `.github/ISSUE_TEMPLATE/catalog-contribution.yml` in the site
+  repo, label `contribution`, table dragged into the note). `python -m catalog.contribute.ingest_contributions` (site/ingest track) lists the
+  Issues, downloads attachments, applies the size/type gate and the deterministic R2 joinability check (does an ID column map to the study's
+  own BioSamples/runs/library names, directly or via an uploaded key?) and posts the verdict `accepted_for_review | unjoinable |
+  duplicate_of_existing | rejected` back on the Issue. Accepted tables go to the Curator session (stage 3 extraction contract, route R2,
+  `evidence_source = contributor_table:<issue>`); applied values enter the next release with `release_added` and the study leaves the
+  worklist (`release_retired` on its row). Stop rule: never apply a contributed value without the Curator step; never copy an e-mail
+  address into any table.
+
 ## 5. Package / release (deterministic; 5 min; 0 tokens)
 
 ```

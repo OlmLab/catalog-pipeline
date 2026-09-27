@@ -12,6 +12,8 @@
 * DATA_DICTIONARY.md: the three release columns appended to every fact table's section / complete column reference,
   a section for sample_determinations_all.parquet and releases.csv, with the reconstruction caveat (once).
 * CHANGELOG.md: the entry file is prepended when its first heading is not yet present.
+* Contribute worklist (R2026.2, config/contribute.yaml): README Files-table rows + a DATA_DICTIONARY section 'Contribute worklist'
+  listing every column of contribute_worklist.csv / contribute_worklist_fields.csv — only when the files are in the package.
 Deterministic and idempotent (re-running on an updated package changes nothing).
 """
 from __future__ import annotations
@@ -156,6 +158,93 @@ rows carry only the counts the CHANGELOGs state (empty otherwise — never inven
     open(p, "w", encoding="utf-8").write(s)
 
 
+WORKLIST_COL_DOC = {
+    "rank": ("int64", "1 = highest priority_score (ties: n_samples desc, accession)"),
+    "study_accession": ("string", "BioProject accession (universe_studies_all key)"),
+    "study_title": ("string", "universe_studies_all.study_title"),
+    "cohort_id": ("string", "cohorts.csv id"),
+    "cohort_name": ("string", "cohorts.csv name"),
+    "triage_verdict": ("string", "`include` | `uncertain` (open studies only)"),
+    "n_samples": ("int64", "sample units of the study (universe_studies_all.n_samples)"),
+    "n_catalog_scope": ("int64", "sample_metadata_wide rows with catalog_scope = True"),
+    "n_infant_samples_est": ("float64 | null", "triage estimate of infant samples (universe_studies_all)"),
+    "missing_fields": ("string", "';'-joined short field names (age, delivery, feeding, preterm, antibiotics, probiotic) whose coverage < 0.5"),
+    "n_missing_fields": ("int64", "count of missing_fields (≥ 1 for every listed study)"),
+    "coverage_<field>": ("float64", "fraction of catalog_scope samples with a value for the field (body-site scope {primary, unknown} when n_catalog_scope = 0); six columns: age, delivery, feeding, preterm, antibiotics, probiotic"),
+    "best_tier_<field>": ("string", "best recoverability tier for study × field (`R1` archive attribute · `R2` supplementary table · `R3` paper text · `R4` abstract · `R0` none); six columns"),
+    "blocker_code": ("string", "dominant reason the study is open — vocabulary in config/contribute.yaml `blocker_codes` (controlled_access, no_linked_paper, paywalled_abstract_only, tables_unjoinable_need_key, pdf_only_supplement, no_supplement_found, archive_only_uncertain, unitless_age_needs_curator, partial_coverage); decision order `blocker_order`"),
+    "blocker_detail": ("string ≤ 200", "the deciding evidence (counts, access tier, sample-ID forms from RESCUE_REPORT_v2, human-review note)"),
+    "unlock_text": ("string ≤ 200", "imperative 'what would unlock this' sentence from the `unlock_templates` of the blocker (id form / missing fields substituted)"),
+    "contribution_type": ("string", "primary ask: per_sample_table | id_key | paper_pointer | age_schedule | verdict_evidence"),
+    "n_linked_papers": ("int64", "rows in study_paper_links for the study"),
+    "own_data_pmids": ("string", "';'-joined PMIDs of the linked papers (empty when none)"),
+    "n_supp_tables_inventoried": ("int64", "supp_inventory members with member_type = table across the linked papers"),
+    "controlled_access": ("bool", "study or its cohort is in controlled_access_registry.csv (non-open tier) or flagged controlled in extraction_worklist / universe_studies_all"),
+    "priority_score": ("float64", "Σ over missing fields of weight × (1 − coverage) × log10(n_catalog_scope + 1); weights age 3, delivery 2, feeding 2, preterm 1.5, antibiotics 1, probiotic 0.5"),
+    "ena_url": ("string", "ENA browser URL of the study"),
+    "ncbi_url": ("string", "NCBI BioProject URL"),
+    "issue_url": ("string", "prefilled GitHub Issue (form catalog-contribution.yml, label contribution; query keys study_accession, contribution_type, release_tag, title)"),
+}
+FIELDS_COL_DOC = {
+    "study_accession": ("string", "BioProject accession"),
+    "field": ("string", "age | delivery | feeding | preterm | antibiotics | probiotic (short names of age_at_collection_days, delivery_mode, feeding_mode, preterm_status, antibiotic_exposure, probiotic_exposure)"),
+    "coverage": ("float64", "fraction of in-scope samples with a value (same scope rule as the worklist)"),
+    "n_with_value": ("int64", "in-scope samples with a value"),
+    "n_catalog_scope": ("int64", "catalog_scope samples of the study"),
+    "best_tier": ("string", "best recoverability tier R0–R4 for the study × field"),
+    "blocker_code": ("string", "`complete` when coverage ≥ 0.5, else the study blocker (only the age field carries unitless_age_needs_curator; other fields then partial_coverage)"),
+    "evidence": ("string ≤ 120", "tier + first recoverability evidence quote/source + note"),
+}
+
+
+def update_docs_worklist(pkg: str, package_version: str, release_id: str, counts: dict) -> bool:
+    """README Files rows + DATA_DICTIONARY 'Contribute worklist' section; no-op when the tables are absent or already documented."""
+    wl_p, fl_p = os.path.join(pkg, "contribute_worklist.csv"), os.path.join(pkg, "contribute_worklist_fields.csv")
+    if not (os.path.exists(wl_p) and os.path.exists(fl_p)):
+        return False
+    n_wl, n_fl = _rows(wl_p), _rows(fl_p)
+    counts["n_worklist_studies"], counts["n_worklist_fields_rows"] = n_wl, n_fl
+    rp = os.path.join(pkg, "README.md")
+    s = open(rp, encoding="utf-8").read()
+    if "`contribute_worklist.csv`" not in s:
+        anchor = "| `DATA_DICTIONARY.md` | | Every column, every vocabulary |"
+        assert anchor in s, "README Files table anchor row not found"
+        rows = [f"| `contribute_worklist.csv` | {n_wl:,} | Community-contribution worklist: one row per OPEN included/uncertain study (≥ 1 of the six fields age/delivery/feeding/preterm/antibiotics/probiotic below 0.5 coverage on catalog_scope), ranked by priority_score, with blocker_code, unlock_text and a prefilled contribution Issue URL — {release_id} |",
+                f"| `contribute_worklist_fields.csv` | {n_fl:,} | Study × field detail of the worklist (coverage, best recoverability tier, field-level blocker, evidence) — {release_id} |"]
+        s = s.replace(anchor, "\n".join(rows) + "\n" + anchor, 1)
+        open(rp, "w", encoding="utf-8").write(s)
+    dp = os.path.join(pkg, "DATA_DICTIONARY.md")
+    d = open(dp, encoding="utf-8").read()
+    if "## Contribute worklist" in d:
+        return True
+    L = [f"\n## Contribute worklist ({release_id}, package {package_version})",
+         "`contribute_worklist.csv` — one row per **open** study (`universe_studies_all.triage_verdict ∈ {include, uncertain}` and at least one of the",
+         "six worklist fields below 0.5 coverage on its catalog_scope samples; studies with 0 catalog_scope samples are judged on body-site scope",
+         "`body_site_class ∈ {primary, unknown}`). Complete studies are not listed. Rules, templates and vocabularies: the pipeline's",
+         "`config/contribute.yaml` and `docs/CONTRIBUTE.md`. Read-only: nothing here is a curated value — every column is derived from the tables",
+         "of this package and from the recoverability / R2-rescue / supplement-inventory artifacts registered in `config/inputs.json` (group `contribute`).", "",
+         f"### contribute_worklist.csv ({n_wl:,} rows)", "", "| column | dtype | meaning |", "|---|---|---|"]
+    L += [f"| `{c}` | {t} | {m} |" for c, (t, m) in WORKLIST_COL_DOC.items()]
+    L += [f"| `{c}` | string | {COL_DOC[c]} |" for c in COLS]
+    L += ["", f"### contribute_worklist_fields.csv ({n_fl:,} rows = 6 per worklist study)", "", "| column | dtype | meaning |", "|---|---|---|"]
+    L += [f"| `{c}` | {t} | {m} |" for c, (t, m) in FIELDS_COL_DOC.items()]
+    L += [f"| `{c}` | string | {COL_DOC[c]} |" for c in COLS]
+    L += ["", "**Blocker codes** (one per study, decision order = listing order for included studies; uncertain studies always `archive_only_uncertain`):",
+          "`controlled_access` (study/cohort in the controlled-access registry) · `no_linked_paper` (0 rows in study_paper_links) · `paywalled_abstract_only`",
+          "(extraction_worklist access_tier C/D/E) · `tables_unjoinable_need_key` (R2 rescue: supplementary tables keyed by paper-internal names) ·",
+          "`pdf_only_supplement` (only PDF/DOCX supplements) · `no_supplement_found` (paper but no inventoried supplement) · `unitless_age_needs_curator`",
+          "(age column without unit) · `partial_coverage` (paper + tables processed, fields still missing). Field-level code `complete` = field at/above threshold.",
+          "**Contribution types**: `per_sample_table`, `id_key`, `paper_pointer`, `age_schedule`, `verdict_evidence` (dropdown of the GitHub Issue form",
+          "`catalog-contribution.yml` that `issue_url` opens prefilled). Rows get `release_retired` when the study becomes complete in a later release.", ""]
+    marker = "\n## Sandpiper columns (added v1.2.0)"
+    if marker in d:
+        d = d.replace(marker, "\n".join(L) + marker, 1)
+    else:
+        d = d.rstrip() + "\n" + "\n".join(L)
+    open(dp, "w", encoding="utf-8").write(d)
+    return True
+
+
 def prepend_changelog(pkg: str, entry_path: str | None) -> bool:
     if not entry_path or not os.path.exists(entry_path):
         return False
@@ -189,8 +278,10 @@ def main(argv=None):
     json.dump(counts, open(os.path.join(a.package, "build_counts.json"), "w"), indent=1, sort_keys=True)
     update_readme(a.package, a.package_version, a.release_id, a.build_date, counts)
     update_dictionary(a.package, a.package_version, a.release_id, cfg, counts)
+    worklist_doc = update_docs_worklist(a.package, a.package_version, a.release_id, counts)
+    json.dump(counts, open(os.path.join(a.package, "build_counts.json"), "w"), indent=1, sort_keys=True)
     changed = prepend_changelog(a.package, a.changelog_entry)
-    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed}))
+    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed, "worklist_documented": worklist_doc}))
     return 0
 
 

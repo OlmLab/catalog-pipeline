@@ -86,6 +86,17 @@ are not treated as verdict changes. Sandpiper tables: `'1.2.0'` (CHANGELOG v1.2.
 recomputation (R3-1/R3-2, changed values on existing rows) is NOT modelled as retire+add because 1.2.0's rows are not
 archived as a table — the CHANGELOG is the record. Cohorts and study_metadata_wide rows: `'1.0.0'` (assumed as above).
 
+### 3.x Incremental releases (R2026.2 onward)
+From package 1.3.0 every fact table already carries the release columns, so `bitemporal.py` runs in **incremental mode** when its
+input has them (`strip_prior`): prior `release_added` / `package_added` are carried row by row; rows whose key is new since
+`--previous-package`, or whose value columns changed, get the new release id (and the previous row enters
+`sample_determinations_all.parquet` as retired with `retired_reason = row absent from / value changed in package <semver>`,
+`retired_change_stage = apply_findings`); previously published retired rows are copied verbatim from the previous
+`sample_determinations_all.parquet`; `releases.csv` carries the previous package's registry rows verbatim (dates, counts, DOI as
+published) and appends the current row. A rebuild with no data change reproduces every 1.3.0 table exactly (asserted in
+`tests/test_bitemporal.py`). The R2026.2 worklist tables (`contribute_worklist*.csv`, `config/releases.yaml: worklist_tables`) are
+written by `make worklist` with their release columns already set and are not touched by `bitemporal.py`.
+
 ## 4. Registry — `releases.csv`
 
 One row per release id, oldest first: `release_id, package_version, release_date, data_tag, site_tag, doi,
