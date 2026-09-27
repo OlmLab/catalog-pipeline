@@ -86,6 +86,14 @@ releases:
     data_tag: data-v1.6.0
     site_tag: site-v1.6.0
     label: scale-up S1 — registry tier of ALL human shotgun metagenomes (registry_studies.parquet, registry_universe_audit.csv; registry_runs.parquet as a Release asset); config/scope.yaml + config/vocab/*
+  - release_id: R2026.5
+    package_version: '1.7.0'
+    previous_package_version: '1.6.0'
+    previous_release_id: R2026.4
+    notes_file: RELEASE_NOTES_R2026.5.md
+    data_tag: data-v1.7.0
+    site_tag: site-v1.7.0
+    label: "scale-up S2 — registry sample tier (registry_biosamples = BioSample attributes of the human_all studies normalised to the vocabularies), papers / authors / BioProject records for registry studies, Sandpiper coverage per study"
 
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
@@ -206,3 +214,20 @@ registry_tables:
     key: [slice]
     default_release_added: R2026.4
     built_with_release_columns: false
+  - file: registry_biosamples.parquet
+    key: [sample_accession]
+    default_release_added: R2026.5
+    built_with_release_columns: true
+    diff_column: body_site_code
+  - file: registry_study_papers.parquet
+    key: [study_accession, paper_id]
+    default_release_added: R2026.5
+    built_with_release_columns: true
+  - file: registry_authors.parquet
+    key: [study_accession, pmid, position]
+    default_release_added: R2026.5
+    built_with_release_columns: true
+  - file: registry_bioproject_records.parquet
+    key: [study_accession]
+    default_release_added: R2026.5
+    built_with_release_columns: true

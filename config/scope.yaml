@@ -185,6 +185,14 @@ registry_columns:
 - infant_reason_code
 - scope_memberships
 - universe_slice
+- n_biosamples_harvested
+- n_biosamples_with_site
+- n_biosamples_with_age
+- n_biosamples_with_sex
+- sample_body_sites
+- sample_life_stages
+- sample_countries
+- sample_age_days_median
 - release_added
 - release_retired
 - package_added
@@ -279,3 +287,11 @@ audit_columns:
 # older package, so every release stays rebuildable from its own package (docs/RELEASES.md reconstruction rule)
 registry_columns_added:
   n_runs_sandpiper: R2026.5
+  n_biosamples_harvested: R2026.5
+  n_biosamples_with_site: R2026.5
+  n_biosamples_with_age: R2026.5
+  n_biosamples_with_sex: R2026.5
+  sample_body_sites: R2026.5
+  sample_life_stages: R2026.5
+  sample_countries: R2026.5
+  sample_age_days_median: R2026.5

@@ -411,3 +411,52 @@ def test_curated_precedence_overrides_archive_only_values_for_included_studies()
     assert out.body_sites[1] == "gut_stool;oral" and out.body_site_primary[1] == "oral" and out.life_stages[1] == "adult;infant"
     assert out.attrs["curated_precedence_applied"] == 2 and out.body_sites[2] == ""
     assert "human_all" in derive_scope_memberships("yes", ["gut_stool"], ["infant"], "shotgun_dna", "include")
+
+
+def test_carry_release_columns_keeps_added_and_retires_vanished():
+    from catalog.registry.build_registry import carry_release_columns
+    prev = pd.DataFrame({"study_accession": ["A", "B", "C"], "v": [1, 2, 3], "release_added": ["R2026.4", "R2026.4", "R2026.3"],
+                         "release_retired": [None, None, "R2026.4"], "package_added": ["1.6.0", "1.6.0", "1.5.0"]})
+    cur = pd.DataFrame({"study_accession": ["A", "D"], "v": [10, 40], "release_added": ["R2026.5", "R2026.5"], "release_retired": [None, None], "package_added": ["1.7.0", "1.7.0"]})
+    out = carry_release_columns(cur, prev, ["study_accession"], "R2026.5").set_index("study_accession")
+    assert out.loc["A", "release_added"] == "R2026.4" and out.loc["A", "package_added"] == "1.6.0" and out.loc["A", "v"] == 10
+    assert out.loc["D", "release_added"] == "R2026.5"
+    assert out.loc["B", "release_retired"] == "R2026.5" and out.loc["B", "v"] == 2      # vanished → retired this release
+    assert out.loc["C", "release_retired"] == "R2026.4"                                  # earlier retirement carried verbatim
+    assert len(out) == 4
+
+
+def test_build_biosamples_picks_best_code_and_rolls_up():
+    from catalog.registry.build_biosamples import build_biosamples, rollup_studies
+    att = pd.DataFrame([
+        ("S1", "P1", "host_body_site", "stool", "body_site", False), ("S1", "P1", "isolation_source", "feces", "body_site", False),
+        ("S1", "P1", "host_age", "34", "age", False), ("S1", "P1", "sex", "F", "sex", False), ("S1", "P1", "geo_loc_name", "USA: Ohio", "country", False),
+        ("S1", "P1", "collection_date", "2019-05-02", "collection_date", False), ("S1", "P1", "host_disease", "IBD", "disease", False),
+        ("S2", "P1", "host_body_site", "stool", "body_site", False), ("S2", "P1", "host_age", "missing", "age", True),
+        ("S3", "P1", "host_body_site", "stool", "body_site", False), ("S3", "P1", "host_age", "2 months", "age", False),
+        ("S4", "P2", "env_medium", "soil", "body_site", False)],
+        columns=["sample_acc", "study_accession", "attr_key_norm", "attr_value", "field", "is_placeholder"])
+    att["acc_resolved"], att["attr_key"], att["source"], att["attr_units"] = att.sample_acc, att.attr_key_norm, "ena_xml", None
+    norm = pd.DataFrame([
+        ("body_site", "host_body_site", "stool", "gut_stool", None, None, None, None, 0.99), ("body_site", "isolation_source", "feces", "gut_stool", None, None, None, None, 0.9),
+        ("age", "host_age", "34", None, "adult", 34 * 365.25, None, None, 0.9), ("sex", "sex", "F", None, None, None, "female", None, 0.95),
+        ("country", "geo_loc_name", "USA: Ohio", None, None, None, None, "US", 0.99), ("age", "host_age", "2 months", None, "infant", 61.0, None, None, 0.95),
+        ("body_site", "env_medium", "soil", "unknown_site", None, None, None, None, 0.9)],
+        columns=["field", "attr_key_norm", "attr_value", "body_site_code", "life_stage", "age_days", "sex", "country_iso2", "confidence"])
+    norm["null_output"] = False
+    bios = build_biosamples(att, norm).set_index("sample_accession")
+    assert bios.loc["S1", "body_site_code"] == "gut_stool" and bios.loc["S1", "body_site_raw_key"] == "host_body_site"
+    assert bios.loc["S1", "life_stage"] == "adult" and abs(bios.loc["S1", "age_days"] - 34 * 365.25) < 1e-6 and bios.loc["S1", "sex"] == "female"
+    assert bios.loc["S1", "country_iso2"] == "US" and bios.loc["S1", "collection_year"] == 2019 and bios.loc["S1", "disease_raw"] == "IBD"
+    assert pd.isna(bios.loc["S2", "life_stage"]) and bios.loc["S3", "life_stage"] == "infant"   # placeholder age → no attribute; 2 months → infant
+    assert bios.loc["S4", "body_site_code"] == "unknown_site"                                      # attribute existed, no site
+    studies = pd.DataFrame({"study_accession": ["P1", "P2"], "body_sites": ["unknown_site", "unknown_site"], "body_site_primary": ["unknown_site", "unknown_site"],
+                            "body_site_evidence": ["[]", "[]"], "life_stages": ["unknown_age", ""], "life_stage_primary": ["unknown_age", None], "life_stage_evidence": ["[]", "[]"]})
+    st, stats = rollup_studies(studies, bios.reset_index())
+    p1 = st.set_index("study_accession").loc["P1"]
+    assert p1.n_biosamples_harvested == 3 and p1.n_biosamples_with_site == 3 and p1.n_biosamples_with_age == 2 and p1.n_biosamples_with_sex == 1
+    assert p1.body_site_primary == "gut_stool" and p1.body_sites == "gut_stool" and json.loads(p1.body_site_evidence)[0]["source"] == "sample.attr.host_body_site"
+    assert json.loads(p1.sample_life_stages) == {"adult": 1, "infant": 1} and p1.life_stage_primary == "unknown_age"   # no 60 % majority
+    assert stats["site_primary_refined"] == 1 and stats["sites_added"] == 1
+    p2 = st.set_index("study_accession").loc["P2"]
+    assert p2.n_biosamples_harvested == 1 and p2.body_site_primary == "unknown_site"   # < 3 samples: no refinement

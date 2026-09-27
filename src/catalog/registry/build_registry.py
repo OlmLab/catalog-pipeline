@@ -181,6 +181,31 @@ def join_sandpiper(universe: pd.DataFrame, sandpiper_runs: pd.DataFrame | None) 
     return out
 
 
+def carry_release_columns(df: pd.DataFrame, previous: pd.DataFrame | None, key: list[str], release_id: str) -> pd.DataFrame:
+    """Bitemporal convention for registry tables (config/releases.yaml registry_tables, built_with_release_columns): rows already
+    present in the previous package keep their release_added / package_added; rows that disappeared are appended as retired
+    (release_retired = this release); new rows carry this release. `previous` = the same table from the previous package
+    (current rows only are considered on its side)."""
+    if previous is None or previous.empty:
+        return df
+    prev = previous
+    if "release_retired" in prev.columns:
+        prev_retired = prev[prev["release_retired"].notna()]
+        prev = prev[prev["release_retired"].isna()]
+    else:
+        prev_retired = prev.iloc[0:0]
+    idx = prev.set_index(key)
+    cur = df.set_index(key)
+    common = cur.index.intersection(idx.index)
+    for c in ("release_added", "package_added"):
+        if c in idx.columns:
+            cur.loc[common, c] = idx.loc[common, c]
+    gone = idx.loc[idx.index.difference(cur.index)].copy()
+    gone["release_retired"] = release_id
+    out = pd.concat([cur.reset_index(), gone.reset_index().reindex(columns=cur.reset_index().columns), prev_retired.reindex(columns=cur.reset_index().columns)], ignore_index=True)
+    return out
+
+
 CURATED_ASSAY_OVERRIDE = ("other", "unknown", "amplicon_misfiled")
 
 
@@ -298,6 +323,12 @@ def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | N
     out = apply_curated_precedence(out)
     out["scope_memberships"] = [";".join(derive_scope_memberships(h, b.split(";") if b else [], l.split(";") if l else [], a, i))
                                 for h, b, l, a, i in zip(out.host_human, out.body_sites, out.life_stages, out.assay, out.in_infant_catalog)]
+    # sample-tier roll-up columns (R2026.5, filled by catalog.registry.build_biosamples); defaults = "not harvested"
+    for c in ("n_biosamples_harvested", "n_biosamples_with_site", "n_biosamples_with_age", "n_biosamples_with_sex"):
+        out[c] = 0
+    for c in ("sample_body_sites", "sample_life_stages", "sample_countries"):
+        out[c] = "{}"
+    out["sample_age_days_median"] = pd.Series([float("nan")] * len(out), index=out.index, dtype="float64")
     out["release_added"], out["release_retired"], out["package_added"] = release_id, None, package_version
     out = out[study_columns()].sort_values("study_accession").reset_index(drop=True)
     for c in out.columns:
@@ -395,6 +426,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--universe"), ap.add_argument("--infant", required=True), ap.add_argument("--llm"), ap.add_argument("--audit")
     ap.add_argument("--sandpiper-runs", help="run-level Sandpiper join table (run_accession, study_accession, sandpiper_profiled)")
+    ap.add_argument("--previous", help="registry_studies.parquet of the previous package: release_added/package_added carried, vanished studies retired")
     ap.add_argument("--out", required=True), ap.add_argument("--release-id", default="R2026.4"), ap.add_argument("--package-version", default="1.6.0")
     ap.add_argument("--make-fixture", action="store_true"), ap.add_argument("--v3-studies"), ap.add_argument("--frame-free")
     ap.add_argument("--fixture", action="store_true", help="mark the report as a fixture run")
@@ -412,6 +444,8 @@ def main(argv=None):
     os.makedirs(a.out, exist_ok=True)
     sp_runs = pd.read_parquet(a.sandpiper_runs) if a.sandpiper_runs else None
     df = assemble(universe, infant, llm, a.release_id, a.package_version, sandpiper_runs=sp_runs)
+    if a.previous and os.path.exists(a.previous):
+        df = carry_release_columns(df, pd.read_parquet(a.previous), ["study_accession"], a.release_id)
     df.to_parquet(os.path.join(a.out, "registry_studies.parquet"), index=False)
     if audit is not None:
         audit.to_csv(os.path.join(a.out, "registry_universe_audit.csv"), index=False)

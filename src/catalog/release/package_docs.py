@@ -296,7 +296,17 @@ def update_docs_registry(pkg: str, package_version: str, release_id: str, counts
         open(rp, "w", encoding="utf-8").write(s)
     dp = os.path.join(pkg, "DATA_DICTIONARY.md")
     d = open(dp, encoding="utf-8").read()
-    if "## Registry tier" in d:
+    if "## Registry tier" in d:  # section exists from an earlier release: append blocks for tables documented since (R2026.5 side tables)
+        blocks = []
+        for fn in [f for f in schema if f != "registry_runs.parquet" and os.path.exists(os.path.join(pkg, f)) and f"### {f}" not in d]:
+            blocks += [f"### {fn} ({_rows(os.path.join(pkg, fn)):,} rows) — one row per {schema[fn].get('one_row_per', '')} — added {release_id}", "",
+                       "| column | dtype | meaning |", "|---|---|---|"]
+            blocks += [f"| `{c['name']}` | {c.get('type', '')} | {c.get('description', '')} |" for c in schema[fn]["columns"]]
+            blocks += [""]
+        if blocks:
+            marker = "\n## Sandpiper columns (added v1.2.0)"
+            d = d.replace(marker, "\n" + "\n".join(blocks) + marker, 1) if marker in d else d.rstrip() + "\n\n" + "\n".join(blocks)
+            open(dp, "w", encoding="utf-8").write(d)
         return True
     L = [f"\n## Registry tier ({release_id}, package {package_version})",
          "The registry is the **outer tier** of the catalog (docs/EXPANSION.md): every ENA study with a human shotgun-metagenome signal, any body site,",
@@ -308,7 +318,23 @@ def update_docs_registry(pkg: str, package_version: str, release_id: str, counts
          "`infant_gut` inside this registry (`in_infant_catalog` mirrors `universe_studies_all.triage_verdict`). The run-level table `registry_runs.parquet`",
          "(all runs of the universe, 46 ENA fields + `found_by`) is attached to the GitHub Release of the data repository as `registry_runs_v<version>.parquet`",
          "(too large for this package). Bitemporal columns follow the package convention (`release_added`, `release_retired`, `package_added`).", ""]
-    for fn, title in (("registry_studies.parquet", f"registry_studies.parquet ({n_st:,} rows)"), ("registry_universe_audit.csv", "registry_universe_audit.csv")):
+    extra_desc = {"registry_biosamples.parquet": "**Registry sample tier (R2026.5)**: one row per harvested BioSample of the human_all registry studies outside the curated infant catalog — body site, life stage / age_days, sex, country, collection year normalised to the vocabularies (utility-model pass over distinct attribute pairs, docs/REGISTRY_S2_PILOT.md), raw key/value provenance, disease text unnormalised",
+                  "registry_study_papers.parquet": "Registry study × paper links from Europe PMC accession mentions and NCBI BioProject declared publications (deterministic relation classes; docs/REGISTRY_S2_PAPERS.md)",
+                  "registry_authors.parquet": "Authors (with ORCID / affiliation where present) of ≤ 5 linked papers per registry study, Europe PMC core records",
+                  "registry_bioproject_records.parquet": "NCBI BioProject record per registry study: organisation, submitter, declared publications, dates, data types"}
+    readme_rows = []
+    for fn in [f for f in schema if f not in ("registry_studies.parquet", "registry_universe_audit.csv", "registry_runs.parquet") and os.path.exists(os.path.join(pkg, f))]:
+        if f"`{fn}`" not in s:
+            readme_rows.append(f"| `{fn}` | {_rows(os.path.join(pkg, fn)):,} | {extra_desc.get(fn, schema[fn].get('one_row_per', ''))} — {release_id} |")
+    if readme_rows:
+        anchor = "| `DATA_DICTIONARY.md` | | Every column, every vocabulary |"
+        s = open(rp, encoding="utf-8").read()
+        s = s.replace(anchor, "\n".join(readme_rows) + "\n" + anchor, 1)
+        open(rp, "w", encoding="utf-8").write(s)
+    tables = [("registry_studies.parquet", f"registry_studies.parquet ({n_st:,} rows)"), ("registry_universe_audit.csv", "registry_universe_audit.csv")]
+    tables += [(fn, f"{fn} ({_rows(os.path.join(pkg, fn)):,} rows) — one row per {schema[fn].get('one_row_per', '')}") for fn in schema
+               if fn not in dict(tables) and fn != "registry_runs.parquet" and os.path.exists(os.path.join(pkg, fn))]
+    for fn, title in tables:
         if fn not in schema or not os.path.exists(os.path.join(pkg, fn)):
             continue
         L += [f"### {title}", "", "| column | dtype | meaning |", "|---|---|---|"]

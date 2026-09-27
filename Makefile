@@ -40,7 +40,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: registry-fixture registry-classify-det registry-build help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: registry-fixture registry-classify-det registry-build registry-biosamples help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -202,6 +202,8 @@ release:         ## stage 5 (R2026.n) — unpack → findings → assemble → b
 	$(MAKE) bitemporal
 	$(MAKE) worklist
 	@if [ -f "$(REGISTRY_UNIVERSE)" ]; then $(MAKE) registry-build REGISTRY_OUT=$(PKG_OUT) && rm -f $(PKG_OUT)/registry_studies_fixture.parquet; else echo "no registry universe at $(REGISTRY_UNIVERSE) (registry tables not built)"; fi
+	@if [ -f "$(REGISTRY_UNIVERSE)" ] && [ -f "$(REGISTRY_ATTRIBUTES)" ] && [ -f "$(REGISTRY_NORM)" ]; then $(MAKE) registry-biosamples REGISTRY_OUT=$(PKG_OUT); else echo "no registry sample tier inputs (REGISTRY_ATTRIBUTES / REGISTRY_NORM) — registry_biosamples not built"; fi
+	@if [ -f "$(REGISTRY_UNIVERSE)" ] && [ -n "$(wildcard $(REGISTRY_EXTRA))" ]; then $(PY) -m catalog.registry.add_registry_tables --package $(PKG_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) --previous-dir $(PKG_SRC) $(wildcard $(REGISTRY_EXTRA)); else echo "no extra registry tables ($(REGISTRY_EXTRA))"; fi
 	$(MAKE) package-docs
 	# VERSION.json must carry the NEW version before the notes are generated (release_notes reads it for the header);
 	# the second make_version run re-hashes the package with RELEASE_NOTES included, the third checks (R1-11)
@@ -278,6 +280,10 @@ REGISTRY_FIXTURE  := tests/data/registry_fixture_universe.parquet
 REGISTRY_RUNS     ?= $(DATA)/registry/registry_runs.parquet
 # REGISTRY_SANDPIPER: run-level Sandpiper join (run_accession, study_accession, sandpiper_profiled) → n_runs_sandpiper
 REGISTRY_SANDPIPER ?= $(DATA)/registry/registry_runs_sandpiper.parquet
+# S2 sample tier: harvested BioSample attributes (working_data artifact) + the normalised (field,key,value) map; side tables shipped as-is
+REGISTRY_ATTRIBUTES ?= $(DATA)/registry/registry_biosample_attributes.parquet
+REGISTRY_NORM       ?= $(DATA)/registry/registry_pairs_normalised.parquet
+REGISTRY_EXTRA      ?= $(DATA)/registry/registry_study_papers.parquet $(DATA)/registry/registry_authors.parquet $(DATA)/registry/registry_bioproject_records.parquet
 
 registry-fixture: ## registry — rebuild the 200-study test fixture from the 1.5.0 universe (V3_STUDIES=… FRAME_FREE=… parquet paths)
 	$(PY) -m catalog.registry.build_registry --make-fixture --v3-studies $(V3_STUDIES) --frame-free $(FRAME_FREE) --infant $(PKG_SRC)/universe_studies_all.parquet --out $(REGISTRY_FIXTURE)
@@ -290,12 +296,16 @@ registry-classify-det: ## registry — deterministic classification of the regis
 	  d=classify_frame(normalise_universe(u), inf[['study_accession','triage_verdict','reason_code','body_site_call']]); \
 	  d.to_parquet('$(REGISTRY_OUT)/registry_classification_det.parquet', index=False); print(len(d), 'studies;', int(d.needs_llm.sum()), 'need LLM')"
 
+registry-biosamples: ## registry S2 — registry_biosamples.parquet + study roll-up columns (needs REGISTRY_ATTRIBUTES + REGISTRY_NORM; studies from REGISTRY_OUT)
+	$(PY) -m catalog.registry.build_biosamples --attributes $(REGISTRY_ATTRIBUTES) --norm $(REGISTRY_NORM) --studies $(REGISTRY_OUT)/registry_studies.parquet \
+	  --out $(REGISTRY_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) $$( [ -f $(PKG_SRC)/registry_biosamples.parquet ] && echo --previous $(PKG_SRC)/registry_biosamples.parquet )
+
 registry-build:  ## registry — registry_studies.parquet + REGISTRY_REPORT.md (uses the fixture when REGISTRY_UNIVERSE is absent; REGISTRY_LLM optional)
 	mkdir -p $(REGISTRY_OUT)
 	$(PY) -m catalog.registry.build_registry --universe $$( [ -f $(REGISTRY_UNIVERSE) ] && echo $(REGISTRY_UNIVERSE) || echo $(REGISTRY_FIXTURE) ) \
 	  $$( [ -f $(REGISTRY_UNIVERSE) ] || echo --fixture ) --infant $(PKG_SRC)/universe_studies_all.parquet \
 	  $$( [ -n "$(REGISTRY_LLM)" ] && echo --llm $(REGISTRY_LLM) ) $$( [ -f $(REGISTRY_AUDIT) ] && echo --audit $(REGISTRY_AUDIT) ) $$( [ -f $(REGISTRY_SANDPIPER) ] && echo --sandpiper-runs $(REGISTRY_SANDPIPER) ) \
-	  --out $(REGISTRY_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION)
+	  --out $(REGISTRY_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) $$( [ -f $(PKG_SRC)/registry_studies.parquet ] && echo --previous $(PKG_SRC)/registry_studies.parquet )
 
 clean:           ## remove build/
 	rm -rf $(BUILD)
