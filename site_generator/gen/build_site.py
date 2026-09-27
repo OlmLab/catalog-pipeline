@@ -1073,7 +1073,9 @@ def main():
                         'opus_adjudicated': 'replicate disagreement adjudicated by the stronger model', 'pending': 'not yet classified'}
         host_counts = {k: int((rg.host_human == k).sum()) for k in sspec['host_human_values']}
         n_pending = int((rg.classification_stage == 'pending').sum())
+        _sp = rg['n_runs_sandpiper'].fillna(0) if 'n_runs_sandpiper' in rg.columns else pd.Series(0, index=rg.index)
         rstats = dict(n_studies=len(rg), n_runs=int(rg.n_runs.fillna(0).sum()), n_biosamples=int(rg.n_biosamples.fillna(0).sum()), host=host_counts,
+                      n_runs_sandpiper=int(_sp.sum()), n_studies_sandpiper=int((_sp > 0).sum()),
                       n_pending=n_pending, n_classified=len(rg) - n_pending, pct_classified=int(round(100 * (len(rg) - n_pending) / max(1, len(rg)))),
                       n_infant_include=int((rg.in_infant_catalog == 'include').sum()), n_scopes=len(sspec['scopes']))
         scope_rows, scope_pages = [], []
@@ -1081,7 +1083,7 @@ def main():
             m = rg[rg.scope_memberships.map(lambda v: sc['id'] in split_list(v))]
             _sr = sspec.get('scope_rules', {}).get(sc['id'], {})
             d = dict(id=sc['id'], label=sc['label'], definition=sc['definition'], rule=sc.get('rule') or _sr.get('rule') or '', curated=bool(sc.get('curated')),
-                     n_studies=len(m), n_runs=int(m.n_runs.fillna(0).sum()), n_biosamples=int(m.n_biosamples.fillna(0).sum()),
+                     n_studies=len(m), n_runs=int(m.n_runs.fillna(0).sum()), n_biosamples=int(m.n_biosamples.fillna(0).sum()), n_runs_sandpiper=int(m['n_runs_sandpiper'].fillna(0).sum()) if 'n_runs_sandpiper' in m.columns else 0,
                      n_pending=int((m.classification_stage == 'pending').sum()))
             d['n_classified'] = d['n_studies'] - d['n_pending']
             scope_rows.append(d)

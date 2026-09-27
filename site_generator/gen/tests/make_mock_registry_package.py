@@ -176,6 +176,7 @@ def main():
             description_short=None, center_name=agg.center_name.get(d['study_accession']),
             first_public_min=None if pd.isna(d.get('first_public_min')) else str(d['first_public_min'])[:10], first_public_max=agg.first_public_max.get(d['study_accession']),
             n_runs=n_runs, n_samples=None if pd.isna(d.get('n_samples')) else int(d['n_samples']), n_biosamples=None if pd.isna(d.get('n_biosamples')) else int(d['n_biosamples']),
+            n_runs_sandpiper=0 if n_runs is None else int(n_runs * 0.4),
             library_strategies=agg.library_strategies.get(d['study_accession']), library_sources=agg.library_sources.get(d['study_accession']),
             instrument_platforms=agg.instrument_platforms.get(d['study_accession']), scientific_names_top=agg.scientific_names_top.get(d['study_accession']),
             host_tax_ids=agg.host_tax_ids.get(d['study_accession']),
@@ -272,7 +273,7 @@ def main():
         return ';'.join(m) if m else None
     reg['scope_memberships'] = reg.apply(memberships, axis=1)
     reg[RA], reg[RR], reg[PA] = RID, None, PV
-    for c in ('n_runs', 'n_samples', 'n_biosamples', 'n_runs_host_9606', 'n_runs_nonhuman_host'):
+    for c in ('n_runs', 'n_samples', 'n_biosamples', 'n_runs_sandpiper', 'n_runs_host_9606', 'n_runs_nonhuman_host'):
         reg[c] = reg[c].astype('Int64')
     reg['classification_confidence'] = reg['classification_confidence'].astype('float64')
     reg = reg[COLS].sort_values('study_accession', kind='mergesort').reset_index(drop=True)

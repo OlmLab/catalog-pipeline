@@ -276,6 +276,8 @@ REGISTRY_OUT      ?= $(BUILD)/registry
 REGISTRY_FIXTURE  := tests/data/registry_fixture_universe.parquet
 # REGISTRY_RUNS: ≈70 MB run-level table: shipped as a Release ASSET (data clone assets/), never inside package/ or the site
 REGISTRY_RUNS     ?= $(DATA)/registry/registry_runs.parquet
+# REGISTRY_SANDPIPER: run-level Sandpiper join (run_accession, study_accession, sandpiper_profiled) → n_runs_sandpiper
+REGISTRY_SANDPIPER ?= $(DATA)/registry/registry_runs_sandpiper.parquet
 
 registry-fixture: ## registry — rebuild the 200-study test fixture from the 1.5.0 universe (V3_STUDIES=… FRAME_FREE=… parquet paths)
 	$(PY) -m catalog.registry.build_registry --make-fixture --v3-studies $(V3_STUDIES) --frame-free $(FRAME_FREE) --infant $(PKG_SRC)/universe_studies_all.parquet --out $(REGISTRY_FIXTURE)
@@ -292,7 +294,7 @@ registry-build:  ## registry — registry_studies.parquet + REGISTRY_REPORT.md (
 	mkdir -p $(REGISTRY_OUT)
 	$(PY) -m catalog.registry.build_registry --universe $$( [ -f $(REGISTRY_UNIVERSE) ] && echo $(REGISTRY_UNIVERSE) || echo $(REGISTRY_FIXTURE) ) \
 	  $$( [ -f $(REGISTRY_UNIVERSE) ] || echo --fixture ) --infant $(PKG_SRC)/universe_studies_all.parquet \
-	  $$( [ -n "$(REGISTRY_LLM)" ] && echo --llm $(REGISTRY_LLM) ) $$( [ -f $(REGISTRY_AUDIT) ] && echo --audit $(REGISTRY_AUDIT) ) \
+	  $$( [ -n "$(REGISTRY_LLM)" ] && echo --llm $(REGISTRY_LLM) ) $$( [ -f $(REGISTRY_AUDIT) ] && echo --audit $(REGISTRY_AUDIT) ) $$( [ -f $(REGISTRY_SANDPIPER) ] && echo --sandpiper-runs $(REGISTRY_SANDPIPER) ) \
 	  --out $(REGISTRY_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION)
 
 clean:           ## remove build/

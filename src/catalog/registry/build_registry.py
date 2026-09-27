@@ -169,8 +169,22 @@ def carry_infant_universe(universe: pd.DataFrame, infant: pd.DataFrame) -> pd.Da
     return out
 
 
-def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | None, release_id: str, package_version: str) -> pd.DataFrame:
+def join_sandpiper(universe: pd.DataFrame, sandpiper_runs: pd.DataFrame | None) -> pd.DataFrame:
+    """Add n_runs_sandpiper per study from a run-level join table (run_accession, study_accession, sandpiper_profiled bool)
+    — the registry runs matched against the pinned Sandpiper per-accession summary. Missing table → column of zeros."""
+    out = universe.copy()
+    if sandpiper_runs is None or sandpiper_runs.empty:
+        out["n_runs_sandpiper"] = 0
+        return out
+    per = sandpiper_runs.groupby("study_accession")["sandpiper_profiled"].sum().astype(int)
+    out["n_runs_sandpiper"] = out["study_accession"].map(per).fillna(0).astype(int)
+    return out
+
+
+def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | None, release_id: str, package_version: str,
+             sandpiper_runs: pd.DataFrame | None = None) -> pd.DataFrame:
     universe = carry_infant_universe(universe, infant)
+    universe = join_sandpiper(universe, sandpiper_runs)
     uni = normalise_universe(universe)
     uni["scientific_names"] = uni["scientific_names"].map(_sci_strip_counts)
     inf = infant.rename(columns={"triage_verdict": "infant_verdict", "reason_code": "infant_reason_code", "body_site_call": "infant_body_site_call"})
@@ -230,6 +244,7 @@ def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | N
         "n_runs": n_runs,
         "n_samples": pd.to_numeric(col("n_samples", 0), errors="coerce").fillna(0).astype(int),
         "n_biosamples": pd.to_numeric(col("n_biosamples", 0), errors="coerce").fillna(0).astype(int),
+        "n_runs_sandpiper": pd.to_numeric(col("n_runs_sandpiper", 0), errors="coerce").fillna(0).astype(int),
         "library_strategies": col("library_strategies"), "library_sources": col("library_sources"),
         "instrument_platforms": col("instrument_platforms"),
         "scientific_names_top": scientific_top.reindex(m.index).fillna("") if len(scientific_top) == n else uni["scientific_names"],
@@ -346,6 +361,7 @@ def make_fixture(v3_studies: str, frame_free: str, infant_universe: str, out_pat
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--universe"), ap.add_argument("--infant", required=True), ap.add_argument("--llm"), ap.add_argument("--audit")
+    ap.add_argument("--sandpiper-runs", help="run-level Sandpiper join table (run_accession, study_accession, sandpiper_profiled)")
     ap.add_argument("--out", required=True), ap.add_argument("--release-id", default="R2026.4"), ap.add_argument("--package-version", default="1.6.0")
     ap.add_argument("--make-fixture", action="store_true"), ap.add_argument("--v3-studies"), ap.add_argument("--frame-free")
     ap.add_argument("--fixture", action="store_true", help="mark the report as a fixture run")
@@ -361,7 +377,8 @@ def main(argv=None):
         llm = pd.read_parquet(a.llm) if a.llm.endswith(".parquet") else pd.DataFrame(json.load(open(a.llm)).get("rows", []))
     audit = pd.read_csv(a.audit) if a.audit and os.path.exists(a.audit) else None
     os.makedirs(a.out, exist_ok=True)
-    df = assemble(universe, infant, llm, a.release_id, a.package_version)
+    sp_runs = pd.read_parquet(a.sandpiper_runs) if a.sandpiper_runs else None
+    df = assemble(universe, infant, llm, a.release_id, a.package_version, sandpiper_runs=sp_runs)
     df.to_parquet(os.path.join(a.out, "registry_studies.parquet"), index=False)
     if audit is not None:
         audit.to_csv(os.path.join(a.out, "registry_universe_audit.csv"), index=False)

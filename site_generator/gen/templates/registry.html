@@ -9,6 +9,7 @@
 <div class="cards">
 <div class="card"><div class="num">{{ rs.n_studies|fmt }}</div><div class="lbl">registry studies (ENA BioProjects)</div></div>
 <div class="card"><div class="num">{{ rs.n_runs|fmt }}</div><div class="lbl">sequencing runs</div></div>
+{% if rs.n_runs_sandpiper %}<div class="card"><div class="num">{{ rs.n_runs_sandpiper|fmt }}</div><div class="lbl">runs with a Sandpiper community profile ({{ (100 * rs.n_runs_sandpiper / rs.n_runs)|round|int }} % of runs; {{ rs.n_studies_sandpiper|fmt }} studies)</div></div>{% endif %}
 <div class="card"><div class="num">{{ rs.n_biosamples|fmt }}</div><div class="lbl">BioSamples</div></div>
 <div class="card"><div class="num">{{ rs.host.yes|fmt }}</div><div class="lbl">host human = yes · {{ rs.host.mixed|fmt }} mixed · {{ rs.host.unknown|fmt }} unknown · {{ rs.host.no|fmt }} non-human (screened, kept for provenance)</div></div>
 <div class="card"><div class="num">{{ rs.n_classified|fmt }}</div><div class="lbl">classified ({{ rs.pct_classified }}%) · {{ rs.n_pending|fmt }} pending</div></div>

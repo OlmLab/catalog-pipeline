@@ -165,6 +165,7 @@ async function showDetail(acc) {
   <tr><td>Secondary accession · center</td><td>${h(s.secondary_study_accession)} · ${h(s.center_name)}</td></tr>
   <tr><td>First public</td><td>${h(s.first_public_min)}${s.first_public_max ? ' – ' + h(s.first_public_max) : ''}</td></tr>
   <tr><td>Runs / samples / BioSamples</td><td>${fmtV(s.n_runs)} / ${fmtV(s.n_samples)} / ${fmtV(s.n_biosamples)}</td></tr>
+  <tr><td>Runs with Sandpiper profiles</td><td>${fmtV(s.n_runs_sandpiper)}</td></tr>
   <tr><td>Library strategies / sources</td><td class="mono">${h(s.library_strategies)} / ${h(s.library_sources)}</td></tr>
   <tr><td>Instrument platforms</td><td class="mono">${h(s.instrument_platforms)}</td></tr>
   <tr><td>Top scientific names</td><td class="small">${h(s.scientific_names_top)}</td></tr>

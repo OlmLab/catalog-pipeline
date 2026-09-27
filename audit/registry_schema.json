@@ -73,6 +73,11 @@
      "description": "Distinct BioSample accessions"
     },
     {
+     "name": "n_runs_sandpiper",
+     "type": "int64",
+     "description": "Runs of the study with a Sandpiper (SingleM) community profile in the pinned Sandpiper snapshot (config Makefile SANDPIPER_VERSION / ZENODO_RECORD); 0 when the join table was not supplied"
+    },
+    {
      "name": "library_strategies",
      "type": "string",
      "description": "JSON dict strategy → run count"

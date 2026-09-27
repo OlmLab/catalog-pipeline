@@ -153,6 +153,7 @@ registry_columns:
 - n_runs
 - n_samples
 - n_biosamples
+- n_runs_sandpiper
 - library_strategies
 - library_sources
 - instrument_platforms
