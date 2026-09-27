@@ -199,6 +199,7 @@ release:         ## stage 5 (R2026.n) — unpack → findings → assemble → b
 	@if [ -f "$(GAPFILL_OUT)/samples_new_wide.parquet" ]; then $(MAKE) apply-gapfill; else echo "no gap-fill outputs in $(GAPFILL_OUT)"; fi
 	$(MAKE) bitemporal
 	$(MAKE) worklist
+	@if [ -f "$(REGISTRY_UNIVERSE)" ]; then $(MAKE) registry-build REGISTRY_OUT=$(PKG_OUT) && rm -f $(PKG_OUT)/registry_studies_fixture.parquet; else echo "no registry universe at $(REGISTRY_UNIVERSE) (registry tables not built)"; fi
 	$(MAKE) package-docs
 	# VERSION.json must carry the NEW version before the notes are generated (release_notes reads it for the header);
 	# the second make_version run re-hashes the package with RELEASE_NOTES included, the third checks (R1-11)
@@ -258,6 +259,7 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	cd $(DATA_CLONE) && git fetch -q origin && git checkout -q -B release/$(VERSION) origin/main
 	(rsync -a --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ || [ $$? -eq 23 ]) && mkdir -p $(DATA_CLONE)/audit && (rsync -a audit/ $(DATA_CLONE)/audit/ || [ $$? -eq 23 ])
 	@n=$$(rsync -rcn --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ 2>&1 | grep -v '^rsync(' | grep -vc '^$$' || true); test "$$n" = "0" || { echo "data clone package/ differs from build in $$n paths"; exit 1; }
+	@if [ -f "$(REGISTRY_RUNS)" ]; then mkdir -p $(DATA_CLONE)/assets && cp $(REGISTRY_RUNS) $(DATA_CLONE)/assets/registry_runs_v$(VERSION).parquet && (cd $(DATA_CLONE)/assets && shasum -a 256 registry_runs_v$(VERSION).parquet > registry_runs_v$(VERSION).parquet.sha256) && rm -f $$(ls $(DATA_CLONE)/assets/registry_runs_v*.parquet* | grep -v v$(VERSION)); echo "registry_runs asset staged"; fi
 	cd $(DATA_CLONE) && git add -A && git commit -q -m "data package $(VERSION) ($(BUILD_DATE))" && git tag -f data-v$(VERSION)
 	@echo "push with the credential helper (docs/SECURITY.md):"
 	@echo "  git -C $(SITE_CLONE) push origin release/$(VERSION) site-v$(VERSION)"
@@ -267,8 +269,9 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 REGISTRY_UNIVERSE ?= $(DATA)/registry/registry_universe_studies.parquet   # enumeration track output (frozen columns: audit/registry_schema.json)
 REGISTRY_AUDIT    ?= $(DATA)/registry/registry_universe_audit.csv
 REGISTRY_LLM      ?=                                                        # optional: LLM classification rows (parquet or json)
-REGISTRY_OUT      := $(BUILD)/registry
+REGISTRY_OUT      ?= $(BUILD)/registry
 REGISTRY_FIXTURE  := tests/data/registry_fixture_universe.parquet
+REGISTRY_RUNS     ?= $(DATA)/registry/registry_runs.parquet   # ≈70 MB run-level table: shipped as a Release ASSET (data clone assets/), never inside package/ or the site
 
 registry-fixture: ## registry — rebuild the 200-study test fixture from the 1.5.0 universe (V3_STUDIES=… FRAME_FREE=… parquet paths)
 	$(PY) -m catalog.registry.build_registry --make-fixture --v3-studies $(V3_STUDIES) --frame-free $(FRAME_FREE) --infant $(PKG_SRC)/universe_studies_all.parquet --out $(REGISTRY_FIXTURE)

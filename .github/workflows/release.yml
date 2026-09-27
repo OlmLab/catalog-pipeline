@@ -73,4 +73,5 @@ jobs:
             infant_catalog_v*.sqlite
             SHA256SUMS.txt
             package/VERSION.json
-          fail_on_unmatched_files: true
+            assets/*
+          fail_on_unmatched_files: false   # assets/ (e.g. registry_runs_v*.parquet, ≈70 MB) exists from 1.6.0 on

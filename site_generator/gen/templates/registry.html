@@ -58,7 +58,7 @@
   </div>
   <div class="status" id="dl-status"></div>
   <div id="result-wrap"><table class="tbl" id="result-table"><thead></thead><tbody></tbody></table></div>
-  <p class="small">Columns shown are a subset; the CSV export carries all {{ n_cols }} columns of the filtered rows. Full table: <a href="../data/registry_studies.parquet" download>registry_studies.parquet</a>. Per-slice enumeration completeness: <a href="../data/package/{{ audit_name }}" download>{{ audit_name }}</a>. The run-level table (<span class="mono">registry_runs.parquet</span>, {{ rs.n_runs|fmt }} rows) is a GitHub Release asset, not a site file.</p>
+  <p class="small">Columns shown are a subset; the CSV export carries all {{ n_cols }} columns of the filtered rows. Full table: <a href="../data/registry_studies.parquet" download>registry_studies.parquet</a>. Per-slice enumeration completeness: <a href="../data/package/{{ audit_name }}" download>{{ audit_name }}</a>. The run-level table (<a href="{{ runs_asset_url }}"><span class="mono">registry_runs_v{{ package_version }}.parquet</span></a>, {{ rs.n_runs|fmt }} rows, ≈70 MB, 46 ENA fields + found_by) is attached to the GitHub Release of the data repository, not a site file.</p>
 </section>
 </div>
 <div class="detail" id="detail" role="dialog" aria-modal="false" aria-label="Study details" tabindex="-1"><button class="close" id="detail-close" title="close (Escape)" aria-label="close study details">×</button><div id="detail-body"></div></div>

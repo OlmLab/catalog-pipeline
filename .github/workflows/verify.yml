@@ -147,6 +147,18 @@ jobs:
             await row.click();
             await expect(page.getByText(/evidence/i).first()).toBeVisible({ timeout: 30000 });
           });
+          test('registry explorer loads registry_studies.parquet and shows a row count', async ({ page }) => {
+            test.setTimeout(240000);
+            const r = await page.goto('http://localhost:8123/registry/index.html');
+            if (r.status() === 404) { test.skip(true, 'site predates the registry tier (< R2026.4)'); return; }
+            await expect(page.locator('#count')).toContainText(/\d/, { timeout: 180000 });
+            await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 30000 });
+          });
+          test('contribute worklist page renders study panels', async ({ page }) => {
+            const r = await page.goto('http://localhost:8123/contribute/index.html');
+            if (r.status() === 404) { test.skip(true, 'site predates contribute/ (< R2026.2)'); return; }
+            await expect(page.getByText(/PRJ[EDN][A-Z]\d+/).first()).toBeVisible({ timeout: 30000 });
+          });
           EOF
           npx playwright test smoke.spec.js --reporter=list
 

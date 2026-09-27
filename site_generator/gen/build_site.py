@@ -1092,6 +1092,7 @@ def main():
                       in_infant_catalog=list(sspec['in_infant_catalog_values']))
         render('registry.html', site['registry_page'], '../', nav='registry', rs=rstats, scopes=scope_rows, facets=facets, vocab=rvocab,
                parquet_size=human(reg_path.stat().st_size), n_cols=int(rg.shape[1]), audit_name=sspec['files']['audit'],
+               package_version=version, runs_asset_url=f"https://github.com/{site['github']['org']}/{site['github']['repos']['data']}/releases/download/data-v{version}/registry_runs_v{version}.parquet",
                scope_labels={sc['id']: sc['label'] for sc in sspec['scopes']}, site_labels=vocabs['body_site'], stage_labels=stage_labels, included_accs=included,
                crumbs=[dict(label='Home', href='../index.html'), dict(label='Registry')])
         TOP_COLS = ['study_accession', 'study_title', 'n_samples', 'n_runs', 'body_sites', 'life_stages', 'assay', 'classification_stage', 'in_infant_catalog']

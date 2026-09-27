@@ -269,6 +269,60 @@ def update_docs_worklist(pkg: str, package_version: str, release_id: str, counts
     return True
 
 
+def update_docs_registry(pkg: str, package_version: str, release_id: str, counts: dict, schema_path: str | None = None) -> bool:
+    """Registry tier (R2026.4, scale-up S1): README Files rows + DATA_DICTIONARY 'Registry tier' section generated from the frozen
+    audit/registry_schema.json (column descriptions) — no-op when registry_studies.parquet is absent or already documented."""
+    st_p, au_p = os.path.join(pkg, "registry_studies.parquet"), os.path.join(pkg, "registry_universe_audit.csv")
+    if not os.path.exists(st_p):
+        return False
+    schema_path = schema_path or os.path.join(os.path.dirname(__file__), "..", "..", "..", "audit", "registry_schema.json")
+    schema = json.load(open(schema_path, encoding="utf-8"))["tables"]
+    n_st = _rows(st_p)
+    rg = pd.read_parquet(st_p, columns=["host_human", "n_runs", "classification_stage"])
+    counts["n_registry_studies"] = n_st
+    counts["n_registry_runs"] = int(pd.to_numeric(rg["n_runs"], errors="coerce").fillna(0).sum())
+    counts["n_registry_human"] = int((rg["host_human"] == "yes").sum())
+    counts["n_registry_llm"] = int(rg["classification_stage"].isin(["sonnet_x2", "opus_adjudicated"]).sum())
+    rp = os.path.join(pkg, "README.md")
+    s = open(rp, encoding="utf-8").read()
+    if "`registry_studies.parquet`" not in s:
+        anchor = "| `DATA_DICTIONARY.md` | | Every column, every vocabulary |"
+        assert anchor in s, "README Files table anchor row not found"
+        rows = [f"| `registry_studies.parquet` | {n_st:,} | **Registry tier**: one row per ENA study of the human shotgun-metagenome universe (all body sites, all ages) — host_human, assay, body_sites/life_stages (config/vocab codes with UBERON anchors), population flags, access, evidence rows, classification_stage, infant-catalog verdict, scope_memberships (config/scope.yaml) — {release_id} |"]
+        if os.path.exists(au_p):
+            rows.append(f"| `registry_universe_audit.csv` | {_rows(au_p):,} | Registry enumeration audit: per ENA slice the archive count, rows pulled and completeness — {release_id} |")
+        rows.append(f"| `REGISTRY_REPORT.md` | | Registry build report (universe counts per slice, host / assay / site / stage facets, scope sizes, deviations) — {release_id} |")
+        s = s.replace(anchor, "\n".join(rows) + "\n" + anchor, 1)
+        open(rp, "w", encoding="utf-8").write(s)
+    dp = os.path.join(pkg, "DATA_DICTIONARY.md")
+    d = open(dp, encoding="utf-8").read()
+    if "## Registry tier" in d:
+        return True
+    L = [f"\n## Registry tier ({release_id}, package {package_version})",
+         "The registry is the **outer tier** of the catalog (docs/EXPANSION.md): every ENA study with a human shotgun-metagenome signal, any body site,",
+         "any age, classified at STUDY level from ENA study/sample/run metadata (no paper reading). Enumeration slices: S1 `library_source=METAGENOMIC` ×",
+         "`WGS|WXS`; S2 misfiled `GENOMIC` on verified human-metagenome taxa; S3 `OTHER|Targeted-Capture|WGA` adjudication (per-slice completeness in",
+         "`registry_universe_audit.csv`). Classification stages: `deterministic_prior` (infant-universe verdict carried over), `deterministic_rule`,",
+         "`sonnet_x2` (two rubric replicates agree), `opus_adjudicated` (replicates disagreed → adjudication), `pending`. Vocabularies: the pipeline's",
+         "`config/vocab/{body_sites,life_stages,assay,population_flags}.yaml`; scope rules: `config/scope.yaml`. The curated infant catalog is the scope",
+         "`infant_gut` inside this registry (`in_infant_catalog` mirrors `universe_studies_all.triage_verdict`). The run-level table `registry_runs.parquet`",
+         "(all runs of the universe, 46 ENA fields + `found_by`) is attached to the GitHub Release of the data repository as `registry_runs_v<version>.parquet`",
+         "(too large for this package). Bitemporal columns follow the package convention (`release_added`, `release_retired`, `package_added`).", ""]
+    for fn, title in (("registry_studies.parquet", f"registry_studies.parquet ({n_st:,} rows)"), ("registry_universe_audit.csv", "registry_universe_audit.csv")):
+        if fn not in schema or not os.path.exists(os.path.join(pkg, fn)):
+            continue
+        L += [f"### {title}", "", "| column | dtype | meaning |", "|---|---|---|"]
+        L += [f"| `{c['name']}` | {c.get('type', '')} | {c.get('description', '')} |" for c in schema[fn]["columns"]]
+        L += [""]
+    marker = "\n## Sandpiper columns (added v1.2.0)"
+    if marker in d:
+        d = d.replace(marker, "\n".join(L) + marker, 1)
+    else:
+        d = d.rstrip() + "\n" + "\n".join(L)
+    open(dp, "w", encoding="utf-8").write(d)
+    return True
+
+
 def prepend_changelog(pkg: str, entry_path: str | None) -> bool:
     if not entry_path or not os.path.exists(entry_path):
         return False
@@ -303,10 +357,11 @@ def main(argv=None):
     update_readme(a.package, a.package_version, a.release_id, a.build_date, counts)
     update_dictionary(a.package, a.package_version, a.release_id, cfg, counts)
     worklist_doc = update_docs_worklist(a.package, a.package_version, a.release_id, counts)
+    registry_doc = update_docs_registry(a.package, a.package_version, a.release_id, counts)
     json.dump(counts, open(os.path.join(a.package, "build_counts.json"), "w"), indent=1, sort_keys=True)
     changed = prepend_changelog(a.package, a.changelog_entry)
     sanitised = sanitise_session_tokens(a.package)  # F7
-    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed, "worklist_documented": worklist_doc, "session_tokens_stripped": sanitised}))
+    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed, "worklist_documented": worklist_doc, "registry_documented": registry_doc, "session_tokens_stripped": sanitised}))
     return 0
 
 
