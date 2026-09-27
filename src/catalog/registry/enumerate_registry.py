@@ -7,15 +7,17 @@ deterministic human-signal flags and study records aggregated for classification
 
 Slices (NO taxon frame, NO date filter unless --since):
   S1 shotgun_frame_free   library_source="METAGENOMIC" AND library_strategy in (WGS, WXS)
-                          -- partitioned by first_public year (ENA offset paging is unreliable;
-                          a limit=0 stream per partition keeps every body < ~400 MB). A
+                          -- partitioned by first_public year (quarters from 2023; ENA offset paging is
+                          unreliable and whole-year streams >~90 MB were truncated server-side). A
                           run_accession-only index of the whole slice is pulled first and any run
                           missing from the union of partitions (blank first_public) is fetched by
                           accession, so the slice is count-complete by construction.
   S2 misfiled_genomic     library_source="GENOMIC" AND strategy in (WGS, WXS) AND tax_eq(<human-
                           metagenome taxa>) -- community sequencing filed as GENOMIC.
   S3 adjudication         library_strategy in (OTHER, Targeted-Capture, WGA) AND
-                          ((library_source in (METAGENOMIC, OTHER) AND (host_tax_id=9606 OR
+                          (library_source=METAGENOMIC [all taxa -- the infant universe holds 339
+                          METAGENOMIC/OTHER studies under generic 'metagenome'/virome taxa, 3 of them
+                          included cohorts] OR (library_source=OTHER AND (host_tax_id=9606 OR
                           tax_eq(9606) OR human-metagenome taxa)) OR (library_source=GENOMIC AND
                           human-metagenome taxa)).  GENOMIC x tax_eq(9606) (1.19M human-genome
                           runs) and GENOMIC x host_tax_id=9606 (70k isolate genomes) are excluded
@@ -82,6 +84,7 @@ PULL_FIELDS = RU.PULL_FIELDS                      # 45 read_run fields (43 lean 
 RUN_SCHEMA = pa.schema([(c, pa.string()) for c in PULL_FIELDS] + [("slice_tag", pa.string())])
 RUNS_OUT_COLS = PULL_FIELDS + ["found_by"]
 FIRST_YEAR = 2010                                 # ENA: 0 METAGENOMIC WGS/WXS runs public before 2010 (probed 2026-09-27)
+QUARTERLY_FROM = 2023                             # years with >150k runs are pulled per quarter (2025/2026 whole-year streams were truncated by ENA at ~93 MB)
 
 # Human-metagenome taxa for slices S2/S3. Names are ENA scientific_name values; ids were resolved
 # 2026-09-27 with a read_run probe scientific_name="<name>" -> tax_id and are re-verified at run time.
@@ -124,10 +127,17 @@ def build_slices(since=None):
     s1 = SC3.ena_shotgun_clause() + d
     s2 = SC3.ena_misfiled_genomic_clause() + f" AND {taxc}" + d
     strat3 = '(library_strategy="OTHER" OR library_strategy="Targeted-Capture" OR library_strategy="WGA")'
-    s3 = (f'{strat3} AND ((library_source="METAGENOMIC" OR library_source="OTHER") AND '
-          f'(host_tax_id=9606 OR tax_eq(9606) OR {taxc}) OR (library_source="GENOMIC" AND {taxc}))' + d)
+    s3 = (f'{strat3} AND (library_source="METAGENOMIC" OR '
+          f'(library_source="OTHER" AND (host_tax_id=9606 OR tax_eq(9606) OR {taxc})) OR '
+          f'(library_source="GENOMIC" AND {taxc}))' + d)
     this_year = int(time.strftime("%Y"))
-    parts = [(f"y{y}", f"first_public>={y}-01-01 AND first_public<={y}-12-31") for y in range(FIRST_YEAR, this_year + 1)]
+    parts = []
+    for y in range(FIRST_YEAR, this_year + 1):
+        if y < QUARTERLY_FROM:
+            parts.append((f"y{y}", f"first_public>={y}-01-01 AND first_public<={y}-12-31"))
+        else:                                     # >150k runs/year: ENA truncates ~100 MB streams -> quarters
+            for qi, (m0, m1, d1) in enumerate([("01", "03", "31"), ("04", "06", "30"), ("07", "09", "30"), ("10", "12", "31")], 1):
+                parts.append((f"y{y}q{qi}", f"first_public>={y}-{m0}-01 AND first_public<={y}-{m1}-{d1}"))
     return [("S1", "shotgun_frame_free", s1, parts),
             ("S2", "misfiled_genomic_human_taxa", s2, None),
             ("S3", "adjudication_other_tc_wga", s3, None)]
@@ -314,8 +324,9 @@ def fetch_study_meta(accs, log):
             rows.append(_read_tsv(body.decode("utf-8", "replace"), STUDY_FIELDS))
     meta = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(columns=STUDY_FIELDS)
     meta = meta.drop_duplicates("study_accession")
-    log(f"study metadata: {meta.study_accession.nunique():,}/{len(accs):,} studies have an ENA study record "
-        f"({len(accs) - meta.study_accession.nunique()} without -> title from read_run) "
+    n_hit = int(meta.study_accession.isin(set(accs)).sum())   # ENA also returns rows for accessions not asked for
+    log(f"study metadata: {n_hit:,}/{len(accs):,} requested studies have an ENA study record "
+        f"({len(accs) - n_hit} without -> title from read_run; {len(meta) - n_hit} unrequested rows returned) "
         f"[{len(urls)} calls, {time.time()-t0:.0f}s]")
     return meta
 
@@ -557,9 +568,11 @@ def write_report(out_dir, audit, st, runs, bi, infant, misses, t_start, lines, s
            + (f" Date window: first_public>={since}." if since else " No date window, no taxon frame."),
            "", "## Slices and completeness (registry_universe_audit.csv)",
            _md(aud, ["slice", "partition", "ena_count", "rows_pulled", "complete", "seconds"]),
-           "", "S4 (library_source=METATRANSCRIPTOMIC) is out of scope and was not pulled. S3 excludes "
-           "library_source=GENOMIC x tax_eq(9606) (human genome sequencing, 1.19M runs on 2026-09-27) and GENOMIC x "
-           "host_tax_id=9606 (bacterial isolate genomes, 70k runs); GENOMIC is kept in S3 only on human-metagenome taxa.",
+           "", "S4 (library_source=METATRANSCRIPTOMIC) is out of scope and was not pulled. S3 pulls every "
+           "METAGENOMIC x OTHER/Targeted-Capture/WGA run (no taxon restriction), OTHER-source runs only with a human host/"
+           "taxon signal, and GENOMIC-source runs only on the 21 human-metagenome taxa; GENOMIC x tax_eq(9606) (human "
+           "genome sequencing, 1.19M runs on 2026-09-27) and GENOMIC x host_tax_id=9606 (bacterial isolate genomes, 70k "
+           "runs) are excluded by design.",
            "", "## Runs",
            f"* registry_runs.parquet: **{len(runs):,}** unique runs / **{runs.study_accession.nunique():,}** studies; "
            f"columns = 45 read_run PULL_FIELDS + found_by.",
@@ -655,11 +668,17 @@ def main(argv=None):
         log(f"loaded {len(runs):,} runs from {runs_path}")
 
     meta_path = out_dir / "registry_study_meta.parquet"
+    need = set(runs.study_accession.unique())
     if meta_path.exists():
         meta = pd.read_parquet(meta_path)
         log(f"loaded {len(meta):,} study records from {meta_path}")
+        todo = sorted(need - set(meta.study_accession))
+        if todo:                                  # incremental: only studies not yet fetched
+            log(f"fetching study records for {len(todo):,} new studies")
+            meta = pd.concat([meta, fetch_study_meta(todo, log)], ignore_index=True).drop_duplicates("study_accession")
+            meta.to_parquet(meta_path, index=False)
     else:
-        meta = fetch_study_meta(runs.study_accession.unique(), log)
+        meta = fetch_study_meta(need, log)
         meta.to_parquet(meta_path, index=False)
 
     infant = (pd.read_parquet(a.infant_universe) if a.infant_universe
