@@ -57,6 +57,17 @@
 {% if evidence %}<ul>{% for e in evidence %}<li><span class="quote">“{{ e.quote }}”</span> <span class="small mono">{{ e.source }}</span></li>{% endfor %}</ul>{% endif %}
 {% if s.note %}<p class="small">{{ s.note }}</p>{% endif %}
 
+{% if help %}
+<div class="help-panel" id="help-complete">
+<h2>Help complete this study</h2>
+<p class="small">Worklist rank <b>#{{ help.rank }}</b> of {{ stats_n_contribute|fmt }} open studies (<a href="../contribute/index.html">contribute/</a>) · verdict {{ help.triage_verdict }} · {{ help.n_catalog_scope|fmt }} catalog-scope samples · priority {{ help.priority_score|num2 }}</p>
+<p><b>Missing:</b> {% for c in help.chips %}<span class="chip {{ 'miss' if c.missing else 'ok' }}" title="{{ c.label }}: {{ c.pct }} of catalog-scope samples have a value; predicted recoverability tier {{ c.tier }}">{{ c.label }} {{ c.pct }} <span class="tag {{ c.tier }}">{{ c.tier }}</span></span> {% endfor %}</p>
+<p><b>Blocker:</b> {{ help.blocker_label }} <span class="mono small">{{ help.blocker_code }}</span>{% if help.blocker_detail %} — <span class="small">{{ help.blocker_detail }}</span>{% endif %}</p>
+<p><b>What would unlock this:</b> {{ help.unlock_text }}</p>
+<div class="btns"><a class="btn contribute" href="{{ help.issue_url }}" title="Opens a prefilled GitHub Issue (template catalog-contribution.yml, type {{ help.contribution_type }}) — needs a GitHub account">Contribute: {{ help.type_label }}</a> <a class="btn sec" href="../contribute/index.html#how">How contributions work</a></div>
+<p class="small">Data only (CSV/TSV/XLSX ≤ 50 MB, no participant names or e-mail addresses); redistributed under CC-BY-4.0 or derived values only; deterministic joinability check, then Curator review; attribution in the next release.</p>
+</div>
+{% endif %}
 <h2>Recoverability tiers (predicted before extraction)</h2>
 <p class="small">R1 archive attribute · R2 supplementary table · R3 paper text · R4 abstract · R0 none</p>
 <p>{% for k,v in recov %}<span class="tag {{ v }}">{{ k }}: {{ v }}</span> {% endfor %}</p>

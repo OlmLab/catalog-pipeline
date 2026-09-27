@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Contribute — {{ site.title }}{% endblock %}
+{% block desc %}{{ cs.n_open|fmt }} studies of the Infant Gut Shotgun-Metagenome Catalog still lack per-sample metadata; the ranked worklist says what is missing, why, and what would unlock each study.{% endblock %}
+{% block content %}
+<h1>Contribute: {{ cs.n_open|fmt }} studies need metadata</h1>
+<p class="lead">The pipeline recovers per-sample metadata from archive attributes, supplementary tables and papers — but for the studies below it could not. Each row says <b>what is missing</b>, <b>why</b> (the blocker) and <b>what would unlock it</b>. If you know the study (you are an author, a lab member, or you have read the paper) you can often supply the missing table or key in minutes.</p>
+
+<div class="cards">
+<div class="card"><div class="num">{{ cs.n_open|fmt }}</div><div class="lbl">open studies ({{ cs.n_include|fmt }} included, {{ cs.n_uncertain|fmt }} inclusion uncertain)</div></div>
+<div class="card"><div class="num">{{ cs.n_samples|fmt }}</div><div class="lbl">archive samples affected ({{ cs.n_catalog_scope|fmt }} catalog-scope samples)</div></div>
+<div class="card"><div class="num">{{ cs.n_field_gaps|fmt }}</div><div class="lbl">study × field gaps (coverage &lt; {{ (cs.threshold*100)|int }}% over {{ cs.fields|length }} core fields)</div></div>
+{% for b in cs.blockers %}<div class="card"><div class="num">{{ b.n|fmt }}</div><div class="lbl">{{ b.label }} <span class="mono small">{{ b.code }}</span></div></div>{% endfor %}
+</div>
+
+<h2 id="how">How to contribute</h2>
+<div class="grid2">
+<div>
+<h3>Five kinds of contribution</h3>
+<table class="tbl compact">
+<thead><tr><th>Type</th><th>What to send</th></tr></thead><tbody>
+{% for t in cs.types %}<tr><td class="mono">{{ t.code }}</td><td>{{ t.label }}</td></tr>{% endfor %}
+</tbody></table>
+<p class="small">A table keyed by <b>run accession</b> (SRR/ERR/DRR) or <b>BioSample</b> (SAMN/SAMEA/SAMD) joins directly. Tables keyed by the paper's own sample names (e.g. <span class="mono">T1_S23</span>) need an <b>ID key</b> as well — the archive holds no such names. Ages as numbers with a unit; controlled vocabularies are in <a href="../fields/index.html">Fields</a>.</p>
+<h3>Licence and privacy</h3>
+<p class="small">By contributing you confirm that the uploaded table may be redistributed under <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>, or you ask that only derived values be published (the file is then kept privately for audit). Upload <b>research metadata only</b>: no participant names, no e-mail addresses, no free-text clinical notes. Your GitHub login is the provenance record; it is stored hashed in the package.</p>
+</div>
+<div>
+<h3>What happens next</h3>
+<ol class="small">
+<li><b>Contribute</b> opens a prefilled GitHub Issue (label <span class="mono">contribution</span>); drag-and-drop your CSV/TSV/XLSX (≤ 50 MB) into the note field. A GitHub account is needed.</li>
+<li><b>Deterministic ingest</b> (daily): the pipeline downloads the attachment, records its sha256 and checks whether an identifier column joins to the study's own run accessions, sample keys, sample titles or library names. It comments on the Issue with a verdict — <span class="mono">accepted_for_review</span>, <span class="mono">unjoinable</span> (with the ID form it saw and what key is missing), <span class="mono">duplicate_of_existing</span> or <span class="mono">rejected</span> (type/size). Nothing you upload is executed.</li>
+<li><b>Curator review</b>: accepted tables go through the same extraction contract as journal supplements (route R2, every value with evidence, conflicts to the conflict queue — never a silent overwrite).</li>
+<li><b>Next release</b>: applied values carry <span class="mono">release_added</span> and the study page shows the attribution ("per-sample table contributed by &lt;login&gt;, &lt;date&gt;").</li>
+</ol>
+<p class="small"><b>Claim a task</b> to avoid duplicate effort: comment "working on it" on the study's Issue (open one with the Contribute button if none exists yet). Open contribution Issues: <a href="{{ cs.issues_list_url }}">github.com › {{ cs.repo }} › issues · label:contribution</a>.</p>
+</div>
+</div>
+
+<h2 id="worklist">Worklist ({{ cs.n_open|fmt }} studies, ranked by priority)</h2>
+<p class="small">Priority = Σ<sub>missing fields</sub> weight × (1 − coverage) × log<sub>10</sub>(catalog-scope samples + 1); weights {% for k, w in cs.weights %}{{ k }} {{ w }}{% if not loop.last %} · {% endif %}{% endfor %}. Coverage = fraction of the study's catalog-scope samples with a value; a field counts as missing below {{ (cs.threshold*100)|int }}%. Recoverability tier per field (R1 archive attribute … R4 abstract, R0 none) is the pipeline's pre-extraction prediction. Source: <a href="../data/package/contribute_worklist.csv">contribute_worklist.csv</a> · <a href="../data/package/contribute_worklist_fields.csv">contribute_worklist_fields.csv</a> · <a href="../data/contribute_worklist.json">JSON</a>. Release {{ site.release_id }}.</p>
+
+<div class="wl-filters" id="wl-filters">
+<label>Blocker <select id="f-blocker"><option value="">all</option>{% for b in cs.blockers %}<option value="{{ b.code }}">{{ b.label }} ({{ b.n }})</option>{% endfor %}</select></label>
+<label>Missing field <select id="f-field"><option value="">any</option>{% for f in cs.fields %}<option value="{{ f.name }}">{{ f.label }} ({{ f.n_missing }})</option>{% endfor %}</select></label>
+<label>Contribution asked <select id="f-type"><option value="">any</option>{% for t in cs.types %}{% if t.n %}<option value="{{ t.code }}">{{ t.code }} ({{ t.n }})</option>{% endif %}{% endfor %}</select></label>
+<label>Min. samples <input id="f-min" type="number" min="0" step="10" value="0" style="width:6em"></label>
+<label>Verdict <select id="f-verdict"><option value="">any</option><option value="include">included</option><option value="uncertain">uncertain</option></select></label>
+<label>Search <input id="f-q" type="search" placeholder="accession, title, cohort" style="width:16em"></label>
+<span class="small" id="wl-count">{{ cs.n_open|fmt }} shown</span>
+</div>
+
+<table class="tbl compact wl" id="worklist">
+<thead><tr><th class="num">#</th><th>Study</th><th>Cohort</th><th class="num">Samples<br><span class="small">catalog-scope</span></th><th>Missing fields (coverage · tier)</th><th>Blocker</th><th>What would unlock this</th><th class="num">Papers</th><th>Links</th><th></th></tr></thead>
+<tbody>
+{% for r in rows %}<tr data-blocker="{{ r.blocker_code }}" data-fields="{{ r.missing_fields }}" data-type="{{ r.contribution_type }}" data-n="{{ r.n_samples }}" data-verdict="{{ r.triage_verdict }}" data-k="{{ r.k }}">
+<td class="num">{{ r.rank }}</td>
+<td>{% if r.has_page %}<a class="mono" href="../studies/{{ r.study_accession }}.html">{{ r.study_accession }}</a>{% else %}<span class="mono">{{ r.study_accession }}</span> <span class="tag human_review" title="inclusion uncertain — in human review; no catalog page yet">uncertain</span>{% endif %}<br><span class="small">{{ (r.study_title or '')[:110] }}{% if r.study_title and r.study_title|length > 110 %}…{% endif %}</span>{% if r.controlled_access %} <span class="tag">controlled access</span>{% endif %}</td>
+<td class="small">{% if r.cohort_has_page %}<a href="../cohorts/{{ r.cohort_id }}.html">{{ r.cohort_name }}</a>{% elif r.cohort_name %}{{ r.cohort_name }} <span class="mono">{{ r.cohort_id }}</span>{% else %}—{% endif %}</td>
+<td class="num">{{ r.n_samples|fmt }}<br><span class="small">{{ r.n_catalog_scope|fmt }}</span></td>
+<td>{% for c in r.chips %}<span class="chip {{ 'miss' if c.missing else 'ok' }}" title="{{ c.label }}: {{ c.pct }} of catalog-scope samples have a value; predicted recoverability tier {{ c.tier }}">{{ c.short }} {{ c.pct }} <span class="tag {{ c.tier }}">{{ c.tier }}</span></span>{% endfor %}</td>
+<td><span class="blk" title="{{ r.blocker_detail }}">{{ r.blocker_label }}</span><br><span class="small">{{ r.blocker_detail }}</span></td>
+<td class="small">{{ r.unlock_text }}</td>
+<td class="num">{{ r.n_linked_papers }}{% if r.own_data_pmids %}<br><span class="small">{% for p in r.pmids[:3] %}<a href="https://pubmed.ncbi.nlm.nih.gov/{{ p }}/">{{ p }}</a>{% if not loop.last %} {% endif %}{% endfor %}{% if r.pmids|length > 3 %} …{% endif %}</span>{% endif %}</td>
+<td class="small"><a href="{{ r.ena_url }}">ENA</a> · <a href="{{ r.ncbi_url }}">NCBI</a></td>
+<td><a class="btn xs contribute" href="{{ r.issue_url }}" title="Opens a prefilled GitHub Issue (template catalog-contribution.yml, type {{ r.contribution_type }}) — needs a GitHub account">Contribute</a></td>
+</tr>
+{% endfor %}
+</tbody></table>
+<p class="small" id="wl-empty" hidden>No study matches the filters.</p>
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  const rows=[...document.querySelectorAll('#worklist tbody tr')];
+  const el=id=>document.getElementById(id);
+  const inputs=['f-blocker','f-field','f-type','f-min','f-verdict','f-q'].map(el);
+  function apply(){
+    const b=el('f-blocker').value, f=el('f-field').value, t=el('f-type').value, v=el('f-verdict').value;
+    const min=parseInt(el('f-min').value||'0',10)||0, q=el('f-q').value.trim().toLowerCase();
+    let n=0;
+    for(const r of rows){
+      const d=r.dataset;
+      const ok=(!b||d.blocker===b)&&(!f||(';'+d.fields+';').includes(';'+f+';'))&&(!t||d.type===t)&&(!v||d.verdict===v)&&(parseInt(d.n,10)>=min)&&(!q||d.k.includes(q));
+      r.hidden=!ok; if(ok) n++;
+    }
+    el('wl-count').textContent=n.toLocaleString()+' shown';
+    el('wl-empty').hidden=n>0;
+  }
+  inputs.forEach(i=>i.addEventListener('input',apply));
+  const p=new URLSearchParams(location.search);
+  for(const [k,id] of [['blocker','f-blocker'],['field','f-field'],['type','f-type'],['min','f-min'],['verdict','f-verdict'],['q','f-q']]) if(p.get(k)) el(id).value=p.get(k);
+  apply();
+})();
+</script>
+{% endblock %}

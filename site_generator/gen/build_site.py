@@ -83,6 +83,8 @@ FILE_DESC = {
     'study_authors_summary.csv': 'Per screened study: first/last author, n authors, organisations.',
     'authors_index.json': 'Author search index used by the Authors page.',
     'sample_determinations_all.parquet': 'Bitemporal determinations: current rows (release_retired null) plus every retired row with release_added / release_retired / retired_reason / retired_change_stage (R2026.1).',
+    'contribute_worklist.csv': 'Contribution worklist (R2026.2): one row per open study — missing fields, coverage, recoverability tiers, blocker code, unlock text, prefilled Issue URL.',
+    'contribute_worklist_fields.csv': 'Contribution worklist, study × field: coverage, n_with_value, best tier, field-level blocker, evidence.',
     'releases.csv': 'Release registry: one row per release id (release date, package version, tags, DOI, headline counts).',
     'VERSION.json': 'Package version, release id, release tag, build date, sha256 + rows per table.',
     'DATA_DICTIONARY.md': 'Every column, every vocabulary.', 'README.md': 'Package overview and how to read a value.',
@@ -212,6 +214,22 @@ def read_release_spec(cfg_path):
     return spec
 
 
+def read_contribute_spec(cfg_path):
+    """config/contribute.yaml — the frozen R2026.2 worklist schema shared with src/catalog/contribute. The generator reads only:
+    blocker codes + labels, contribution types + labels, fields + weights + threshold, column lists and the issue_url template."""
+    spec = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8'))
+    for k in ('blocker_codes', 'contribution_types', 'fields', 'field_weights', 'missing_threshold', 'worklist_columns', 'fields_columns', 'issue_form', 'files'):
+        assert k in spec, f'config/contribute.yaml lacks {k}'
+    return spec
+
+
+def contribute_issue_url(spec, acc, ctype, release_id):
+    """Prefilled contribution Issue URL (ids = query keys of catalog-contribution.yml). Same rule as the Data track's build_worklist."""
+    f = spec['issue_form']
+    title = quote(f['title'].format(study_accession=acc, contribution_type=ctype), safe='')
+    return f['url_template'].format(repo=f['repo'], template=f['template'], label=f['label'], title=title, study_accession=acc, contribution_type=ctype, release_id=release_id)
+
+
 def read_data_repo_id(cfg_path):
     """config/site.yaml github.data_repo_id (GitHub repository id of the data repo; Zenodo badge/latestdoi URLs are built from it)."""
     txt = Path(cfg_path).read_text(encoding='utf-8') if cfg_path and Path(cfg_path).exists() else ''
@@ -253,6 +271,7 @@ def main():
     ap.add_argument('--config', default=str(HERE.parent.parent / 'config' / 'site.yaml'))
     ap.add_argument('--base-url', default=None, help='overrides config/site.yaml site.base_url')
     ap.add_argument('--releases-config', default=str(HERE.parent.parent / 'config' / 'releases.yaml'), help='frozen bitemporal/release spec shared with src/catalog/release')
+    ap.add_argument('--contribute-config', default=str(HERE.parent.parent / 'config' / 'contribute.yaml'), help='frozen contribution-worklist spec shared with src/catalog/contribute (R2026.2)')
     ap.add_argument('--allow-placeholder-base-url', action='store_true', help='test builds only')
     ap.add_argument('--build-date', default=None, help='overrides VERSION.json build_date (tests only)')
     ap.add_argument('--max-rows-html', type=int, default=2000)
@@ -268,7 +287,7 @@ def main():
         sys.exit(f'refusing to build: base_url is the placeholder {placeholder!r} (A15). Set site.base_url in config/site.yaml or pass --base-url.')
     if out.exists():
         shutil.rmtree(out)
-    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes']:
+    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes', 'contribute']:
         (out / d).mkdir(parents=True, exist_ok=True)
 
     # ---------- load ----------
@@ -328,6 +347,35 @@ def main():
     uni_all = uni
     uni = uni[uni[RR].isna()].reset_index(drop=True) if RR in uni.columns else uni  # current verdict rows drive every existing page
     hrq = pd.read_csv(pkg / 'human_review_queue.csv')
+    # ---------- contribution worklist (R2026.2: config/contribute.yaml is the one spec both tracks read) ----------
+    cspec = read_contribute_spec(a.contribute_config)
+    wl_path = pkg / cspec['files']['worklist']
+    has_contribute = wl_path.exists()
+    if rel_key(release_id) >= rel_key(cspec['release_id']):
+        assert has_contribute, f"{cspec['files']['worklist']} missing from a package of release {release_id} (>= {cspec['release_id']})"
+    wl = wlf = None
+    if has_contribute:
+        wl = pd.read_csv(wl_path, dtype={'own_data_pmids': str, 'missing_fields': str, 'cohort_id': str}, keep_default_na=True)
+        wlf = pd.read_csv(pkg / cspec['files']['worklist_fields'])
+        assert list(wl.columns) == list(cspec['worklist_columns']), f"{wl_path.name} columns differ from config/contribute.yaml worklist_columns: {sorted(set(wl.columns) ^ set(cspec['worklist_columns']))}"
+        assert list(wlf.columns) == list(cspec['fields_columns']), f"{cspec['files']['worklist_fields']} columns differ from config/contribute.yaml fields_columns"
+        assert wl.study_accession.is_unique and (wl['rank'].sort_values().values == range(1, len(wl) + 1)).all(), 'worklist: one row per study, rank 1..n'
+        assert set(wl.blocker_code) <= set(cspec['blocker_codes']) and 'complete' not in set(wl.blocker_code), f'worklist blocker codes outside the vocabulary: {sorted(set(wl.blocker_code) - set(cspec["blocker_codes"]))}'
+        assert set(wl.contribution_type) <= set(cspec['contribution_types']), 'worklist contribution_type outside the vocabulary'
+        assert set(wl.triage_verdict) <= {'include', 'uncertain'}, 'worklist verdicts must be include|uncertain'
+        assert (wl.n_missing_fields >= 1).all() and (wl.missing_fields.str.split(';').map(len) == wl.n_missing_fields).all(), 'every worklist study must miss >= 1 field'
+        assert set(wlf.study_accession) == set(wl.study_accession), 'worklist_fields must cover exactly the worklist studies'
+        _ph = cfg_base if cfg_base else ''
+        assert wl.issue_url.str.startswith('https://github.com/').all() and wl.issue_url.str.contains('template=' + cspec['issue_form']['template'], regex=False).all(), 'issue_url must be a prefilled Issue-form URL'
+        assert not wl.issue_url.str.contains('USERNAME|REPOSITORY', regex=True).any(), 'issue_url carries a placeholder'
+        for r in wl.head(5).itertuples(index=False):
+            assert r.issue_url == contribute_issue_url(cspec, r.study_accession, r.contribution_type, r.release_added), f'issue_url of {r.study_accession} differs from the config template'
+        _inc_wl = wl[wl.triage_verdict == 'include']
+        assert set(_inc_wl.study_accession) <= set(st.study_accession), 'included worklist studies must have a study page'
+        # F13-style consistency with the shipped tables: catalog-scope counts of included worklist studies equal study_metadata_wide
+        _ncs = st.set_index('study_accession').n_catalog_scope
+        _bad = [acc for acc, n in zip(_inc_wl.study_accession, _inc_wl.n_catalog_scope) if int(_ncs.get(acc, -1)) != int(n)]
+        assert not _bad, f'F13: worklist n_catalog_scope differs from study_metadata_wide for {_bad[:5]}'
     fcs = pd.read_csv(pkg / 'field_coverage_summary.csv')
     gold = pd.read_csv(pkg / 'extraction_gold_eval_hires.csv').rename(columns={'Unnamed: 0': 'field'})
     tiers = pd.read_csv(pkg / 'confidence_tiers.csv')
@@ -390,6 +438,9 @@ def main():
         taxonomy=f"{panels.taxonomy_db.iloc[0]} {panels.taxonomy_version.iloc[0]}" if len(panels) else 'GTDB',
     )
     stats['pct_profiled'] = int(round(100 * stats['n_profiled'] / max(1, stats['n_samples'])))
+    stats['n_contribute'] = int(len(wl)) if has_contribute else 0
+    stats['n_contribute_samples'] = int(wl.n_samples.sum()) if has_contribute else 0
+    stats['has_contribute'] = has_contribute
     assert stats['n_biosamples'] + stats['n_run_units'] == stats['n_samples'], 'F4: BioSample units + run units must equal the sample count'
     assert stats['n_studies_profiled'] == int((spcov.n_samples_profiled > 0).sum()) == int((st.sp_n_samples_profiled.fillna(0) > 0).sum()), 'F6: profiled-study definition disagrees between tables'
     assert stats['n_catalog_scope'] == stats['n_age_scope_infant'] - stats['n_body_site_excluded'], 'F9: catalog_scope must equal age-scope minus body-site excluded/linked'
@@ -403,7 +454,7 @@ def main():
                 upstream=UPSTREAM_CITATIONS, releases_page=rspec['site_pages']['releases_index'], changes_page=rspec['site_pages']['changes_index'],
                 description='Curated, evidence-linked catalog of public shotgun-metagenome studies of the human infant gut with per-sample metadata and Sandpiper community profiles.',
                 citation=f'Infant Gut Shotgun-Metagenome Catalog, release {release_id} (data package {version}), OlmLab, {cur_rel["release_date"]}.' + (f' doi:{doi}' if doi else ''),
-                sri=json.loads((HERE / 'static' / 'vendor' / 'SRI.json').read_text()))
+                sri=json.loads((HERE / 'static' / 'vendor' / 'SRI.json').read_text()), has_contribute=has_contribute, contribute_page='contribute/index.html')
 
     env = Environment(loader=FileSystemLoader(HERE / 'templates'), autoescape=select_autoescape(['html']))
     env.filters.update(fmt=f_fmt, pct=f_pct, pct1=f_pct1, num2=f_num2, numint=f_numint)
@@ -613,6 +664,27 @@ def main():
         d['organisations'] = org_display.get(acc, '')  # F1/R3-5: only org_type-displayable organisations are ever rendered
     vh_by_sample = vh.groupby('sample_key').size()
 
+    # ---------- contribute: per-study 'Help complete this study' panels ----------
+    CFIELDS = cspec['fields']                      # short key -> package field name
+    CSHORT = {v: k for k, v in CFIELDS.items()}
+    BLABEL, TLABEL = cspec['blocker_codes'], cspec['contribution_types']
+    help_by_study, wl_rows = {}, []
+    if has_contribute:
+        tiers_by = {(r.study_accession, r.field): r for r in wlf.itertuples(index=False)}
+        for r in wl.sort_values('rank', kind='mergesort').to_dict('records'):
+            r = clean(r)
+            acc = r['study_accession']
+            missing = [f for f in str(r['missing_fields']).split(';') if f]
+            chips = []
+            for k, f in CFIELDS.items():
+                cov = float(r.get(f'coverage_{k}') or 0)
+                chips.append(dict(field=f, short=k, label=LABELS.get(f, f), cov=cov, pct=f'{100*cov:.0f}%', tier=str(r.get(f'best_tier_{k}') or 'R0'), missing=f in missing))
+            pmids = [p for p in str(r.get('own_data_pmids') or '').split(';') if p and p != 'nan']
+            row = dict(r, chips=chips, pmids=pmids, missing=missing, blocker_label=BLABEL.get(r['blocker_code'], r['blocker_code']), type_label=TLABEL.get(r['contribution_type'], r['contribution_type']),
+                       has_page=acc in set(included), cohort_has_page=bool(r.get('cohort_id')) and r.get('cohort_id') in set(coh.cohort_id.astype(str)), controlled_access=bool(r.get('controlled_access')) if r.get('controlled_access') not in (None, '', 'False', False) else False,
+                       k=f"{acc} {r.get('study_title') or ''} {r.get('cohort_name') or ''} {r['blocker_code']}".lower())
+            wl_rows.append(row)
+            help_by_study[acc] = row
     # ---------- studies ----------
     studies = [clean(r) for r in st.to_dict('records')]
     render('studies_index.html', 'studies/index.html', '../', nav='studies', use_datatables=True, studies=studies,
@@ -647,7 +719,7 @@ def main():
         render('study.html', f'studies/{acc}.html', '../', nav='studies', use_datatables=True, s=s,
                papers=papers_by_study.get(acc, []), evidence=evidence, cov=cov, recov=recov, roles=roles, sites=sites, ages=ages,
                parents=parents_by_study.get(acc, []), history=hist_by_study.get(acc, []), timeline=timeline_by_study.get(acc, []), n_consolidated_hidden=n_consolidated_hidden.get(acc, 0), panel=panel_by_study.get(acc), pstatus=pstatus_by.get(acc, {}), spcov=spcov_by.get(acc, {}), spqc=spqc_by.get(acc, {}),
-               study_authors=authors_by_study.get(acc, []), sas=sas_by.get(acc, {}), flag_url=flag, confirm_url=confirm,
+               study_authors=authors_by_study.get(acc, []), sas=sas_by.get(acc, {}), flag_url=flag, confirm_url=confirm, help=help_by_study.get(acc), stats_n_contribute=stats['n_contribute'],
                samples=[clean(r) for r in shown[SAMPLE_COLS].to_dict('records')],
                n_total=n_total, n_shown=len(shown), dl=study_dl[acc],
                crumbs=[dict(label='Home', href='../index.html'), dict(label='Studies', href='index.html'), dict(label=acc)])
@@ -883,6 +955,31 @@ def main():
         assert (out / pth).stat().st_size < 2_000_000, f'{pth} over the 2 MB budget'
     print(f'[{time.time()-t0:.0f}s] releases + {len(changes)} changes pages', file=sys.stderr)
 
+    # ---------- contribute (R2026.2: read-only worklist, MATURITY_PLAN §3.2) ----------
+    if has_contribute:
+        n_missing_by_field = {f: int(sum(1 for r in wl_rows if f in r['missing'])) for f in CFIELDS.values()}
+        blockers = [dict(code=c, label=BLABEL[c], n=n) for c, n in counts_sorted(wl.blocker_code)]
+        types = [dict(code=c, label=TLABEL[c], n=int((wl.contribution_type == c).sum())) for c in cspec['contribution_types']]
+        cs = dict(n_open=len(wl), n_include=int((wl.triage_verdict == 'include').sum()), n_uncertain=int((wl.triage_verdict == 'uncertain').sum()),
+                  n_samples=int(wl.n_samples.sum()), n_catalog_scope=int(wl.n_catalog_scope.sum()), n_field_gaps=int(wl.n_missing_fields.sum()),
+                  threshold=float(cspec['missing_threshold']), blockers=blockers, types=types,
+                  fields=[dict(name=f, short=k, label=LABELS.get(f, f), n_missing=n_missing_by_field[f]) for k, f in CFIELDS.items()],
+                  weights=[(k, cspec['field_weights'][k]) for k in CFIELDS], repo=cspec['issue_form']['repo'],
+                  issues_list_url=f"https://github.com/{cspec['issue_form']['repo']}/issues?q=is%3Aissue+label%3A{cspec['issue_form']['label']}")
+        assert cs['n_field_gaps'] == sum(n_missing_by_field.values()), 'F13: field-gap count differs between the worklist and the fields table'
+        assert cs['n_field_gaps'] == int((wlf.coverage < cs['threshold']).sum()), 'F13: worklist n_missing_fields disagrees with worklist_fields coverage'
+        render('contribute.html', site['contribute_page'], '../', nav='contribute', rows=wl_rows, cs=cs,
+               crumbs=[dict(label='Home', href='../index.html'), dict(label='Contribute')])
+        wjson = [dict(rank=int(r['rank']), acc=r['study_accession'], title=r.get('study_title') or '', cohort=r.get('cohort_name') or '', verdict=r['triage_verdict'],
+                      n=int(r['n_samples']), ncs=int(r['n_catalog_scope']), missing=r['missing'], blocker=r['blocker_code'], detail=r.get('blocker_detail') or '', unlock=r.get('unlock_text') or '',
+                      type=r['contribution_type'], papers=int(r['n_linked_papers']), pmids=r['pmids'], score=float(r['priority_score']), issue_url=r['issue_url'],
+                      coverage={k: float(r.get(f'coverage_{k}') or 0) for k in CFIELDS}, tier={k: str(r.get(f'best_tier_{k}') or 'R0') for k in CFIELDS}) for r in wl_rows]
+        (out / 'data' / 'contribute_worklist.json').write_text(dumps(wjson), encoding='utf-8')
+        assert (out / site['contribute_page']).stat().st_size < 2_000_000, 'contribute/index.html over the 2 MB budget'
+        _html = (out / site['contribute_page']).read_text(encoding='utf-8')
+        assert _html.count('class="btn xs contribute"') == len(wl), 'contribute page must carry one Contribute button per worklist study'
+        print(f'[{time.time()-t0:.0f}s] contribute page: {len(wl)} studies', file=sys.stderr)
+
     # ---------- downloads + manifest ----------
     def dirstat(sub, pattern='*'):
         fs = [f for f in (out / sub).glob(pattern) if f.is_file()]
@@ -898,7 +995,7 @@ def main():
         dict(path='data/cohorts/<COH>.csv.gz|.parquet', desc='Per-cohort sample slices (multi-study cohorts)', **dirstat('data/cohorts')),
         dict(path='data/package/', desc='The complete package, file by file, plus the zip', **dirstat('data/package')),
         dict(path='authors/idx/<letter>.json', desc='Author index shards', **dirstat('authors/idx')),
-    ]
+    ] + ([dict(path='data/contribute_worklist.json', desc='Contribution worklist (one object per open study; same content as contribute_worklist.csv)', **dirstat('data', 'contribute_worklist.json'))] if has_contribute else [])
     offsite = [dict(o, desc=o['desc'].replace('{v}', version)) for o in OFFSITE]
     render('downloads.html', 'downloads.html', '', nav='downloads', files=pkg_files, zip_name=zip_name, zip_size=zip_size, sitedata=sitedata, offsite=offsite, vj=vj,
            crumbs=[dict(label='Home', href='index.html'), dict(label='Downloads')])
