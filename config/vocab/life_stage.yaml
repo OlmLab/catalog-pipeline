@@ -1,0 +1,42 @@
+# config/vocab/life_stage.yaml — registry life-stage vocabulary (FROZEN REGISTRY SPEC, scale-up S0/S1, 2026-09-27).
+# Written by the S1 (site) track from the frozen spec; the S0 track's copy WINS at merge (S1_MERGE_NOTE).
+# Numeric ages from attributes (age, host_age, age_years, dev_stage) map deterministically to a bin with the units
+# rules of the curation skill (unitless numbers -> unknown_age unless a unit is present). Day bounds are inclusive lower,
+# exclusive upper; 'infant' = 29 d – 3 y so that neonate + infant = 0–1,100 d = the infant catalog's age window.
+schema_version: 1
+column: life_stages
+primary_column: life_stage_primary
+codes:
+  neonate:
+    label: Neonate (0–28 d)
+    days: [0, 29]
+    terms: [neonat, newborn, meconium, NICU, preterm]
+  infant:
+    label: Infant / toddler (29 d – 3 y)
+    days: [29, 1101]
+    terms: [infant, baby, babies, toddler, 'months old']
+  child:
+    label: Child (3–12 y)
+    days: [1101, 4383]
+    terms: [child, children, paediatric, pediatric, school-age, preschool]
+  adolescent:
+    label: Adolescent (12–18 y)
+    days: [4383, 6575]
+    terms: [adolescent, teen]
+  adult:
+    label: Adult (18–65 y)
+    days: [6575, 23742]
+    terms: [adult, men, women, volunteer]
+  elderly:
+    label: Elderly (> 65 y)
+    days: [23742, null]
+    terms: [elderly, 'older adults', centenarian, 'nursing home']
+  unknown_age:
+    label: Age unknown
+    days: null
+    terms: []
+  mixed_ages:
+    label: Mixed ages (study-level)
+    days: null
+    terms: []
+infant_catalog_window_days: [0, 1100]   # inclusive; = neonate + infant

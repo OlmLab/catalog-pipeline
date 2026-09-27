@@ -25,6 +25,7 @@
 <a href="{{ root }}fields/index.html" {% if nav=='fields' %}class="active"{% endif %}>Fields</a>
 <a href="{{ root }}authors/index.html" {% if nav=='authors' %}class="active"{% endif %}>Authors</a>
 <a href="{{ root }}universe.html" {% if nav=='universe' %}class="active"{% endif %}>Universe</a>
+{% if site.has_registry %}<a href="{{ root }}{{ site.registry_page }}" {% if nav=='registry' %}class="active"{% endif %}>Registry</a>{% endif %}
 <a href="{{ root }}methods.html" {% if nav=='methods' %}class="active"{% endif %}>Methods</a>
 <a href="{{ root }}downloads.html" {% if nav=='downloads' %}class="active"{% endif %}>Downloads</a>
 <a href="{{ root }}releases/index.html" {% if nav=='releases' %}class="active"{% endif %}>Releases</a>

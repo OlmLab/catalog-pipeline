@@ -1,0 +1,13 @@
+# config/vocab/population_flags.yaml — registry population flags (FROZEN REGISTRY SPEC, 2026-09-27); ';'-joined, multi allowed.
+# Written by the S1 (site) track from the frozen spec; the S0 track's copy WINS at merge (S1_MERGE_NOTE).
+schema_version: 1
+column: population_flags
+codes:
+  pregnant: {label: Pregnant participants}
+  mother_infant_pair: {label: Mother–infant pairs}
+  twins: {label: Twins / multiple births}
+  disease_cohort: {label: Disease cohort}
+  healthy_volunteers: {label: Healthy volunteers}
+  hospitalised: {label: Hospitalised / ICU / NICU}
+  antibiotic_trial: {label: Antibiotic or other intervention trial}
+  other: {label: Other special population}

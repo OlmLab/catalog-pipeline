@@ -1,0 +1,72 @@
+# config/vocab/body_site.yaml — registry body-site vocabulary (FROZEN REGISTRY SPEC, scale-up S0/S1, 2026-09-27).
+# code -> label, UBERON anchors, whole-word/stem match terms. Written by the S1 (site) track from the frozen spec;
+# if the S0 (registry data) track ships its own copy, the S0 file WINS at merge (S1_MERGE_NOTE).
+# Term matching is whole-word / stem-prefix with the curation-rule word-boundary traps (rat/kid/cat) and negatives
+# (e.g. 'gut' inside 'Gutierrez'); codes are ';'-joined in registry_studies.body_sites, one of them is body_site_primary.
+schema_version: 1
+column: body_sites
+primary_column: body_site_primary
+codes:
+  gut_stool:
+    label: Gut / stool
+    uberon: [{id: 'UBERON:0001988', label: feces}, {id: 'UBERON:0000160', label: intestine}]
+    terms: [stool, faec, fecal, feces, gut, intestin, rectal, meconium, colon, ileal, duoden, caecum]
+    negatives: [gutierrez, gutman, guthrie]
+  oral:
+    label: Oral cavity
+    uberon: [{id: 'UBERON:0000167', label: oral cavity}, {id: 'UBERON:0001836', label: saliva}, {id: 'UBERON:0016482', label: dental plaque}]
+    terms: [oral, saliva, salivary, plaque, subgingival, supragingival, tongue, buccal, periodont, dental, caries]
+    negatives: [orally, oral antibiotics, oral vaccine]
+  skin:
+    label: Skin
+    uberon: [{id: 'UBERON:0002097', label: skin of body}]
+    terms: [skin, cutaneous, epiderm, forearm, antecubital, axilla, scalp, forehead]
+    negatives: []
+  nasal_nasopharyngeal:
+    label: Nasal / nasopharyngeal
+    uberon: [{id: 'UBERON:0001707', label: nasal cavity}, {id: 'UBERON:0001728', label: nasopharynx}]
+    terms: [nasal, nasopharyn, nares, nostril, sinus]
+    negatives: []
+  respiratory_lower:
+    label: Lower respiratory tract
+    uberon: [{id: 'UBERON:0002048', label: lung}, {id: 'UBERON:0007311', label: sputum}]
+    terms: [sputum, bronch, BAL, lung, tracheal, endotracheal, airway]
+    negatives: []
+  vaginal_urogenital:
+    label: Vaginal / urogenital
+    uberon: [{id: 'UBERON:0000996', label: vagina}, {id: 'UBERON:0000002', label: uterine cervix}, {id: 'UBERON:0001088', label: urine}]
+    terms: [vagina, vaginal, cervic, cervix, urogenital, urine, urinary, bladder, penile, semen, seminal]
+    negatives: []
+  milk:
+    label: Human milk
+    uberon: [{id: 'UBERON:0001913', label: milk}]
+    terms: [milk, colostrum, breastmilk]
+    negatives: [milk formula]     # formula feeding is a feeding mode, not a milk sample
+  blood_tissue:
+    label: Blood / tissue
+    uberon: [{id: 'UBERON:0000178', label: blood}]
+    terms: [blood, plasma, serum, tissue, biopsy, tumor, tumour, liver, placent, amniotic, CSF, cerebrospinal, synovial, bile]
+    negatives: []
+  eye_ear:
+    label: Eye / ear
+    uberon: [{id: 'UBERON:0001811', label: conjunctiva}, {id: 'UBERON:0001352', label: external acoustic meatus}]
+    terms: [conjunctiv, ocular, eye, ear canal, otitis]
+    negatives: []
+  other_site:
+    label: Other human site
+    uberon: []
+    terms: []
+    negatives: []
+  unknown_site:
+    label: Site unknown
+    uberon: []
+    terms: []
+    negatives: []
+  multi_site:
+    label: Several sites (study-level)
+    uberon: []
+    terms: []
+    negatives: []
+# Registry-scope grouping used by config/scope.yaml (respiratory = nasal_nasopharyngeal + respiratory_lower).
+scope_groups:
+  respiratory: [nasal_nasopharyngeal, respiratory_lower]

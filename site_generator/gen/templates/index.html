@@ -14,6 +14,7 @@
 <div class="card"><div class="num">{{ stats.gold_age_precision }}</div><div class="lbl">age precision vs {{ stats.gold_n_age|fmt }} independently curated samples</div></div>
 <div class="card"><div class="num">{{ stats.n_universe|fmt }}</div><div class="lbl">studies screened ({{ stats.n_excluded|fmt }} excluded, {{ stats.n_review|fmt }} in human review)</div></div>
 <div class="card"><div class="num">{{ stats.n_cohorts|fmt }}</div><div class="lbl">cohorts ({{ stats.n_papers|fmt }} linked papers)</div></div>
+{% if stats.has_registry %}<a class="card" href="registry/index.html"><div class="num">{{ stats.n_registry|fmt }}</div><div class="lbl"><b>Registry: all human shotgun metagenomes</b> — {{ stats.n_registry_human|fmt }} human-host studies, {{ stats.n_registry_runs|fmt }} runs, all body sites and ages; {{ stats.n_registry_scopes }} scopes, the infant gut being the first curated one</div></a>{% endif %}
 {% if stats.has_contribute %}<a class="card contribute-card" href="contribute/index.html"><div class="num">{{ stats.n_contribute|fmt }}</div><div class="lbl"><b>studies need metadata — contribute</b> ({{ stats.n_contribute_samples|fmt }} samples): a per-sample table, an ID key or a paper pointer unlocks them</div></a>{% endif %}
 </div>
 
@@ -38,6 +39,7 @@
 <a class="card" href="fields/index.html"><b>Fields &amp; data dictionary</b><br>Every column, vocabulary, coverage, route mix, confidence tiers.</a>
 <a class="card" href="authors/index.html"><b>Authors</b><br>{{ stats.n_authors|fmt }} author names over {{ stats.n_studies_with_author|fmt }} screened studies; report a missing or mis-triaged study.</a>
 <a class="card" href="universe.html"><b>Screened universe</b><br>{{ stats.n_universe|fmt }} candidate studies with status and exclusion reason.</a>
+{% if stats.has_registry %}<a class="card" href="registry/index.html"><b>Registry: all human shotgun metagenomes</b><br>{{ stats.n_registry|fmt }} studies across all body sites and ages with archive-only classification (host, UBERON-anchored body site, life stage, assay); explorer, scope pages, CSV export.</a>{% endif %}
 <a class="card" href="methods.html"><b>Methods &amp; caveats</b><br>Enumeration, triage, four evidence routes, audits and gold evaluation.</a>
 <a class="card" href="downloads.html"><b>Downloads</b><br>The complete data package, individual tables and the getting-started notebook.</a>
 {% if stats.has_contribute %}<a class="card" href="contribute/index.html"><b>Contribute</b><br>{{ stats.n_contribute|fmt }} studies still lack per-sample metadata; the ranked worklist says what is missing, why, and what would unlock each one.</a>{% endif %}

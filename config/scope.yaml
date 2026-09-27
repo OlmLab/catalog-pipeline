@@ -1,0 +1,120 @@
+# config/scope.yaml — registry scopes and the registry_studies schema (FROZEN REGISTRY SPEC, scale-up 2026-09-27).
+# Read by src/catalog/registry (S0 track: classification + table build) and by site_generator/gen/build_site.py
+# (registry/ section). Written by the S1 (site) track from the frozen spec; the S0 track's copy WINS at merge
+# (S1_MERGE_NOTE) — the site generator only reads: scopes[].{id,label,definition,rule}, registry_columns,
+# classification_stages, host_human_values, access_values, in_infant_catalog_values, files.
+schema_version: 1
+release_id: R2026.4          # first release that ships the registry tables
+package_version: '1.6.0'
+vocab_dir: config/vocab      # body_site.yaml, life_stage.yaml, assay.yaml, population_flags.yaml
+
+files:
+  studies: registry_studies.parquet
+  runs: registry_runs.parquet              # ~1.5 M rows; NOT copied to the site (Pages budget) — Release asset only
+  audit: registry_universe_audit.csv
+  site_studies_path: data/registry_studies.parquet   # where build_site.py copies files.studies (explorer reads it)
+
+# Scope memberships derive deterministically from (host_human, body_sites, life_stages, assay).
+# A study can belong to several scopes; `infant_gut` is exactly in_infant_catalog == include.
+scopes:
+  - id: infant_gut
+    label: Infant gut (curated catalog)
+    definition: Human gut/stool shotgun metagenomes with >= 1 subject aged 0–1,100 days — the first CURATED scope; every study has a study page.
+    rule: in_infant_catalog == include
+    curated: true
+    site: https://olmlab.github.io/infant-gut-catalog/
+  - id: gut_child
+    label: Gut — children and adolescents
+    definition: Gut/stool studies whose life stages include child or adolescent.
+    rule: gut_stool in body_sites AND (child in life_stages OR adolescent in life_stages)
+  - id: gut_adult
+    label: Gut — adults and elderly
+    definition: Gut/stool studies whose life stages include adult or elderly.
+    rule: gut_stool in body_sites AND (adult in life_stages OR elderly in life_stages)
+  - id: oral
+    label: Oral cavity
+    definition: Saliva, plaque, subgingival, tongue and other oral-cavity samples.
+    rule: oral in body_sites
+  - id: skin
+    label: Skin
+    definition: Skin swabs and biopsies at any site.
+    rule: skin in body_sites
+  - id: vaginal_urogenital
+    label: Vaginal / urogenital
+    definition: Vaginal, cervical, urine and other urogenital samples.
+    rule: vaginal_urogenital in body_sites
+  - id: respiratory
+    label: Respiratory tract
+    definition: Nasal / nasopharyngeal swabs and lower-airway samples (sputum, BAL, tracheal aspirate).
+    rule: nasal_nasopharyngeal in body_sites OR respiratory_lower in body_sites
+  - id: milk
+    label: Human milk
+    definition: Breast milk and colostrum samples.
+    rule: milk in body_sites
+  - id: blood_tissue
+    label: Blood / tissue
+    definition: Blood, plasma, biopsies, tumours, placenta, amniotic fluid, CSF, synovial fluid, bile.
+    rule: blood_tissue in body_sites
+  - id: other_site
+    label: Other site
+    definition: A named human site outside the vocabulary (eye/ear included here for the registry tier).
+    rule: other_site in body_sites OR eye_ear in body_sites
+  - id: unknown_site
+    label: Site unknown
+    definition: Human shotgun metagenomes whose body site could not be read from the archive record.
+    rule: unknown_site in body_sites OR body_sites empty
+
+classification_stages: [deterministic_prior, deterministic_rule, sonnet_x2, opus_adjudicated, pending]
+host_human_values: ['yes', 'no', 'mixed', 'unknown']   # quoted: bare yes/no are YAML booleans
+access_values: [open, controlled, unknown]
+assay_values: [shotgun_dna, amplicon_misfiled, amplicon, rna, isolate_genome, assembly_only, other, mixed, unknown]
+in_infant_catalog_values: [include, exclude, uncertain, not_screened]
+human_signal_rules: [A, B, C, none]      # A host_tax_id 9606; B human text in title/description/sample fields; C gut-stool terms not dominated by animal terms
+
+# registry_studies.parquet — one row per ENA study in the registry universe (order is the shipped column order;
+# the three bitemporal columns are appended by catalog.release.bitemporal).
+registry_columns:
+  - study_accession
+  - secondary_study_accession
+  - study_title
+  - description_short
+  - center_name
+  - first_public_min
+  - first_public_max
+  - n_runs
+  - n_samples
+  - n_biosamples
+  - library_strategies
+  - library_sources
+  - instrument_platforms
+  - scientific_names_top
+  - host_tax_ids
+  - n_runs_host_9606
+  - n_runs_nonhuman_host
+  - human_signal
+  - human_signal_rule
+  - ambiguous
+  - host_human
+  - host_evidence
+  - assay
+  - access
+  - body_sites
+  - body_site_primary
+  - body_site_evidence
+  - life_stages
+  - life_stage_primary
+  - life_stage_evidence
+  - population_flags
+  - health_context
+  - classification_stage
+  - classification_confidence
+  - classification_model
+  - in_infant_catalog
+  - infant_reason_code
+  - scope_memberships
+  - universe_slice
+  - release_added
+  - release_retired
+  - package_added
+
+audit_columns: [universe_slice, ena_query, ena_count_runs, rows_pulled, n_studies, completeness, pulled_at]

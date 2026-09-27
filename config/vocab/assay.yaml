@@ -1,0 +1,32 @@
+# config/vocab/assay.yaml — registry assay vocabulary derived from ENA read_run fields (FROZEN REGISTRY SPEC, 2026-09-27).
+# Written by the S1 (site) track from the frozen spec; the S0 track's copy WINS at merge (S1_MERGE_NOTE).
+schema_version: 1
+column: assay
+codes:
+  shotgun_dna:
+    label: Shotgun DNA metagenome
+    rule: library_source METAGENOMIC AND library_strategy in (WGS, WXS); OR library_strategy OTHER / Targeted-Capture with NovaSeq/NextSeq depth >= 1e8 bases, 100–300 nt reads and no target_gene (adjudicated)
+  amplicon_misfiled:
+    label: Amplicon filed as WGS
+    rule: target_gene / primer / V3-V4 value on a WGS run
+  amplicon:
+    label: Amplicon (16S/18S/ITS)
+    rule: library_strategy AMPLICON or target_gene set
+  rna:
+    label: RNA / metatranscriptome
+    rule: library_strategy RNA-Seq or library_source METATRANSCRIPTOMIC / TRANSCRIPTOMIC
+  isolate_genome:
+    label: Isolate genome
+    rule: library_source GENOMIC with a named single microbe
+  assembly_only:
+    label: Assembly only (no reads)
+    rule: study has assemblies but no read_run rows
+  other:
+    label: Other / non-shotgun
+    rule: OTHER / Targeted-Capture not meeting the depth signature; ChIP-Seq, Bisulfite-Seq, etc.
+  mixed:
+    label: Mixed assays within the study
+    rule: more than one of the above at >= 10 % of runs
+  unknown:
+    label: Unknown
+    rule: no read_run rows or empty library fields
