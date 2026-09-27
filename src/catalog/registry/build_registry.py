@@ -125,11 +125,52 @@ def _llm_eligible(det: pd.DataFrame, merged: pd.DataFrame) -> pd.Series:
     needs = det["needs_llm"].astype(bool)
     if "candidate_class" not in merged.columns:
         return needs
-    cls = merged.drop_duplicates("study_accession").set_index("study_accession")["candidate_class"].reindex(det.index)
-    return needs & cls.isin(LLM_ELIGIBLE_CLASSES).fillna(False)
+    m1 = merged.drop_duplicates("study_accession").set_index("study_accession")
+    cls = m1["candidate_class"].reindex(det.index)
+    ok = needs & cls.isin(LLM_ELIGIBLE_CLASSES).fillna(False)
+    if "found_by" in m1.columns:  # carried infant-universe rows have no ENA library metadata to classify from: they keep their prior
+        ok &= ~(m1["found_by"].reindex(det.index) == CARRY_FOUND_BY).fillna(False)
+    return ok
+
+
+CARRY_FOUND_BY = "infant_catalog_carry"
+
+
+def carry_infant_universe(universe: pd.DataFrame, infant: pd.DataFrame) -> pd.DataFrame:
+    """Append infant-universe studies that the ENA enumeration slices never surface (e.g. PRJNA61745, an INCLUDED study whose
+    runs carry no METAGENOMIC/WGS library tags) so the registry is a superset of the screened infant universe (F13). Rows
+    are built from universe_studies_all (title, counts, first_public); every other universe column is empty and
+    ``found_by`` = infant_catalog_carry so they stay auditable. Current verdict rows only."""
+    inf = infant
+    if "release_retired" in inf.columns:
+        inf = inf[inf["release_retired"].isna()]
+    inf = inf.drop_duplicates("study_accession")
+    missing = inf[~inf["study_accession"].isin(set(universe["study_accession"]))]
+    if missing.empty:
+        return universe
+    rows = pd.DataFrame({"study_accession": missing["study_accession"].values})
+    for src, dst in (("study_title", "study_title"), ("n_samples", "n_samples"), ("n_runs", "n_runs"), ("n_biosamples", "n_biosamples"),
+                     ("first_public_min", "first_public_min"), ("triage_verdict", "in_infant_catalog"), ("reason_code", "infant_reason_code"),
+                     ("body_site_call", "infant_body_site_call"), ("universe_slice", "infant_universe_slice")):
+        if src in missing.columns and dst in universe.columns:
+            rows[dst] = missing[src].values
+    if "infant_screened" in universe.columns:
+        rows["infant_screened"] = True
+    if "candidate_class" in universe.columns:
+        rows["candidate_class"] = "prior_human"
+    if "found_by" in universe.columns:
+        rows["found_by"] = CARRY_FOUND_BY
+    if "has_ena_study_record" in universe.columns:
+        rows["has_ena_study_record"] = False
+    out = pd.concat([universe, rows.reindex(columns=universe.columns)], ignore_index=True)
+    for c in universe.columns:  # keep dtypes stable for the string columns the classifier reads
+        if universe[c].dtype == object or str(universe[c].dtype).startswith("str"):
+            out[c] = out[c].where(out[c].notna(), "")
+    return out
 
 
 def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | None, release_id: str, package_version: str) -> pd.DataFrame:
+    universe = carry_infant_universe(universe, infant)
     uni = normalise_universe(universe)
     uni["scientific_names"] = uni["scientific_names"].map(_sci_strip_counts)
     inf = infant.rename(columns={"triage_verdict": "infant_verdict", "reason_code": "infant_reason_code", "body_site_call": "infant_body_site_call"})

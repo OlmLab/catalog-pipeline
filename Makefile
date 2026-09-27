@@ -9,7 +9,9 @@ export CATALOG_CONFIG_DIR := $(CURDIR)/config
 VERSION    := $(shell cat config/version.txt)
 DATA       ?= data/inputs
 # PKG_ZIP: the CURRENT release package zip (explicit, never a glob — R1-03); PKG_SRC: where `unpack` flattens it
-PKG_ZIP    ?= $(DATA)/data_package_v1.3.0.zip
+# default = the previous package of the release being built (config/releases.yaml previous_package_version); override explicitly when needed
+PREV_PKG   := $(shell $(PY) -c "import yaml;c=yaml.safe_load(open('config/releases.yaml'));print(next((r.get('previous_package_version','') for r in c['releases'] if r['package_version']=='$(VERSION)'),''))")
+PKG_ZIP    ?= $(DATA)/data_package_v$(PREV_PKG).zip
 PKG_SRC    ?= $(DATA)/data_package
 BUILD      ?= build
 PKG_OUT    := $(BUILD)/package
@@ -266,12 +268,14 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	@echo "  git -C $(DATA_CLONE) push origin release/$(VERSION) data-v$(VERSION)"
 
 # ---------------------------------------------------------------- registry tier (S0 track; docs/EXPANSION.md, config/scope.yaml)
-REGISTRY_UNIVERSE ?= $(DATA)/registry/registry_universe_studies.parquet   # enumeration track output (frozen columns: audit/registry_schema.json)
+# REGISTRY_UNIVERSE: enumeration track output (frozen columns: audit/registry_schema.json)
+REGISTRY_UNIVERSE ?= $(DATA)/registry/registry_universe_studies.parquet
 REGISTRY_AUDIT    ?= $(DATA)/registry/registry_universe_audit.csv
-REGISTRY_LLM      ?=                                                        # optional: LLM classification rows (parquet or json)
+REGISTRY_LLM      ?=
 REGISTRY_OUT      ?= $(BUILD)/registry
 REGISTRY_FIXTURE  := tests/data/registry_fixture_universe.parquet
-REGISTRY_RUNS     ?= $(DATA)/registry/registry_runs.parquet   # ≈70 MB run-level table: shipped as a Release ASSET (data clone assets/), never inside package/ or the site
+# REGISTRY_RUNS: ≈70 MB run-level table: shipped as a Release ASSET (data clone assets/), never inside package/ or the site
+REGISTRY_RUNS     ?= $(DATA)/registry/registry_runs.parquet
 
 registry-fixture: ## registry — rebuild the 200-study test fixture from the 1.5.0 universe (V3_STUDIES=… FRAME_FREE=… parquet paths)
 	$(PY) -m catalog.registry.build_registry --make-fixture --v3-studies $(V3_STUDIES) --frame-free $(FRAME_FREE) --infant $(PKG_SRC)/universe_studies_all.parquet --out $(REGISTRY_FIXTURE)

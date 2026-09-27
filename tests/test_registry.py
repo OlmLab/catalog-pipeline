@@ -382,3 +382,18 @@ def test_conservative_merge_keeps_agreed_fields_and_flags_pending():
     # both failed → sentinel, pending
     m3 = conservative_merge(s, dict(s), "m")
     assert m3["outcome"] == "sentinel_no_evidence" and m3["classification_stage"] == "pending"
+
+
+def test_carry_infant_universe_appends_missing_included_study():
+    from catalog.registry.build_registry import carry_infant_universe, CARRY_FOUND_BY
+    uni = pd.DataFrame({"study_accession": ["PRJA1"], "study_title": ["x"], "n_runs": [3], "candidate_class": ["nosignal_new"],
+                        "found_by": ["S1"], "in_infant_catalog": ["not_screened"], "description_short": [""]})
+    inf = pd.DataFrame({"study_accession": ["PRJA1", "PRJB2", "PRJC3"], "triage_verdict": ["exclude", "include", "include"],
+                        "study_title": ["x", "carried", "retired"], "n_runs": [3, 7, 1], "reason_code": ["r", "r", "r"],
+                        "release_retired": [None, None, "R2026.2"]})
+    out = carry_infant_universe(uni, inf)
+    assert list(out.study_accession) == ["PRJA1", "PRJB2"]
+    row = out.iloc[1]
+    assert row.found_by == CARRY_FOUND_BY and row.candidate_class == "prior_human" and row.in_infant_catalog == "include"
+    assert row.study_title == "carried" and row.n_runs == 7 and row.description_short == ""
+    assert carry_infant_universe(out, inf).shape == out.shape  # idempotent
