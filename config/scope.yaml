@@ -1,0 +1,142 @@
+# config/scope.yaml — scopes of the human shotgun-metagenome REGISTRY and its curated catalogs. Frozen registry spec 2026-09-27.
+# SINGLE SOURCE for: scope ids (registry_studies.scope_memberships), the registry ↔ curated split, per-scope field packs and
+# the vocabulary files. Adding a scope = adding an entry here (+ a vocab/pack file); NO code change (docs/EXPANSION.md §4).
+# Deviation from SCALE_UP_PLAN §3 (owner-authorised 2026-09-27): the registry tier lives INSIDE the existing repos — registry_*
+# tables in the data package, a registry/ section on the site — instead of separate registry repos.
+schema_version: 1
+
+vocabularies:
+  body_sites: config/vocab/body_sites.yaml
+  life_stages: config/vocab/life_stages.yaml
+  assay: config/vocab/assay.yaml
+  population_flags: config/vocab/population_flags.yaml
+
+# Membership rule (src/catalog/registry/build_registry.py::derive_scope_memberships), deterministic from
+# (host_human, body_sites, life_stages, assay, in_infant_catalog):
+#   human_all      : host_human in {yes, mixed} and assay in {shotgun_dna, mixed}
+#   infant_gut     : in_infant_catalog == include                       (curated verdict wins over the vocabulary rule)
+#   gut_child      : gut_stool in body_sites and (child or adolescent) in life_stages
+#   gut_adult      : gut_stool in body_sites and (adult or elderly) in life_stages
+#   oral / skin / vaginal_urogenital / milk / blood_tissue : the same-named body-site code in body_sites
+#   respiratory    : nasal_nasopharyngeal or respiratory_lower in body_sites
+#   other_site     : other_site or eye_ear in body_sites
+#   unknown_site   : body_sites empty or == [unknown_site]
+# A study can belong to several scopes; scope_memberships is ';'-joined in the order below.
+scopes:
+  - id: human_all
+    label: All human shotgun metagenomes (registry)
+    definition: Every ENA study with ≥ 1 human-host shotgun-DNA metagenome run; archive-only metadata (route R1), Sandpiper profiles, papers and authors.
+    tier: registry
+    body_sites: ["*"]
+    life_stages: ["*"]
+    curated: false
+    field_pack: core
+  - id: infant_gut
+    label: Infant gut (0–3 y)
+    definition: Human gut/stool shotgun metagenomes from subjects aged 0–1,100 days (the Infant Gut Shotgun-Metagenome Catalog).
+    tier: curated
+    body_sites: [gut_stool]
+    life_stages: [neonate, infant]
+    curated: true
+    field_pack: infant
+    membership_rule: infant_catalog_include
+    site_repo: infant-gut-catalog
+  - id: gut_child
+    label: Child / adolescent gut (3–18 y)
+    definition: Human gut/stool shotgun metagenomes from children and adolescents.
+    tier: registry
+    body_sites: [gut_stool]
+    life_stages: [child, adolescent]
+    curated: false
+    field_pack: gut
+  - id: gut_adult
+    label: Adult gut (≥ 18 y)
+    definition: Human gut/stool shotgun metagenomes from adults and the elderly — first curated scope after infant_gut (external gold curatedMetagenomicData).
+    tier: registry
+    body_sites: [gut_stool]
+    life_stages: [adult, elderly]
+    curated: false
+    field_pack: gut
+  - id: oral
+    label: Oral cavity
+    definition: Saliva, plaque, tongue and other oral-cavity shotgun metagenomes (all ages).
+    tier: registry
+    body_sites: [oral]
+    life_stages: ["*"]
+    curated: false
+    field_pack: oral
+  - id: skin
+    label: Skin
+    definition: Skin shotgun metagenomes (all ages).
+    tier: registry
+    body_sites: [skin]
+    life_stages: ["*"]
+    curated: false
+    field_pack: skin
+  - id: vaginal_urogenital
+    label: Vaginal / urogenital
+    definition: Vaginal, cervical, urinary and seminal shotgun metagenomes.
+    tier: registry
+    body_sites: [vaginal_urogenital]
+    life_stages: ["*"]
+    curated: false
+    field_pack: vaginal_urogenital
+  - id: respiratory
+    label: Respiratory tract
+    definition: Nasal / nasopharyngeal and lower-respiratory shotgun metagenomes.
+    tier: registry
+    body_sites: [nasal_nasopharyngeal, respiratory_lower]
+    life_stages: ["*"]
+    curated: false
+    field_pack: respiratory
+  - id: milk
+    label: Human milk
+    definition: Breast-milk and colostrum shotgun metagenomes.
+    tier: registry
+    body_sites: [milk]
+    life_stages: ["*"]
+    curated: false
+    field_pack: core
+  - id: blood_tissue
+    label: Blood / tissue
+    definition: Blood, tissue-biopsy and sterile-site-fluid shotgun metagenomes.
+    tier: registry
+    body_sites: [blood_tissue]
+    life_stages: ["*"]
+    curated: false
+    field_pack: core
+  - id: other_site
+    label: Other body site
+    definition: Eye/ear and other stated human sites not covered above.
+    tier: registry
+    body_sites: [other_site, eye_ear]
+    life_stages: ["*"]
+    curated: false
+    field_pack: core
+  - id: unknown_site
+    label: Body site unknown
+    definition: Human studies whose body site could not be determined from the archive record; the site-classification queue.
+    tier: registry
+    body_sites: [unknown_site]
+    life_stages: ["*"]
+    curated: false
+    field_pack: core
+
+# Field packs (SCALE_UP_PLAN §2.3). `core` applies to every scope; scope packs add fields. Packs are vocabularies + prompt
+# fragments (config/packs/<pack>.yaml, added when a scope is curated), not code.
+field_packs:
+  core: [body_site, body_site_uberon, age_days, life_stage, sex, country, geo_subregion, health_condition, antibiotic_exposure, medication, subject_id, timepoint_label, sample_unit]
+  infant: [age_at_collection_days, gestational_age_weeks, preterm_status, delivery_mode, feeding_mode, birth_weight_grams, antibiotic_exposure, maternal_antibiotics, probiotic_exposure, hmo_supplementation, nec_status, country, geo_subregion, health_condition, multiple_birth, sibling_in_study]
+  gut: [bmi, diet_pattern, disease_ibd_t2d_crc, ppi_use, metformin_use, stool_consistency]
+  oral: [oral_site, periodontal_status, caries_status, smoking]
+  vaginal_urogenital: [community_state_type, pregnancy_status, menstrual_phase, contraception]
+  skin: [skin_site, moisture_class, skin_condition]
+  respiratory: [respiratory_site, respiratory_disease, ventilation]
+
+# Classification cascade of the registry (docs/EXPANSION.md §5)
+classification:
+  stages: [deterministic_prior, deterministic_rule, sonnet_x2, opus_adjudicated, pending]
+  llm_roles: {replicate: rubric, adjudicate: adjudicate}     # config/models.yaml roles — never literal model ids
+  replicates: 2
+  batch_size: 6
+  confidence_floor_no_llm: 0.8                                # deterministic results below this go to the LLM stage

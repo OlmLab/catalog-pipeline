@@ -1,0 +1,45 @@
+# config/vocab/population_flags.yaml — population flags of the REGISTRY (multi-valued, ';'-joined). Frozen registry spec 2026-09-27.
+# Term semantics as in body_sites.yaml. Flags are never exclusive; `other` is a free slot for the LLM stage with health_context text.
+schema_version: 1
+vocabulary: population_flags
+codes:
+  pregnant:
+    label: Pregnant women
+    definition: Sampling of pregnant women (any trimester) or the peripartum period.
+    match_terms: [pregnan*, trimester, prenatal, antenatal, peripartum, gestational diabetes, expectant mothers]
+    negative_terms: [pregnant sows, pregnant mice, pregnant cows, pregnant ewes, pregnant rats]
+  mother_infant_pair:
+    label: Mother–infant pairs
+    definition: Paired sampling of mothers and their infants (dyads).
+    match_terms: [mother-infant, mother–infant, maternal-infant, mother-child, mother–child, mother and infant, mothers and infants, mothers and their infants, dyad, dyads, mother-baby, mother–baby, maternal transmission, vertical transmission]
+    negative_terms: [sow-piglet, dam-pup, dam–pup]
+  twins:
+    label: Twins
+    definition: Twin cohorts (monozygotic / dizygotic).
+    match_terms: [twin, twins, monozygotic, dizygotic]
+    negative_terms: [twin-arginine]
+  disease_cohort:
+    label: Disease cohort
+    definition: Subjects sampled because of a disease or clinical condition (cases and their controls).
+    match_terms: [patient, patients, disease, diseases, disorder, syndrome, cancer, carcinoma, tumor, tumour, IBD, Crohn*, colitis, diabetes, diabetic, obesity, obese, infection, infected, sepsis, septic, NEC, enterocolitis, cirrhosis, autism, ASD, allergy, allergic, asthma, eczema, dermatitis, psoriasis, HIV, tuberculosis, malnutrition, malnourished, stunting, cystic fibrosis, COPD, pneumonia, periodontitis, caries, bacterial vaginosis, preeclampsia, depression, schizophrenia, Parkinson*, Alzheimer*, arthritis, lupus, transplant*, chemotherapy, immunotherapy, dialysis, cases and controls, case-control]
+    negative_terms: [disease-free, no disease, without disease, infection control, healthy controls only]
+  healthy_volunteers:
+    label: Healthy volunteers
+    definition: Explicitly healthy subjects / community volunteers.
+    match_terms: [healthy, volunteer*, healthy controls, healthy donors, healthy adults, healthy infants, healthy children, healthy subjects, healthy individuals]
+    negative_terms: [healthy mice, healthy pigs, healthy dogs, healthy cattle, healthy chickens]
+  hospitalised:
+    label: Hospitalised / ICU
+    definition: In-patients, intensive-care or neonatal-intensive-care populations.
+    match_terms: [hospitalised, hospitalized, hospitalisation, hospitalization, inpatient*, intensive care, ICU, NICU, PICU, critically ill, ventilated]
+    negative_terms: [hospital wastewater, hospital sewage, hospital surfaces, hospital environment]
+  antibiotic_trial:
+    label: Antibiotic exposure / trial
+    definition: Antibiotic intervention, prophylaxis or exposure is a design variable.
+    match_terms: [antibiotic*, antimicrobial treatment, antimicrobial therapy, azithromycin, amoxicillin, vancomycin, metronidazole, ciprofloxacin, cefotaxime, gentamicin, prophylaxis, decolonization, decolonisation]
+    negative_terms: [antibiotic resistance gene*, antimicrobial resistance, antibiotic-resistant bacteria in wastewater, resistome]
+  other:
+    label: Other special population
+    definition: Free slot; the LLM stage names the population in health_context (≤ 120 chars).
+    match_terms: [athlete*, vegan*, vegetarian*, hunter-gatherer*, indigenous, astronaut*, military, smokers, shift workers]
+    negative_terms: []
