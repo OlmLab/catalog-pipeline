@@ -359,3 +359,26 @@ def test_cost_log():
     log.add("sonnet_rep1", "m", 6, 6600)
     s = log.summary()
     assert s["stages"]["sonnet_rep1"]["tokens_per_study"] == 1050.0 and s["total_tokens"] == 12600
+
+
+def test_conservative_merge_keeps_agreed_fields_and_flags_pending():
+    from catalog.registry.classify_llm import conservative_merge, sentinel, to_registry_row
+    base = dict(study_accession="PRJX1", host_human="yes", assay="shotgun_dna", body_sites=["gut_stool"], body_site_primary="gut_stool",
+                life_stages=["adult"], life_stage_primary="adult", population_flags=["hospitalised"], health_context="IBD", confidence=0.8,
+                evidence={"host_human": [{"field": "study_title", "quote": "human gut"}], "assay": [], "body_site": [], "life_stage": [], "population_flags": {}},
+                model="m", outcome="predicted", note=None)
+    r2 = dict(base, body_sites=["gut_stool", "oral"], life_stage_primary="child", life_stages=["child"], population_flags=[], confidence=0.6)
+    m = conservative_merge(base, r2, "m", note="adjudication unavailable")
+    assert m["classification_stage"] == "pending" and m["outcome"] == "replicates_unadjudicated"
+    assert m["host_human"] == "yes" and m["body_site_primary"] == "gut_stool" and m["life_stage_primary"] == "unknown_age"
+    assert m["body_sites"] == ["gut_stool", "oral"] and m["life_stages"] == ["adult", "child"] and m["population_flags"] == []
+    assert m["confidence"] == 0.3 and "adjudication unavailable" in m["note"]
+    row = to_registry_row(m)
+    assert row["body_sites"] == "gut_stool;oral" and row["classification_stage"] == "pending"
+    # one failed replicate → the valid one, capped confidence
+    s = sentinel("PRJX1", "m", "llm_error")
+    m2 = conservative_merge(base, s, "m")
+    assert m2["host_human"] == "yes" and m2["confidence"] == 0.5 and m2["classification_stage"] == "pending"
+    # both failed → sentinel, pending
+    m3 = conservative_merge(s, dict(s), "m")
+    assert m3["outcome"] == "sentinel_no_evidence" and m3["classification_stage"] == "pending"

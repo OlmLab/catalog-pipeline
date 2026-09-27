@@ -29,6 +29,7 @@ from catalog.registry import vocab as V
 _HERE = os.path.dirname(os.path.abspath(__file__))
 PROMPT_DIR = os.path.join(_HERE, "prompts")
 BATCH_SIZE = 6
+ADJUDICATE_RETRIES = 2   # singleton re-requests of unresolved adjudications before the conservative fallback
 MAX_TOKENS_REPLICATE = 6000
 MAX_TOKENS_ADJUDICATE = 8000
 DECISIONS = ("host_human", "assay", "body_site", "life_stage")
@@ -401,18 +402,71 @@ def run_llm_stage(records: list[dict], dets: dict[str, dict] | None, host, out_j
         areqs = [make_request(b, models["adjudicate"], system, MAX_TOKENS_ADJUDICATE, force_tool=False) for b in abatches]
         results = host.llm(areqs, max_concurrency=max(1, max_concurrency // 2))
         adj: dict[str, dict] = {}
+
+        def _take(rows: list[dict]) -> None:
+            for r in rows:
+                if r["outcome"] == "predicted" or r["study_accession"] not in adj:
+                    r["classification_stage"] = "opus_adjudicated" if r["outcome"] == "predicted" else "pending"
+                    r["classification_model"] = models["adjudicate"]
+                    adj[r["study_accession"]] = r
+
         for b, res in zip(abatches, results):
             rows, st = parse_and_validate(res, b["ids"], models["adjudicate"])
             log.add("opus_adjudicate", models["adjudicate"], len(b["ids"]), st["tokens"], missing=st["missing"], problems=st["problems"])
-            for r in rows:
-                r["classification_stage"] = "opus_adjudicated" if r["outcome"] == "predicted" else "pending"
-                r["classification_model"] = models["adjudicate"]
-                adj[r["study_accession"]] = r
+            _take(rows)
+        # Retry the unresolved adjudications as SINGLETON requests (observed 2026-09-27: whole batches of the adjudicate-role
+        # model return 0 tokens — transient errors or refusals — and one refused study must not sink its batch-mates).
+        for attempt in range(1, ADJUDICATE_RETRIES + 1):
+            retry_ids = [i for i in queue if adj.get(i, {}).get("outcome") != "predicted"]
+            if not retry_ids:
+                break
+            rb = build_batches([recs[i] for i in retry_ids], hints, 1)
+            rreqs = [make_request(b, models["adjudicate"], system, MAX_TOKENS_ADJUDICATE, force_tool=False) for b in rb]
+            results = host.llm(rreqs, max_concurrency=max(1, max_concurrency // 2))
+            for b, res in zip(rb, results):
+                rows, st = parse_and_validate(res, b["ids"], models["adjudicate"])
+                log.add(f"opus_adjudicate_retry{attempt}", models["adjudicate"], len(b["ids"]), st["tokens"], missing=st["missing"], problems=st["problems"])
+                _take(rows)
+        # Still unresolved → conservative replicate merge (stage stays `pending`, but the fields the two Sonnet replicates
+        # agreed on are kept instead of a blank sentinel; disagreeing fields fall back to the unknown code).
+        for i in queue:
+            if adj.get(i, {}).get("outcome") != "predicted":
+                adj[i] = conservative_merge(r1[i], r2.get(i, r1[i]), models["replicate"],
+                                            note=(adj.get(i) or {}).get("note") or "adjudication unavailable")
         merged = [adj.get(r["study_accession"], r) if r["study_accession"] in queue else r for r in merged]
     out = [to_registry_row(r) for r in merged]
     if out_json:
-        json.dump({"rows": out, "cost": log.summary()}, open(out_json, "w"), indent=1)
+        json.dump({"rows": out, "cost": log.summary(),
+                   "replicates": {"rep1": [to_registry_row(r) for r in reps[0]], "rep2": [to_registry_row(r) for r in reps[1]]}},
+                  open(out_json, "w"), indent=1)
     return out
+
+
+def conservative_merge(r1: dict, r2: dict, model: str, note: str = "") -> dict:
+    """Fallback when adjudication is unavailable: keep the values both replicates agree on, `unknown*` where they differ,
+    union of sites / stages / flags, both evidence lists; stage `pending`, outcome `replicates_unadjudicated`."""
+    def pick(k: str, unk: str) -> str:
+        return r1[k] if r1[k] == r2[k] else unk
+    if r1["outcome"] != "predicted" and r2["outcome"] != "predicted":
+        return dict(sentinel(r1["study_accession"], model, f"both replicates failed; {note}"), classification_stage="pending", classification_model=model)
+    if r1["outcome"] != "predicted" or r2["outcome"] != "predicted":
+        good = r1 if r1["outcome"] == "predicted" else r2
+        row = dict(good, classification_stage="pending", classification_model=model, outcome="replicates_unadjudicated",
+                   note=f"single valid replicate; {note}", confidence=round(min(good["confidence"], 0.5), 3))
+        return row
+    ev = {k: (r1["evidence"].get(k) or []) + [e for e in (r2["evidence"].get(k) or []) if e not in (r1["evidence"].get(k) or [])]
+          for k in ("host_human", "assay", "body_site", "life_stage")}
+    ev["population_flags"] = {**r2["evidence"].get("population_flags", {}), **r1["evidence"].get("population_flags", {})}
+    return {"study_accession": r1["study_accession"], "host_human": pick("host_human", "unknown"), "assay": pick("assay", "unknown"),
+            "body_sites": sorted(set(r1["body_sites"]) | set(r2["body_sites"])) or ["unknown_site"],
+            "body_site_primary": pick("body_site_primary", "unknown_site"),
+            "life_stages": sorted(set(r1["life_stages"]) | set(r2["life_stages"])) or ["unknown_age"],
+            "life_stage_primary": pick("life_stage_primary", "unknown_age"),
+            "population_flags": sorted(set(r1["population_flags"]) & set(r2["population_flags"])),
+            "health_context": r1.get("health_context") if r1.get("health_context") == r2.get("health_context") else None,
+            "confidence": round(min(r1["confidence"], r2["confidence"]) * 0.5, 3), "evidence": ev, "model": model,
+            "classification_stage": "pending", "classification_model": model, "outcome": "replicates_unadjudicated",
+            "note": f"replicate disagreement {_key(r1)} vs {_key(r2)}; {note}"}
 
 
 def to_registry_row(r: dict) -> dict:
