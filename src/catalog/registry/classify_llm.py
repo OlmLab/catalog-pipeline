@@ -127,13 +127,19 @@ def build_batches(records: list[dict], dets: dict[str, dict] | None = None, batc
     return batches
 
 
-def make_request(batch: dict, model: str, system: str | None = None, max_tokens: int = MAX_TOKENS_REPLICATE) -> dict:
+def make_request(batch: dict, model: str, system: str | None = None, max_tokens: int = MAX_TOKENS_REPLICATE,
+                 force_tool: bool = True) -> dict:
+    """force_tool=False for the adjudication (Opus-class) model: it rejects tool_choice type "tool"/"any" (API 400,
+    observed 2026-09-27); with tool_choice auto the tool is still called because the user prompt asks for it, and
+    tool_input() falls back to parsing JSON from the text."""
     system = system if system is not None else load_prompt("classify_system.txt")
     tmpl = load_prompt("classify_user_template.txt")
     user = tmpl.format(n_studies=len(batch["ids"]), ids=", ".join(batch["ids"]),
                        records_json=json.dumps(batch["records"], ensure_ascii=False, separators=(",", ":")))
+    if not force_tool:
+        user += "\n\nCall the registry_classification tool with your answer (or, if you cannot call tools, reply with ONLY the JSON object)."
     return {"prompt": user, "system": system, "model": model, "max_tokens": max_tokens,
-            "tools": [tool_spec()], "tool_choice": {"type": "tool", "name": TOOL["name"]}}
+            "tools": [tool_spec()], "tool_choice": {"type": "tool", "name": TOOL["name"]} if force_tool else {"type": "auto"}}
 
 
 # --------------------------------------------------------------------------- parser / validator
@@ -392,7 +398,7 @@ def run_llm_stage(records: list[dict], dets: dict[str, dict] | None, host, out_j
         recs = {r["study_accession"]: r for r in records}
         hints = {i: {**((dets or {}).get(i) or {}), **adjudication_hint(r1[i], r2.get(i, r1[i]))} for i in queue}
         abatches = build_batches([recs[i] for i in queue], hints, batch_size)
-        areqs = [make_request(b, models["adjudicate"], system, MAX_TOKENS_ADJUDICATE) for b in abatches]
+        areqs = [make_request(b, models["adjudicate"], system, MAX_TOKENS_ADJUDICATE, force_tool=False) for b in abatches]
         results = host.llm(areqs, max_concurrency=max(1, max_concurrency // 2))
         adj: dict[str, dict] = {}
         for b, res in zip(abatches, results):
