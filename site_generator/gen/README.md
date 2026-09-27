@@ -41,3 +41,26 @@ CATALOG_PACKAGE_DIR=build/package python -m pytest tests/test_build_determinism.
   `contribute_worklist_fields.csv` when present (required for release ≥ R2026.2); schema and Issue-URL template in `config/contribute.yaml`;
   mock package for development: `python tests/make_mock_contribute_package.py --src ../../data/inputs/data_package --out ../../build/mock_package_1.4.0`;
   tests `tests/test_contribute_pages.py` (spec-level always; built-site with `CATALOG_SITE_DIR`/`CATALOG_PACKAGE_DIR`).
+
+## Scale-up S1 (2026-09-27, registry tier — SCALE_UP_PLAN §2, owner-authorised deviation from §3: the registry lives INSIDE this site)
+* `config/scope.yaml` + `config/vocab/{body_site,life_stage,assay,population_flags}.yaml` are the ONE registry spec both tracks read
+  (S0 = registry data, S1 = site). The generator reads scopes, the `registry_columns` order, the value lists, `files.studies` and the
+  vocabularies; `read_scope_spec()` / `read_vocabs()` assert them. If the S0 track ships its own copies, those files win at merge.
+* Package ≥ R2026.4 must carry `registry_studies.parquet` (asserted); it is copied to `data/registry_studies.parquet` (the ONLY registry
+  file on the site — `registry_runs.parquet`, ≈1.5 M rows, is a GitHub Release asset). `registry_universe_audit.csv` ships under `data/package/`.
+* Pages: `registry/index.html` (what the registry tier is vs the curated infant catalog; summary cards; scope table; facet tables per
+  body_site_primary / life_stage_primary / assay / scope membership / classification stage / host / access; the registry EXPLORER —
+  DuckDB-WASM over the parquet, filters body site / life stage / scope / assay / access / host / stage / infant verdict / min runs,
+  title or accession search, CSV export of the filtered slice, row detail with the evidence rows and the infant verdict) and
+  `registry/scopes/<scope_id>.html` (definition, rule, counts, per-scope facets, top-25 studies by BioSamples, pre-filtered explorer link).
+  No per-study pages for registry-only studies (they link to ENA); rows with `in_infant_catalog = include` link to the existing study page.
+  Home page: registry stat card + section card; nav "Registry"; Methods › "Registry classification" (cascade, vocabularies with UBERON
+  ids, day bounds, confidence meaning). `search_index.json` gains `t: scope` entries.
+* F13 assertions: `in_infant_catalog = include` set == `study_metadata_wide`; `in_infant_catalog` == universe `triage_verdict` for every
+  screened study; facet sums equal the row counts; every code in body_sites / life_stages / scope_memberships is in the vocabularies.
+  F7 leak check and the 2 MB page budget cover the new pages; `check_links` 0 broken; deterministic (two builds byte-identical).
+* Mock: `tests/make_mock_registry_package.py --src <1.5.0 package> --out build/mock_package_1.6.0` writes registry_studies.parquet
+  (9,581 infant-universe studies with deterministic priors + 2,400 synthetic `signal_human_new` rows with PRJMOCK accessions),
+  registry_universe_audit.csv, releases.csv row R2026.4, RELEASE_NOTES_R2026.4.md, VERSION.json 1.6.0. Tests: `tests/test_registry_pages.py`
+  (spec shape; pages exist; cards and facets == pandas groupby; scope pages; explorer references the parquet; no placeholder URL; the
+  explorer's SQL shapes replayed with python duckdb).

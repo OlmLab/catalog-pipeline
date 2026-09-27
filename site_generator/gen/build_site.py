@@ -1113,6 +1113,9 @@ def main():
                            life_rows=[(c, d_['label'], (f"{d_['days'][0]}–{d_['days'][1] - 1} d" if d_.get('days') and d_['days'][1] else (f"≥ {d_['days'][0]} d" if d_.get('days') else '—')), ', '.join(map(str, d_.get('terms') or []))) for c, d_ in _ls.items()])
         print(f'[{time.time()-t0:.0f}s] registry: {len(rg)} studies, {len(scope_rows)} scope pages', file=sys.stderr)
 
+    if not has_registry:  # packages < R2026.4: no empty registry/ directory on the published site
+        shutil.rmtree(out / 'registry', ignore_errors=True)
+
     # ---------- downloads + manifest ----------
     def dirstat(sub, pattern='*'):
         fs = [f for f in (out / sub).glob(pattern) if f.is_file()]
