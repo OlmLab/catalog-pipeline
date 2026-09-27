@@ -115,6 +115,20 @@ def _first_public(df: pd.DataFrame, col: str) -> pd.Series:
     return df[col].astype("string").fillna("") if col in df.columns else pd.Series([""] * len(df), index=df.index, dtype="string")
 
 
+LLM_ELIGIBLE_CLASSES = ("prior_human", "signal_human_new", "ambiguous_new")
+
+
+def _llm_eligible(det: pd.DataFrame, merged: pd.DataFrame) -> pd.Series:
+    """Studies the LLM stage is meant to cover (owner decision, S1b): deterministic `needs_llm` AND a human-candidate class
+    (`candidate_class` of the enumeration). Studies without any human signal (nosignal_new) and prior non-human studies stay
+    at their deterministic stage — they are not `pending`. Boolean Series indexed like ``det`` (study_accession)."""
+    needs = det["needs_llm"].astype(bool)
+    if "candidate_class" not in merged.columns:
+        return needs
+    cls = merged.drop_duplicates("study_accession").set_index("study_accession")["candidate_class"].reindex(det.index)
+    return needs & cls.isin(LLM_ELIGIBLE_CLASSES).fillna(False)
+
+
 def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | None, release_id: str, package_version: str) -> pd.DataFrame:
     uni = normalise_universe(universe)
     uni["scientific_names"] = uni["scientific_names"].map(_sci_strip_counts)
@@ -128,7 +142,14 @@ def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | N
     det = det.set_index("study_accession")
     if llm is not None and len(llm):
         llm = llm.drop_duplicates("study_accession").set_index("study_accession")
-        llm = llm[llm.get("classification_stage", pd.Series(dtype=str)).isin(["sonnet_x2", "opus_adjudicated"])]
+        stage = llm.get("classification_stage", pd.Series(dtype=str, index=llm.index))
+        # LLM rows carry values when the replicates agreed / were adjudicated, or when adjudication was unavailable and the
+        # conservative replicate merge kept the agreed fields (stage stays `pending`, outcome replicates_unadjudicated);
+        # blank sentinels (outcome sentinel_no_evidence) are dropped so the deterministic values stand.
+        keep = stage.isin(["sonnet_x2", "opus_adjudicated"])
+        if "outcome" in llm.columns:
+            keep |= (stage == "pending") & (llm["outcome"] == "replicates_unadjudicated")
+        llm = llm[keep]
         common = det.index.intersection(llm.index)
         for c in ("host_human", "host_evidence", "assay", "assay_evidence", "body_sites", "body_site_primary", "body_site_evidence",
                   "life_stages", "life_stage_primary", "life_stage_evidence", "population_flags", "population_evidence",
@@ -138,10 +159,10 @@ def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | N
         det["health_context"] = None
         if "health_context" in llm.columns:
             det.loc[common, "health_context"] = llm.loc[common, "health_context"]
-        det.loc[det.index.difference(common) & det.index[det["needs_llm"].astype(bool)], "classification_stage"] = "pending"
+        det.loc[det.index.difference(common).intersection(det.index[_llm_eligible(det, merged)]), "classification_stage"] = "pending"
     else:
         det["health_context"] = None
-        det.loc[det["needs_llm"].astype(bool), "classification_stage"] = "pending"
+        det.loc[_llm_eligible(det, merged), "classification_stage"] = "pending"
     det = det.reset_index()
 
     m = merged.merge(det, on="study_accession", how="left", suffixes=("_uni", ""))
