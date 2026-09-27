@@ -1,0 +1,574 @@
+{
+ "schema_version": 1,
+ "title": "Registry tier tables of the human shotgun-metagenome catalog (SCALE_UP_PLAN §2.2; docs/EXPANSION.md)",
+ "frozen": "2026-09-27",
+ "vocabularies": {
+  "body_sites": "config/vocab/body_sites.yaml",
+  "life_stages": "config/vocab/life_stages.yaml",
+  "assay": "config/vocab/assay.yaml",
+  "population_flags": "config/vocab/population_flags.yaml",
+  "scopes": "config/scope.yaml#scopes[].id"
+ },
+ "evidence_row": {
+  "source": "labelled source (study.title | study.description | sample.title | sample.attr.<key> | run.<field> | external_curation.<source>)",
+  "quote": "≤ 12 words copied from that field"
+ },
+ "tables": {
+  "registry_studies.parquet": {
+   "key": [
+    "study_accession"
+   ],
+   "one_row_per": "ENA study in the registry universe",
+   "columns": [
+    {
+     "name": "study_accession",
+     "type": "string",
+     "description": "ENA/INSDC BioProject accession (PRJ…); primary key",
+     "key": true
+    },
+    {
+     "name": "secondary_study_accession",
+     "type": "string",
+     "description": "ENA secondary study accession (ERP/SRP/DRP)"
+    },
+    {
+     "name": "study_title",
+     "type": "string",
+     "description": "ENA study title"
+    },
+    {
+     "name": "description_short",
+     "type": "string",
+     "description": "ENA study description truncated to 300 characters",
+     "max_length": 300
+    },
+    {
+     "name": "center_name",
+     "type": "string",
+     "description": "Submitting centre"
+    },
+    {
+     "name": "first_public_min",
+     "type": "string",
+     "description": "Earliest run first_public date (ISO)"
+    },
+    {
+     "name": "first_public_max",
+     "type": "string",
+     "description": "Latest run first_public date (ISO)"
+    },
+    {
+     "name": "n_runs",
+     "type": "int64",
+     "description": "Runs in the registry universe for this study"
+    },
+    {
+     "name": "n_samples",
+     "type": "int64",
+     "description": "Distinct sample_accession values"
+    },
+    {
+     "name": "n_biosamples",
+     "type": "int64",
+     "description": "Distinct BioSample accessions"
+    },
+    {
+     "name": "library_strategies",
+     "type": "string",
+     "description": "JSON dict strategy → run count"
+    },
+    {
+     "name": "library_sources",
+     "type": "string",
+     "description": "';'-joined distinct library_source values"
+    },
+    {
+     "name": "instrument_platforms",
+     "type": "string",
+     "description": "';'-joined distinct instrument_platform values"
+    },
+    {
+     "name": "scientific_names_top",
+     "type": "string",
+     "description": "';'-joined top-5 scientific_name values with run counts, e.g. 'human gut metagenome (120)'"
+    },
+    {
+     "name": "host_tax_ids",
+     "type": "string",
+     "description": "';'-joined distinct host_tax_id values"
+    },
+    {
+     "name": "n_runs_host_9606",
+     "type": "int64",
+     "description": "Runs with host_tax_id 9606"
+    },
+    {
+     "name": "n_runs_nonhuman_host",
+     "type": "int64",
+     "description": "Runs with a non-9606 host_tax_id"
+    },
+    {
+     "name": "human_signal",
+     "type": "bool",
+     "description": "Frame-free sweep human-signal rule outcome (pre-filter)"
+    },
+    {
+     "name": "human_signal_rule",
+     "type": "string",
+     "description": "A|B|C|none — which human-signal rule fired",
+     "vocabulary": [
+      "A",
+      "B",
+      "C",
+      "none"
+     ]
+    },
+    {
+     "name": "ambiguous",
+     "type": "bool",
+     "description": "Human-signal rule tie flag"
+    },
+    {
+     "name": "host_human",
+     "type": "string",
+     "description": "Classified host",
+     "vocabulary": [
+      "yes",
+      "no",
+      "mixed",
+      "unknown"
+     ]
+    },
+    {
+     "name": "host_evidence",
+     "type": "string",
+     "description": "JSON list of {source, quote} (quote ≤ 12 words; source from the curation-skill label list)"
+    },
+    {
+     "name": "assay",
+     "type": "string",
+     "description": "Assay class (config/vocab/assay.yaml)",
+     "vocabulary_ref": "assay"
+    },
+    {
+     "name": "access",
+     "type": "string",
+     "description": "Access tier",
+     "vocabulary": [
+      "open",
+      "controlled",
+      "unknown"
+     ]
+    },
+    {
+     "name": "body_sites",
+     "type": "string",
+     "description": "';'-joined body-site codes (config/vocab/body_sites.yaml)",
+     "vocabulary_ref": "body_sites",
+     "multi": true
+    },
+    {
+     "name": "body_site_primary",
+     "type": "string",
+     "description": "Primary body-site code (multi_site when ≥ 3 strong sites)",
+     "vocabulary_ref": "body_sites",
+     "nullable": true
+    },
+    {
+     "name": "body_site_evidence",
+     "type": "string",
+     "description": "JSON evidence list"
+    },
+    {
+     "name": "life_stages",
+     "type": "string",
+     "description": "';'-joined life-stage codes (config/vocab/life_stages.yaml)",
+     "vocabulary_ref": "life_stages",
+     "multi": true
+    },
+    {
+     "name": "life_stage_primary",
+     "type": "string",
+     "description": "Primary life-stage code (mixed_ages when ≥ 3 strong stages)",
+     "vocabulary_ref": "life_stages",
+     "nullable": true
+    },
+    {
+     "name": "life_stage_evidence",
+     "type": "string",
+     "description": "JSON evidence list"
+    },
+    {
+     "name": "population_flags",
+     "type": "string",
+     "description": "';'-joined flags (config/vocab/population_flags.yaml)",
+     "vocabulary_ref": "population_flags",
+     "multi": true
+    },
+    {
+     "name": "health_context",
+     "type": "string",
+     "description": "≤ 120 chars free text or null",
+     "max_length": 120,
+     "nullable": true
+    },
+    {
+     "name": "classification_stage",
+     "type": "string",
+     "description": "Cascade stage that produced the classification",
+     "vocabulary": [
+      "deterministic_prior",
+      "deterministic_rule",
+      "sonnet_x2",
+      "opus_adjudicated",
+      "pending"
+     ]
+    },
+    {
+     "name": "classification_confidence",
+     "type": "float64",
+     "description": "0–1; minimum over components"
+    },
+    {
+     "name": "classification_model",
+     "type": "string",
+     "description": "'deterministic' or the resolved model id of the deciding stage"
+    },
+    {
+     "name": "in_infant_catalog",
+     "type": "string",
+     "description": "Infant-catalog verdict",
+     "vocabulary": [
+      "include",
+      "exclude",
+      "uncertain",
+      "not_screened"
+     ]
+    },
+    {
+     "name": "infant_reason_code",
+     "type": "string",
+     "description": "Infant triage reason_code (curation-skill vocabulary) or null",
+     "nullable": true
+    },
+    {
+     "name": "scope_memberships",
+     "type": "string",
+     "description": "';'-joined scope ids from config/scope.yaml",
+     "vocabulary_ref": "scopes",
+     "multi": true
+    },
+    {
+     "name": "universe_slice",
+     "type": "string",
+     "description": "Enumeration slice that found the study"
+    },
+    {
+     "name": "release_added",
+     "type": "string",
+     "description": "Bitemporal: release id in which the row first appeared"
+    },
+    {
+     "name": "release_retired",
+     "type": "string",
+     "description": "Bitemporal: release id in which the row was retired; null = current",
+     "nullable": true
+    },
+    {
+     "name": "package_added",
+     "type": "string",
+     "description": "Bitemporal: package semver of first appearance"
+    }
+   ],
+   "bitemporal": "release columns appended at the end in releases.yaml order; built_with_release_columns: true"
+  },
+  "registry_runs.parquet": {
+   "key": [
+    "run_accession"
+   ],
+   "one_row_per": "ENA read_run in the registry universe",
+   "storage": "single working_data artifact (≈1.5M rows); columns restricted to the pull fields",
+   "columns": [
+    {
+     "name": "run_accession",
+     "type": "string",
+     "description": "ENA read_run field run_accession"
+    },
+    {
+     "name": "study_accession",
+     "type": "string",
+     "description": "ENA read_run field study_accession"
+    },
+    {
+     "name": "secondary_study_accession",
+     "type": "string",
+     "description": "ENA read_run field secondary_study_accession"
+    },
+    {
+     "name": "sample_accession",
+     "type": "string",
+     "description": "ENA read_run field sample_accession"
+    },
+    {
+     "name": "secondary_sample_accession",
+     "type": "string",
+     "description": "ENA read_run field secondary_sample_accession"
+    },
+    {
+     "name": "experiment_accession",
+     "type": "string",
+     "description": "ENA read_run field experiment_accession"
+    },
+    {
+     "name": "library_strategy",
+     "type": "string",
+     "description": "ENA read_run field library_strategy"
+    },
+    {
+     "name": "library_source",
+     "type": "string",
+     "description": "ENA read_run field library_source"
+    },
+    {
+     "name": "library_selection",
+     "type": "string",
+     "description": "ENA read_run field library_selection"
+    },
+    {
+     "name": "library_layout",
+     "type": "string",
+     "description": "ENA read_run field library_layout"
+    },
+    {
+     "name": "library_name",
+     "type": "string",
+     "description": "ENA read_run field library_name"
+    },
+    {
+     "name": "target_gene",
+     "type": "string",
+     "description": "ENA read_run field target_gene"
+    },
+    {
+     "name": "instrument_platform",
+     "type": "string",
+     "description": "ENA read_run field instrument_platform"
+    },
+    {
+     "name": "instrument_model",
+     "type": "string",
+     "description": "ENA read_run field instrument_model"
+    },
+    {
+     "name": "read_count",
+     "type": "string",
+     "description": "ENA read_run field read_count"
+    },
+    {
+     "name": "base_count",
+     "type": "string",
+     "description": "ENA read_run field base_count"
+    },
+    {
+     "name": "nominal_length",
+     "type": "string",
+     "description": "ENA read_run field nominal_length"
+    },
+    {
+     "name": "tax_id",
+     "type": "string",
+     "description": "ENA read_run field tax_id"
+    },
+    {
+     "name": "scientific_name",
+     "type": "string",
+     "description": "ENA read_run field scientific_name"
+    },
+    {
+     "name": "host_tax_id",
+     "type": "string",
+     "description": "ENA read_run field host_tax_id"
+    },
+    {
+     "name": "host_scientific_name",
+     "type": "string",
+     "description": "ENA read_run field host_scientific_name"
+    },
+    {
+     "name": "host_body_site",
+     "type": "string",
+     "description": "ENA read_run field host_body_site"
+    },
+    {
+     "name": "host_status",
+     "type": "string",
+     "description": "ENA read_run field host_status"
+    },
+    {
+     "name": "host_phenotype",
+     "type": "string",
+     "description": "ENA read_run field host_phenotype"
+    },
+    {
+     "name": "age",
+     "type": "string",
+     "description": "ENA read_run field age"
+    },
+    {
+     "name": "dev_stage",
+     "type": "string",
+     "description": "ENA read_run field dev_stage"
+    },
+    {
+     "name": "disease",
+     "type": "string",
+     "description": "ENA read_run field disease"
+    },
+    {
+     "name": "country",
+     "type": "string",
+     "description": "ENA read_run field country"
+    },
+    {
+     "name": "first_public",
+     "type": "string",
+     "description": "ENA read_run field first_public"
+    },
+    {
+     "name": "center_name",
+     "type": "string",
+     "description": "ENA read_run field center_name"
+    },
+    {
+     "name": "project_name",
+     "type": "string",
+     "description": "ENA read_run field project_name"
+    },
+    {
+     "name": "study_title",
+     "type": "string",
+     "description": "ENA read_run field study_title"
+    },
+    {
+     "name": "sample_title",
+     "type": "string",
+     "description": "ENA read_run field sample_title"
+    },
+    {
+     "name": "serovar",
+     "type": "string",
+     "description": "ENA read_run field serovar"
+    },
+    {
+     "name": "sub_species",
+     "type": "string",
+     "description": "ENA read_run field sub_species"
+    },
+    {
+     "name": "strain",
+     "type": "string",
+     "description": "ENA read_run field strain"
+    },
+    {
+     "name": "isolate",
+     "type": "string",
+     "description": "ENA read_run field isolate"
+    },
+    {
+     "name": "checklist",
+     "type": "string",
+     "description": "ENA read_run field checklist"
+    },
+    {
+     "name": "environmental_medium",
+     "type": "string",
+     "description": "ENA read_run field environmental_medium"
+    },
+    {
+     "name": "isolation_source",
+     "type": "string",
+     "description": "ENA read_run field isolation_source"
+    },
+    {
+     "name": "experimental_factor",
+     "type": "string",
+     "description": "ENA read_run field experimental_factor"
+    },
+    {
+     "name": "extraction_protocol",
+     "type": "string",
+     "description": "ENA read_run field extraction_protocol"
+    },
+    {
+     "name": "environmental_sample",
+     "type": "string",
+     "description": "ENA read_run field environmental_sample"
+    },
+    {
+     "name": "found_by",
+     "type": "string",
+     "description": "Enumeration slice tag that pulled the run"
+    },
+    {
+     "name": "release_added",
+     "type": "string",
+     "description": "Bitemporal"
+    },
+    {
+     "name": "release_retired",
+     "type": "string",
+     "description": "Bitemporal; null = current",
+     "nullable": true
+    },
+    {
+     "name": "package_added",
+     "type": "string",
+     "description": "Bitemporal"
+    }
+   ]
+  },
+  "registry_universe_audit.csv": {
+   "key": [
+    "slice"
+   ],
+   "one_row_per": "enumeration slice",
+   "columns": [
+    {
+     "name": "slice",
+     "type": "string",
+     "description": "Slice tag / ENA query label"
+    },
+    {
+     "name": "ena_query",
+     "type": "string",
+     "description": "ENA portal query string"
+    },
+    {
+     "name": "ena_count",
+     "type": "int64",
+     "description": "Count returned by the ENA count endpoint"
+    },
+    {
+     "name": "rows_pulled",
+     "type": "int64",
+     "description": "read_run rows actually streamed"
+    },
+    {
+     "name": "n_studies",
+     "type": "int64",
+     "description": "Distinct studies in the slice"
+    },
+    {
+     "name": "completeness",
+     "type": "float64",
+     "description": "rows_pulled / ena_count"
+    },
+    {
+     "name": "pulled_at",
+     "type": "string",
+     "description": "ISO timestamp of the pull"
+    }
+   ]
+  }
+ }
+}

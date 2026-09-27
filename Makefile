@@ -38,7 +38,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: registry-fixture registry-classify-det registry-build help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -256,6 +256,31 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	@echo "push with the credential helper (docs/SECURITY.md):"
 	@echo "  git -C $(SITE_CLONE) push origin release/$(VERSION) site-v$(VERSION)"
 	@echo "  git -C $(DATA_CLONE) push origin release/$(VERSION) data-v$(VERSION)"
+
+# ---------------------------------------------------------------- registry tier (S0 track; docs/EXPANSION.md, config/scope.yaml)
+REGISTRY_UNIVERSE ?= $(DATA)/registry/registry_universe_studies.parquet   # enumeration track output (frozen columns: audit/registry_schema.json)
+REGISTRY_AUDIT    ?= $(DATA)/registry/registry_universe_audit.csv
+REGISTRY_LLM      ?=                                                        # optional: LLM classification rows (parquet or json)
+REGISTRY_OUT      := $(BUILD)/registry
+REGISTRY_FIXTURE  := tests/data/registry_fixture_universe.parquet
+
+registry-fixture: ## registry — rebuild the 200-study test fixture from the 1.5.0 universe (V3_STUDIES=… FRAME_FREE=… parquet paths)
+	$(PY) -m catalog.registry.build_registry --make-fixture --v3-studies $(V3_STUDIES) --frame-free $(FRAME_FREE) --infant $(PKG_SRC)/universe_studies_all.parquet --out $(REGISTRY_FIXTURE)
+
+registry-classify-det: ## registry — deterministic classification of the registry universe → $(REGISTRY_OUT)/registry_classification_det.parquet
+	mkdir -p $(REGISTRY_OUT)
+	$(PY) -c "import pandas as pd, sys; from catalog.registry.build_registry import normalise_universe; from catalog.registry.classify_deterministic import classify_frame; \
+	  u=pd.read_parquet('$(REGISTRY_UNIVERSE)' if __import__('os').path.exists('$(REGISTRY_UNIVERSE)') else '$(REGISTRY_FIXTURE)'); \
+	  inf=pd.read_parquet('$(PKG_SRC)/universe_studies_all.parquet'); inf=inf[inf.release_retired.isna()] if 'release_retired' in inf else inf; \
+	  d=classify_frame(normalise_universe(u), inf[['study_accession','triage_verdict','reason_code','body_site_call']]); \
+	  d.to_parquet('$(REGISTRY_OUT)/registry_classification_det.parquet', index=False); print(len(d), 'studies;', int(d.needs_llm.sum()), 'need LLM')"
+
+registry-build:  ## registry — registry_studies.parquet + REGISTRY_REPORT.md (uses the fixture when REGISTRY_UNIVERSE is absent; REGISTRY_LLM optional)
+	mkdir -p $(REGISTRY_OUT)
+	$(PY) -m catalog.registry.build_registry --universe $$( [ -f $(REGISTRY_UNIVERSE) ] && echo $(REGISTRY_UNIVERSE) || echo $(REGISTRY_FIXTURE) ) \
+	  $$( [ -f $(REGISTRY_UNIVERSE) ] || echo --fixture ) --infant $(PKG_SRC)/universe_studies_all.parquet \
+	  $$( [ -n "$(REGISTRY_LLM)" ] && echo --llm $(REGISTRY_LLM) ) $$( [ -f $(REGISTRY_AUDIT) ] && echo --audit $(REGISTRY_AUDIT) ) \
+	  --out $(REGISTRY_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION)
 
 clean:           ## remove build/
 	rm -rf $(BUILD)

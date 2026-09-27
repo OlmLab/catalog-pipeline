@@ -1,0 +1,46 @@
+# config/vocab/assay.yaml — assay classes of the REGISTRY, derived from ENA read_run fields. Frozen registry spec 2026-09-27.
+# Decision order is the `rules` list (first match wins per RUN; the study value is the run majority with `mixed` when the
+# minority share ≥ 0.2). Per-run inputs: library_source, library_strategy, target_gene, library_selection, instrument_model,
+# base_count, nominal_length / read length, scientific_name (named single microbe test).
+schema_version: 1
+vocabulary: assay
+codes:
+  shotgun_dna:
+    label: Shotgun DNA metagenome
+    definition: Untargeted DNA sequencing of a microbial community (library_source METAGENOMIC, strategy WGS/WXS) — the registry's primary assay.
+  amplicon_misfiled:
+    label: Amplicon deposited as WGS
+    definition: A target_gene / primer / variable-region tell on a run filed as WGS (curation trap "Amplicon deposited as WGS").
+  amplicon:
+    label: Amplicon (16S/18S/ITS)
+    definition: library_strategy AMPLICON or a target_gene value on a non-WGS run.
+  rna:
+    label: RNA / metatranscriptome
+    definition: library_strategy RNA-Seq / ssRNA-seq or library_source METATRANSCRIPTOMIC / TRANSCRIPTOMIC.
+  isolate_genome:
+    label: Cultured isolate genome
+    definition: library_source GENOMIC with a named single microbe as scientific_name (not a "* metagenome" taxon); out of primary scope, recorded.
+  assembly_only:
+    label: Assembly-only deposit
+    definition: Study whose runs are absent and only analysis/assembly records exist (no read_run rows).
+  other:
+    label: Other / non-shotgun
+    definition: OTHER / Targeted-Capture / Hi-C / ChIP etc. that fail the shotgun depth signature.
+  mixed:
+    label: Mixed assays
+    definition: Study-level value when ≥ 2 run-level classes each hold ≥ 20 % of runs.
+  unknown:
+    label: Unknown
+    definition: Sentinel when strategy and source are both blank.
+rules:                                           # evaluated per run, in order
+  - {code: rna,                when: "library_strategy in {RNA-Seq, ssRNA-seq, miRNA-Seq} or library_source in {METATRANSCRIPTOMIC, TRANSCRIPTOMIC, TRANSCRIPTOMIC SINGLE CELL}"}
+  - {code: amplicon,           when: "library_strategy == AMPLICON"}
+  - {code: amplicon_misfiled,  when: "library_strategy in {WGS, WXS} and (target_gene non-blank or library_selection == PCR with a V-region/primer tell in library_name)"}
+  - {code: shotgun_dna,        when: "library_source == METAGENOMIC and library_strategy in {WGS, WXS}"}
+  - {code: shotgun_dna,        when: "library_source == GENOMIC and library_strategy in {WGS, WXS} and scientific_name ends with 'metagenome' (misfiled GENOMIC on a metagenome taxon)", note: confidence 0.7}
+  - {code: isolate_genome,     when: "library_source == GENOMIC and scientific_name is a named single microbe (binomial, not '* metagenome')"}
+  - {code: shotgun_dna,        when: "library_strategy in {OTHER, Targeted-Capture} and instrument_model matches NovaSeq|NextSeq|HiSeq|DNBSEQ and base_count >= 1e8 and 100 <= read_length <= 300 and target_gene blank", note: adjudicated — confidence 0.6, needs_llm}
+  - {code: other,              when: "anything else with a non-blank strategy"}
+  - {code: unknown,            when: "strategy and source blank"}
+shotgun_depth_signature: {min_bases: 100000000, read_len_min: 100, read_len_max: 300, instrument_regex: "NovaSeq|NextSeq|HiSeq|DNBSEQ|MGISEQ"}
+amplicon_tells_regex: "\\b(16S|18S|ITS[12]?|V[1-9](?:-?V?[1-9])?|rRNA|amplicon|primer)\\b"

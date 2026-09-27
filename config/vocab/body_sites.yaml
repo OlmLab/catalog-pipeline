@@ -1,0 +1,122 @@
+# config/vocab/body_sites.yaml — controlled body-site vocabulary of the human shotgun-metagenome REGISTRY.
+# Frozen registry spec 2026-09-27 (SCALE_UP_PLAN §2.1; S0 track). Codes are appended, never renamed.
+# Matching semantics (src/catalog/registry/vocab.py):
+#   * a term ending in '*' is a STEM: matches at a word start and continues through word characters (faec* → faeces, faecal)
+#   * a term without '*' is a WHOLE WORD (case-insensitive; an optional trailing 's' is allowed): gut → gut, guts; NOT Gutierrez
+#   * multi-word terms are matched as phrases with single whitespace/hyphen between words
+#   * negative_terms are phrases whose span cancels any match inside it ("atherosclerotic plaque" is not oral)
+#   * the curation-skill word-boundary traps (rat/kid/cat, "gut" in Gutierrez, "colon" in colonization) are covered by whole-word
+#     matching plus tests/test_registry.py::test_word_boundary_traps
+schema_version: 1
+vocabulary: body_sites
+codes:
+  gut_stool:
+    label: Gut / stool
+    definition: Faecal, meconium, rectal-swab, intestinal-content or intestinal-mucosa samples from the gastrointestinal tract.
+    uberon:
+      - {id: "UBERON:0001988", label: feces}
+      - {id: "UBERON:0000160", label: intestine}
+    match_terms: [stool, faec*, fecal, feces, gut, intestin*, rectal, rectum, meconium, colon, colonic, colorectal, ileal, ileum, duoden*, caecum, caecal, cecum, cecal, gastrointestinal]
+    negative_terms: [gutierrez, gut microbiota of mice, colon cancer cell line]
+  oral:
+    label: Oral cavity
+    definition: Saliva, dental plaque (supra-/subgingival), tongue, buccal mucosa and other oral-cavity samples.
+    uberon:
+      - {id: "UBERON:0000167", label: oral cavity}
+      - {id: "UBERON:0001836", label: saliva}
+      - {id: "UBERON:0016482", label: dental plaque}
+    match_terms: [oral, saliva*, salivary, plaque, subgingival, supragingival, tongue, buccal, periodont*, dental, caries, gingiv*]
+    negative_terms: [atherosclerotic plaque, amyloid plaque, oral administration, oral gavage, oral antibiotic*, orally administered]
+  skin:
+    label: Skin
+    definition: Skin swabs, scrapes or biopsies from any cutaneous site.
+    uberon:
+      - {id: "UBERON:0002097", label: skin of body}
+    match_terms: [skin, cutaneous, epiderm*, forearm, antecubital, axilla*, scalp, forehead]
+    negative_terms: [skin of mice, fish skin, frog skin]
+  nasal_nasopharyngeal:
+    label: Nasal / nasopharyngeal
+    definition: Anterior nares, nasal cavity, nasopharynx and paranasal-sinus samples (upper respiratory tract).
+    uberon:
+      - {id: "UBERON:0001707", label: nasal cavity}
+      - {id: "UBERON:0001728", label: nasopharynx}
+    match_terms: [nasal, nasopharyn*, nares, nostril*, sinus, sinuses, anterior nares]
+    negative_terms: [sinus rhythm, sinus tachycardia]
+  respiratory_lower:
+    label: Lower respiratory
+    definition: Sputum, bronchoalveolar lavage, tracheal/endotracheal aspirates and lung tissue.
+    uberon:
+      - {id: "UBERON:0002048", label: lung}
+      - {id: "UBERON:0007311", label: sputum}
+    match_terms: [sputum, bronch*, BAL, lung, tracheal, endotracheal, airway]
+    negative_terms: []
+  vaginal_urogenital:
+    label: Vaginal / urogenital
+    definition: Vaginal, cervical, urinary (urine, bladder), penile and seminal samples.
+    uberon:
+      - {id: "UBERON:0000996", label: vagina}
+      - {id: "UBERON:0000002", label: uterine cervix}
+      - {id: "UBERON:0001088", label: urine}
+    match_terms: [vagina, vaginal, cervic*, cervix, urogenital, urine, urinary, bladder, penile, semen, seminal, genital]
+    negative_terms: [cervical lymph, cervical spine, cervical vertebra*]
+  milk:
+    label: Human milk
+    definition: Breast milk and colostrum.
+    uberon:
+      - {id: "UBERON:0001913", label: milk}
+    match_terms: [milk, colostrum, breastmilk, breast milk, human milk]
+    negative_terms: [cow milk, bovine milk, goat milk, milk powder, dairy milk, camel milk, raw milk cheese]
+  blood_tissue:
+    label: Blood / tissue / internal fluids
+    definition: Blood, plasma, serum, solid-tissue biopsies (incl. tumour, liver, placenta) and sterile-site fluids (amniotic fluid, CSF, synovial fluid, bile).
+    uberon:
+      - {id: "UBERON:0000178", label: blood}
+    match_terms: [blood, plasma, serum, tissue, biopsy, biopsies, tumor, tumour, liver, placent*, amniotic, CSF, cerebrospinal, synovial, bile, biliary]
+    negative_terms: [plasmid, blood pressure, blood glucose, tissue culture]
+  eye_ear:
+    label: Eye / ear
+    definition: Conjunctival, ocular-surface and external-ear-canal samples.
+    uberon:
+      - {id: "UBERON:0001811", label: conjunctiva}
+      - {id: "UBERON:0001352", label: external acoustic meatus}
+    match_terms: [conjunctiva*, ocular, eye, ear canal, otitis, middle ear, outer ear]
+    negative_terms: [ear tag]
+  other_site:
+    label: Other human site
+    definition: A human body site that is stated but not covered by another code (e.g. hair, nails, wound, bone).
+    uberon: []
+    match_terms: [wound, hair, nail, bone, lymph node]
+    negative_terms: []
+  unknown_site:
+    label: Body site unknown
+    definition: No body-site evidence in the archive record; assigned only as a sentinel (never from a term match).
+    uberon: []
+    match_terms: []
+    negative_terms: []
+  multi_site:
+    label: Multiple sites
+    definition: Study-level marker used as body_site_primary when ≥ 3 sites carry strong evidence (HMP-like designs); body_sites keeps every code.
+    uberon: []
+    match_terms: []
+    negative_terms: []
+# Taxon → body-site priors (ENA scientific_name of the runs; TAXON IS NOT BODY SITE — this is a weak prior only,
+# confidence 0.5, and is overruled by any strong term in title / sample fields). PRJEB72800 is the standing counter-example.
+taxon_priors:
+  human gut metagenome: gut_stool
+  human feces metagenome: gut_stool
+  human oral metagenome: oral
+  human saliva metagenome: oral
+  human skin metagenome: skin
+  human nasopharyngeal metagenome: nasal_nasopharyngeal
+  human nasal metagenome: nasal_nasopharyngeal
+  human lung metagenome: respiratory_lower
+  human sputum metagenome: respiratory_lower
+  human tracheal metagenome: respiratory_lower
+  human vaginal metagenome: vaginal_urogenital
+  human urinary tract metagenome: vaginal_urogenital
+  human reproductive system metagenome: vaginal_urogenital
+  human milk metagenome: milk
+  human blood metagenome: blood_tissue
+  human bile metagenome: blood_tissue
+  human eye metagenome: eye_ear
+  human metagenome: unknown_site

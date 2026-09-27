@@ -1,0 +1,57 @@
+# config/vocab/life_stages.yaml — controlled life-stage vocabulary of the REGISTRY. Frozen registry spec 2026-09-27.
+# Term semantics as in body_sites.yaml ('*' = stem, otherwise whole word; negative_terms cancel spans).
+# Numeric ages from attributes (age, host_age, age_years, dev_stage) map DETERMINISTICALLY through age_days bins below with the
+# unit rules of the curation skill: a unitless number is UNKNOWN unless a unit is present (Rule 10 / per-sample rule 5).
+# Life stages apply to HUMAN hosts only; for host_human=no the classifier emits no life stage.
+schema_version: 1
+vocabulary: life_stages
+age_days_bins:                 # [min_days, max_days] inclusive; 1 y = 365.25 d
+  neonate: [0, 28]
+  infant: [29, 1100]           # 29 d – 3 y; 0–1,100 d is the infant-catalog window overall (AGE_MAX_DAYS 1096 + margin)
+  child: [1101, 4383]          # 3–12 y
+  adolescent: [4384, 6574]     # 12–18 y
+  adult: [6575, 23741]         # 18–65 y
+  elderly: [23742, 60000]      # > 65 y
+codes:
+  neonate:
+    label: Neonate
+    definition: 0–28 days after birth, including preterm neonates and meconium samples.
+    match_terms: [neonat*, newborn*, meconium, NICU, preterm, premature, prematurity, "days of life", "day of life", postnatal day]
+    negative_terms: [premature ovarian, premature menopause, premature aging, premature ageing, premature ejaculation, premature death, premature coronary, premature atherosclerosis, premature senescence, premature stop, premature termination, premature birth history, neonatal calf, neonatal calves, neonatal piglet*, neonatal mice, neonatal rat*, newborn calves, newborn piglet*, newborn lambs]
+  infant:
+    label: Infant / toddler
+    definition: 29 days to 3 years (0–1,100 days overall = the infant-catalog window).
+    match_terms: [infant, infancy, baby, babies, toddler*, months old, month-old, months of age, weeks old, week-old, early life, first year of life, first years of life]
+    negative_terms: [infantis, Salmonella Infantis, serovar Infantis, B. infantis, infant formula production, infant macaque*, infant rhesus, infant monkey*, infant mice, infant rat*, infant pig*, piglet*, mouse pup*, mice pup*, rat pup*]
+  child:
+    label: Child
+    definition: 3–12 years.
+    match_terms: [child, children, childhood, paediatric, pediatric, school-age, school-aged, schoolchildren, preschool, preschoolers, kindergarten]
+    negative_terms: [childhood-onset, child-bearing, childbearing]
+  adolescent:
+    label: Adolescent
+    definition: 12–18 years.
+    match_terms: [adolescen*, teen, teens, teenager*, youth, youths]
+    negative_terms: []
+  adult:
+    label: Adult
+    definition: 18–65 years.
+    match_terms: [adult, men, women, volunteer*, pregnant women, mothers, maternal]
+    negative_terms: [adult mice, adult rat*, adult pig*, adult dog*, adult chicken*, adult zebrafish, adult flies, adult worms, adult cattle, adult cows]
+  elderly:
+    label: Elderly
+    definition: Over 65 years.
+    match_terms: [elderly, older adults, older adult, centenarian*, nursing home, nursing-home, octogenarian*, nonagenarian*, long-lived, oldest old, aged adults, geriatric]
+    negative_terms: [aged mice, aged rat*]
+  unknown_age:
+    label: Age unknown
+    definition: Human study without any life-stage evidence in the archive record; sentinel only.
+    match_terms: []
+    negative_terms: []
+  mixed_ages:
+    label: Mixed ages
+    definition: Study-level primary when ≥ 3 life stages carry strong evidence (life-span cohorts); life_stages keeps every code.
+    match_terms: [all ages, across the lifespan, life-span, lifespan, across age groups, from infancy to old age]
+    negative_terms: []
+# attribute keys read for numeric ages (ENA read_run / sample fields and their common BioSample spellings)
+age_attribute_keys: [age, host_age, age_years, age_in_years, age_months, age_at_collection, host_age_years, dev_stage, development_stage, host_life_stage, life_stage]
