@@ -102,3 +102,15 @@ Read-only by construction: no host grants, no credentials, network limited to pu
 * The sandbox cannot create a directory named `.git` under `~/catalog/` (writes inside an existing `.git` are fine), so new
   clones are created by the owner (`git clone`) and the agent works inside them afterwards.
 
+
+## 7. Contributions through GitHub Issues (R2026.2)
+
+Contributions (form `.github/ISSUE_TEMPLATE/catalog-contribution.yml`, label `contribution`) are **data only**. `make ingest-contributions`
+(`src/catalog/contribute/ingest_contributions.py`) downloads Issue attachments into `audit/contributions/<issue>/` and never executes,
+imports or unpacks them: only `.csv .tsv .txt .xlsx .xls` up to 50 MB are read (with pandas, all sheets), archives and executables
+(`.zip .gz .tar .exe .sh .py …`) are rejected before download, and every file is recorded in `manifest.json` with its sha256, size and
+URL. The **contributor's GitHub login is the provenance** (`uploader`, plus `uploader_hash` = sha256 of the login for the package); no
+e-mail address is ever stored — the ingest strips e-mail patterns from notes and asserts none reaches the manifest. The joinability
+verdict (`accepted_for_review | duplicate_of_existing | unjoinable | rejected`) is deterministic and only compares strings to the declared
+study's own accessions; nothing enters the package without the Curator step (route R2, never overriding R1). `--comment` needs a PAT with
+Issues write; reads work anonymously. The token is read from `GITHUB_TOKEN` and sent only to `api.github.com`, never to attachment hosts.

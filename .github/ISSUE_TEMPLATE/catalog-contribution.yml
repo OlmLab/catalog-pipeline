@@ -1,0 +1,69 @@
+# Contribution intake with zero custom backend (MATURITY_PLAN §3.3 alternative / §3.4 step 1). Field ids are FROZEN in
+# config/contribute.yaml issue_form.field_ids: the site's Contribute buttons open this form prefilled through query keys
+# (…/issues/new?template=catalog-contribution.yml&labels=contribution&title=…&study_accession=…&contribution_type=…&release_tag=…)
+# and GitHub only prefills input/textarea/dropdown ids that exist here. src/catalog/contribute/ingest_contributions.py parses the
+# rendered `### <label>` blocks by these labels. The form must be INSTALLED in the Issues repo (make install-workflows).
+name: Catalog contribution
+description: "Contribute a per-sample table, an ID key, a paper pointer, an age schedule or verdict evidence for a study on the contribute/ worklist of the Infant Gut Shotgun-Metagenome Catalog"
+title: "[contribution] <study_accession>: <contribution_type>"
+labels: ["contribution"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Contributions are **data only**: nothing you upload is executed; a deterministic ingest checks whether your
+        table joins to the study's own accessions, a Curator reviews it, and applied values enter the next release with attribution
+        (your GitHub login, hashed in the package). **Do not upload participant names, e-mail addresses or any other personal
+        data** — per-sample research metadata only (ages, delivery mode, feeding, …).
+  - type: input
+    id: study_accession
+    attributes:
+      label: study_accession
+      description: "BioProject accession of the study on the worklist (PRJNA…, PRJEB…, PRJDB…)"
+      placeholder: PRJNA294605
+    validations: { required: true }
+  - type: dropdown
+    id: contribution_type
+    attributes:
+      label: contribution_type
+      description: "per_sample_table = CSV/TSV/XLSX with one row per sample keyed by run or BioSample accession; id_key = sample name ↔ accession mapping; paper_pointer = PMID/DOI of the study's own paper; age_schedule = timepoint label → age in days; verdict_evidence = text showing the study is (not) infant gut shotgun metagenomics"
+      options: ["per_sample_table", "id_key", "paper_pointer", "age_schedule", "verdict_evidence"]
+    validations: { required: true }
+  - type: dropdown
+    id: source
+    attributes:
+      label: source
+      description: "Where the contributed table or fact comes from"
+      options: ["journal_supplement_url", "author_correspondence", "own_lab_records", "other"]
+    validations: { required: true }
+  - type: input
+    id: source_url
+    attributes:
+      label: source_url
+      description: "URL of the journal supplement / paper (DOI, PMID or PMC link) when applicable"
+      placeholder: https://doi.org/10.1038/…
+  - type: checkboxes
+    id: licence
+    attributes:
+      label: licence
+      options:
+        - label: "I confirm the uploaded table may be redistributed under CC-BY-4.0, or I ask that only derived values be published"
+          required: true
+  - type: textarea
+    id: note
+    attributes:
+      label: note
+      description: "What the table contains, which column identifies the sample (e.g. 'column SRA_run holds SRR accessions'), units (age in days/weeks/months), anything the Curator should know. Attach your file HERE (see below)."
+  - type: markdown
+    id: attachment
+    attributes:
+      value: |
+        **Attach the file**: drag-and-drop the CSV / TSV / XLSX (≤ 50 MB) into the *note* field above — GitHub uploads it and inserts a
+        `github.com/user-attachments/files/…` link. Accepted: `.csv .tsv .txt .xlsx .xls`; archives and executables (`.zip .gz .exe .sh .py …`)
+        are rejected by the ingest. Please make sure the file contains **no e-mail addresses and no names of study participants**.
+  - type: input
+    id: release_tag
+    attributes:
+      label: release_tag
+      description: "Catalog release the worklist row was seen in (prefilled by the Contribute button)"
+      placeholder: R2026.2

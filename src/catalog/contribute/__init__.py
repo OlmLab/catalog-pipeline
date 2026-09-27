@@ -1,1 +1,1 @@
-"""catalog.contribute — community-contribution worklist (build_worklist) — MATURITY_PLAN §3.2/3.3; config/contribute.yaml."""
+"""catalog.contribute — R2026.2 contribution worklist (Data track: build_worklist) and GitHub-Issue intake (ingest_contributions)."""

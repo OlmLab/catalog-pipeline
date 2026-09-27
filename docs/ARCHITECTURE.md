@@ -108,3 +108,37 @@ Tests: `site_generator/gen/tests/test_release_pages.py` (spec layer always; buil
 `CATALOG_SITE_DIR` + `CATALOG_PACKAGE_DIR`, including a DuckDB replay of the explorer's timeline SQL).
 `site_generator/gen/tests/make_mock_release_package.py` builds a placeholder 1.3.0 package from an unpacked 1.2.2
 package for generator development; the Data track's `src/catalog/release/` produces the real one.
+
+## 6. Contribution worklist and intake (R2026.2 / package 1.4.0 — MATURITY_PLAN §3.2–3.4)
+
+**Spec.** `config/contribute.yaml` is the ONE schema both tracks read: blocker codes (+ labels), contribution types (+ labels), the six
+core fields with priority weights, `missing_threshold`, the column lists of `contribute_worklist.csv` / `contribute_worklist_fields.csv`,
+the Issue-form ids and the `issue_url` template. The Data track's `build_worklist` writes the two tables into the package; the Site track's
+generator only reads them (never recomputes a blocker or a tier).
+
+**Tables.** `contribute_worklist.csv`: one row per OPEN study (verdict include|uncertain, ≥ 1 core field with catalog-scope coverage
+< 0.5), ranked by `priority_score = Σ_missing weight × (1 − coverage) × log10(n_catalog_scope + 1)`; carries coverage_* and best_tier_*
+per field, ONE `blocker_code`, `blocker_detail`/`unlock_text` (≤ 200 chars), `contribution_type` (primary ask), paper counts/PMIDs,
+ENA/NCBI links, the prefilled `issue_url` and the bitemporal columns. `contribute_worklist_fields.csv`: study × field with coverage,
+`n_with_value`, tier, field-level blocker and evidence. Studies with nothing missing are absent (blocker `complete` is never written).
+
+**Site.** `contribute/index.html` (nav "Contribute"; home stat card): intro (5 types, licence, what happens next, claim-a-task), summary
+cards (open studies, samples affected, studies per blocker), the ranked table rendered server-side with `data-*` attributes and filtered
+client-side (blocker, missing field, contribution type, minimum samples, verdict, text search; URL query keys `blocker/field/type/min/
+verdict/q` preselect). No per-sample rows; `data/contribute_worklist.json` is the same content as compact JSON. Study pages of worklist
+studies carry the `#help-complete` panel (chips per field = coverage % + tier, blocker label + detail, unlock text, Contribute button);
+complete studies have no panel. Build assertions: worklist columns == spec, vocabularies, rank 1..n, one Contribute button per row,
+`n_catalog_scope` equals `study_metadata_wide` (F13), field-gap counts agree between the two tables, page < 2 MB, no placeholder URL.
+A package of release ≥ R2026.2 MUST contain the worklist; older packages build without the page (backward compatible).
+
+**Intake (zero backend).** The Contribute button opens `.github/ISSUE_TEMPLATE/catalog-contribution.yml` in the site repo prefilled via
+query keys (`study_accession`, `contribution_type`, `release_tag`, `title`). `make ingest-contributions`
+(`src/catalog/contribute/ingest_contributions.py`) lists Issues labelled `contribution`, parses the form body, downloads attachments
+(`github.com/user-attachments/{files,assets}/…`, `user-images.githubusercontent.com`) into `audit/contributions/<issue>/` with
+`manifest.json` (sha256, size, uploader login + hash, declared study/type/source/licence, note with e-mails stripped), rejects > 50 MB
+and non-table extensions, reads CSV/TSV/TXT/XLSX (all sheets) and runs the deterministic joinability check: every identifier-like column is
+matched exactly against the declared study's run accessions (`runs.parquet`), `sample_key` / `secondary_sample` / `sample_title` /
+`biosample_accession` (`sample_metadata_wide`) and `library_name`. Verdicts: `accepted_for_review` (≥ max(20, 50 % of rows) match one
+key type), `duplicate_of_existing` (sha256 seen), `unjoinable` (top-3 candidate columns + observed ID form reported), `rejected`
+(type/size/no table/no attachment). `--comment` posts REPORT.md to the Issue. Curation of accepted tables is the normal R2 extraction
+contract (RUNBOOK §4b); nothing enters the package without it.

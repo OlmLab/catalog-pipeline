@@ -106,3 +106,17 @@ details summary{cursor:pointer}
 /* R2026.1 releases / timelines */
 .cite{margin:1rem 0}.cite img{vertical-align:middle}
 tr.retired td{color:var(--muted)}tr.retired td b{color:var(--ink)}
+
+/* R2026.2 contribute/ worklist + 'Help complete this study' panel */
+.chip{display:inline-block;font-size:.78rem;padding:.05rem .4rem;margin:.1rem .15rem .1rem 0;border-radius:4px;border:1px solid var(--cu-light-gray);background:#fff;color:var(--cu-dark-gray);white-space:nowrap}
+.chip.miss{border-color:var(--cu-black);color:var(--cu-black);background:var(--cu-pale-gold);font-weight:500}
+.chip.ok{opacity:.65}
+.blk{font-weight:500;color:var(--cu-black)}
+.btn.contribute{background:var(--cu-black);color:var(--cu-gold);border-color:var(--cu-black)}
+.help-panel{background:var(--cu-pale-gold);border:1px solid var(--cu-gold);border-left:6px solid var(--cu-black);border-radius:8px;padding:.6rem .9rem .3rem;margin:1rem 0}
+.help-panel h2{border-bottom:none;margin-top:.2rem}
+.wl-filters{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.6rem .8rem;margin:.6rem 0;font-size:.85rem;position:sticky;top:48px;z-index:10}
+.wl-filters label{display:flex;flex-direction:column;gap:.15rem;color:var(--muted)}
+.wl-filters select,.wl-filters input{font-size:.9rem;padding:.25rem .4rem;border:1px solid var(--cu-dark-gray);border-radius:4px;background:#fff}
+table.wl td{font-size:.85rem}table.wl td:nth-child(5){min-width:260px}table.wl td:nth-child(7){max-width:320px}
+a.card.contribute-card{text-decoration:none;color:var(--ink);border-left-color:var(--cu-black);background:var(--cu-pale-gold)}

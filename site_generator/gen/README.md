@@ -36,3 +36,8 @@ CATALOG_PACKAGE_DIR=build/package python -m pytest tests/test_build_determinism.
 * Cite box: Zenodo badge/latest-DOI URLs from `config/site.yaml github.data_repo_id` (GitHub repository id of `OlmLab/infant-gut-catalog-data`); "DOI: pending Zenodo integration" while `releases.csv.doi` is empty. Footer: `release <id> · package <semver> · build <sha> · built <date> · data tag <tag>`.
 * Mock package for development/tests: `python tests/make_mock_release_package.py --src <unpacked 1.2.2> --out build/mock_package_1.3.0`; then `CATALOG_SITE_DIR=<site> CATALOG_PACKAGE_DIR=<pkg> python -m pytest tests/test_release_pages.py`.
 * `check_links.py` also verifies `EXPLORER_CFG.sdall`. Deterministic build unchanged (two builds byte-identical with the mock package).
+
+* Contribute (R2026.2): `contribute/index.html` + `#help-complete` study panels + home stat card are built from `contribute_worklist.csv` /
+  `contribute_worklist_fields.csv` when present (required for release ≥ R2026.2); schema and Issue-URL template in `config/contribute.yaml`;
+  mock package for development: `python tests/make_mock_contribute_package.py --src ../../data/inputs/data_package --out ../../build/mock_package_1.4.0`;
+  tests `tests/test_contribute_pages.py` (spec-level always; built-site with `CATALOG_SITE_DIR`/`CATALOG_PACKAGE_DIR`).

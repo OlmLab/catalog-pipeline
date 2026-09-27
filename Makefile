@@ -36,7 +36,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: help bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: help ingest-contributions bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -129,6 +129,10 @@ findings:        ## stage 4 — apply audit/findings/*.csv with validators; rebu
 ingest-issues:   ## pull GitHub Issues labelled `finding` into audit/findings/<date>_issues.csv (needs GITHUB_TOKEN or GH_TOKEN; R1-09/F2)
 	$(PY) -m catalog.ingest_issues --repo $$($(PY) -c "import yaml;c=yaml.safe_load(open('config/site.yaml'));print(c['github']['org']+'/'+c['github']['issues']['repo'])") --out audit/findings
 
+ingest-contributions: ## R2026.2 — Issues labelled `contribution` → audit/contributions/<issue>/ (attachments, manifest, joinability verdict); GITHUB_TOKEN optional for reads, required with COMMENT=1
+	$(PY) -m catalog.contribute.ingest_contributions --repo $$($(PY) -c "import yaml;c=yaml.safe_load(open('config/contribute.yaml'));print(c['issue_form']['repo'])") \
+	  --package $(PKG_SRC) --out audit/contributions $(if $(SINCE_ISO),--since $(SINCE_ISO)) $(if $(COMMENT),--comment)
+
 package-assemble: ## stage 5a — findings → package dir = PKG_SRC + applied tables (shared by `package` and `release`)
 	@test -n "$(PKG_SRC)" && test -f "$(PKG_SRC)/sample_metadata_wide.parquet" || { echo "PKG_SRC=$(PKG_SRC) is not an unpacked package (run make unpack)"; exit 1; }
 	@test -n "$(PKG_OUT)" && test "$(PKG_OUT)" != "/" || exit 1
@@ -206,8 +210,7 @@ install-workflows: ## owner bootstrap (once) — copy verify/deploy-pages + the 
 	@test -d $(DATA_CLONE)/.git || { echo "data clone missing at $(DATA_CLONE)"; exit 1; }
 	mkdir -p $(SITE_CLONE)/.github/workflows $(SITE_CLONE)/.github/ISSUE_TEMPLATE $(DATA_CLONE)/.github/workflows
 	cp .github/workflows/verify.yml .github/workflows/deploy-pages.yml $(SITE_CLONE)/.github/workflows/
-	cp .github/ISSUE_TEMPLATE/catalog-finding.yml $(SITE_CLONE)/.github/ISSUE_TEMPLATE/
-	@test -f .github/ISSUE_TEMPLATE/catalog-contribution.yml && cp .github/ISSUE_TEMPLATE/catalog-contribution.yml $(SITE_CLONE)/.github/ISSUE_TEMPLATE/ || echo "catalog-contribution.yml not in this checkout (site track ships it)"
+	cp .github/ISSUE_TEMPLATE/catalog-finding.yml .github/ISSUE_TEMPLATE/catalog-contribution.yml $(SITE_CLONE)/.github/ISSUE_TEMPLATE/
 	cp .github/workflows/release.yml $(DATA_CLONE)/.github/workflows/
 	@echo "now commit + push .github/ in both clones (owner; docs/RUNBOOK.md 'Owner bootstrap (once)')"
 

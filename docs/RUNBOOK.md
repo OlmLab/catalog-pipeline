@@ -221,6 +221,15 @@ The community-contribution loop (MATURITY_PLAN §3.2–3.4; `config/contribute.y
   `evidence_source = contributor_table:<issue>`); applied values enter the next release with `release_added` and the study leaves the
   worklist (`release_retired` on its row). Stop rule: never apply a contributed value without the Curator step; never copy an e-mail
   address into any table.
+## 4b. Contributions — ingest GitHub-Issue uploads (deterministic; 5 min; 0 tokens) — R2026.2
+
+`make ingest-contributions` (optionally `SINCE_ISO=2026-10-01T00:00:00Z`, `COMMENT=1` to post verdicts; reads work without a token,
+comments need the GitHub credential declared on the cell). Output `audit/contributions/<issue>/{manifest.json,report.json,REPORT.md,<file>}`
+and `INGEST_SUMMARY.json`. Then, in the Curator session, run the normal R2 extraction contract on every `accepted_for_review` table
+(`evidence_source = contributor_table:<issue>`; conflicts to the conflict queue), reply on the Issue, and let the Data track's
+`build_worklist` drop the study from `contribute_worklist.csv` in the next release. `unjoinable` issues get the ID form seen and the key
+that is missing in the comment; no further action until the contributor answers. Never open attachments outside pandas; never copy an
+e-mail address anywhere (docs/SECURITY.md §7).
 
 ## 5. Package / release (deterministic; 5 min; 0 tokens)
 
