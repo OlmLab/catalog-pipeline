@@ -228,11 +228,11 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	cd $(SITE_CLONE) && git fetch -q origin && git checkout -q -B release/$(VERSION) origin/main
 	# rsync exits 23 on this mount because utimensat on the clone root is refused (harmless); tolerate it and PROVE completeness with a checksum dry-run that must list nothing
 	rsync -a --delete --exclude .git --exclude '.github/workflows/*' --exclude '.github/ISSUE_TEMPLATE/*' --exclude .DS_Store $(SITE_OUT)/ $(SITE_CLONE)/ || [ $$? -eq 23 ]  # site repo owns its installed workflows/template (make install-workflows)
-	@n=$$(rsync -rcn --delete --exclude .git --exclude '.github/workflows/*' --exclude '.github/ISSUE_TEMPLATE/*' --exclude .DS_Store $(SITE_OUT)/ $(SITE_CLONE)/ 2>/dev/null | grep -vc '^$$' || true); test "$$n" = "0" || { echo "site clone differs from build in $$n paths"; exit 1; }
+	@n=$$(rsync -rcn --delete --exclude .git --exclude '.github/workflows/*' --exclude '.github/ISSUE_TEMPLATE/*' --exclude .DS_Store $(SITE_OUT)/ $(SITE_CLONE)/ 2>&1 | grep -v '^rsync(' | grep -vc '^$$' || true); test "$$n" = "0" || { echo "site clone differs from build in $$n paths"; exit 1; }
 	cd $(SITE_CLONE) && git add -A && git commit -q -m "site $(VERSION) ($(BUILD_DATE))" && git tag -f site-v$(VERSION)
 	cd $(DATA_CLONE) && git fetch -q origin && git checkout -q -B release/$(VERSION) origin/main
 	(rsync -a --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ || [ $$? -eq 23 ]) && mkdir -p $(DATA_CLONE)/audit && (rsync -a audit/ $(DATA_CLONE)/audit/ || [ $$? -eq 23 ])
-	@n=$$(rsync -rcn --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ 2>/dev/null | grep -vc '^$$' || true); test "$$n" = "0" || { echo "data clone package/ differs from build in $$n paths"; exit 1; }
+	@n=$$(rsync -rcn --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ 2>&1 | grep -v '^rsync(' | grep -vc '^$$' || true); test "$$n" = "0" || { echo "data clone package/ differs from build in $$n paths"; exit 1; }
 	cd $(DATA_CLONE) && git add -A && git commit -q -m "data package $(VERSION) ($(BUILD_DATE))" && git tag -f data-v$(VERSION)
 	@echo "push with the credential helper (docs/SECURITY.md):"
 	@echo "  git -C $(SITE_CLONE) push origin release/$(VERSION) site-v$(VERSION)"
