@@ -31,3 +31,100 @@ per_cycle_expected:     # derived from universe_studies_all.first_public_min, 20
   extraction_tokens_per_new_included_study: 50000   # 19.1M extraction-phase tokens / 389 studies (BUDGET.md)
   cycle_tokens_expected: {typical: 800000, high: 1500000}
   wall_time_hours: {resweep: 0.5, triage: 1.5, extraction: 3, package_site_verify: 0.5}
+
+# ---- scale-up S2 (registry sample tier): measured on the 11,752-sample pilot of 2026-09-27 (docs/REGISTRY_S2_PILOT.md)
+registry_s2:
+  measured_2026_09_27:
+    pilot_samples_in: 11752
+    pilot_samples_distinct: 11724
+    pilot_samples_harvested: 11671
+    pilot_found_ena_xml: 11069
+    pilot_found_ncbi_efetch: 602
+    pilot_unresolvable: 53
+    harvest_requests: 227
+    harvest_wall_seconds: 171
+    harvest_samples_per_second: 68.4
+    ena_xml_seconds_per_100_batch_3_workers: 1.01
+    ena_miss_share: 0.0558
+    attribute_rows: 239877
+    attribute_rows_per_sample: 20.55
+    parquet_bytes_per_row: 7.7
+    distinct_keys: 5966
+    distinct_pairs_all_keys: 70859
+    distinct_pairs_target_fields_nonplaceholder: 8256
+    coverage_nonempty_share:
+      age: 0.154
+      sex: 0.1587
+      body_site: 0.6371
+      disease: 0.1187
+      country: 0.8507
+      collection_date: 0.8038
+    normalisation:
+      model_role: utility (host.llm default, Haiku-class)
+      pairs: 3000
+      batch_size: 40
+      requests: 77
+      input_tokens: 434274
+      output_tokens: 95619
+      tokens_total: 529893
+      tokens_per_1k_pairs: 176631
+      tokens_per_request_mean: 6882
+      vocab_code_share: 0.83
+      vocab_code_share_by_field:
+        age: 0.968
+        body_site: 0.689
+        country: 0.985
+        sex: 0.75
+      invalid_outputs: 0
+      wall_seconds_4_concurrent: 133
+  growth_model:
+    target4:
+      heaps_beta: 0.627
+      heaps_k: 13.68
+    disease:
+      heaps_beta: 0.841
+      heaps_k: 0.36
+    all_keys:
+      heaps_beta: 0.798
+      heaps_k: 42.38
+  growth_assumption: 'Heaps-law fit log(distinct pairs) = log k + beta*log(n_samples) on nested random subsamples of the pilot
+    (500..11,671 samples). UPPER BOUND: the pilot draws <=3 samples per study, so its per-sample diversity exceeds a full-study
+    harvest in which the remaining ~600k samples fall into the 4,217 studies already represented; the true count lies between
+    the pilot''s own distinct pairs and this bound.'
+  extrapolation:
+    human_all_new_614505:
+      harvest:
+        samples: 614505
+        ena_batches: 6146
+        ena_seconds: 6202
+        ncbi_batch_seconds: 114
+        ncbi_single_seconds: 2316
+        total_seconds: 8632
+        total_hours: 2.4
+        total_hours_x2_contingency: 4.8
+        attribute_rows: 12630076
+        parquet_mb: 97
+        expected_unresolvable: 2778
+      distinct_pairs_target4_upper: 58276
+      distinct_pairs_disease_upper: 26574
+      distinct_pairs_all_keys_upper: 1763617
+      norm_tokens_target4_upper: 10293348
+      norm_tokens_target4_plus_disease_upper: 14987140
+    registry_all_1033506:
+      harvest:
+        samples: 1033506
+        ena_batches: 10336
+        ena_seconds: 10431
+        ncbi_batch_seconds: 191
+        ncbi_single_seconds: 3896
+        total_seconds: 14518
+        total_hours: 4.03
+        total_hours_x2_contingency: 8.07
+        attribute_rows: 21241909
+        parquet_mb: 163
+        expected_unresolvable: 4672
+      distinct_pairs_target4_upper: 80735
+      distinct_pairs_disease_upper: 41147
+      distinct_pairs_all_keys_upper: 2670439
+      norm_tokens_target4_upper: 14260304
+      norm_tokens_target4_plus_disease_upper: 21528140
