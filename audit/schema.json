@@ -1,6 +1,6 @@
 {
  "$comment": "SINGLE SOURCE for the findings loop (R1-09/F2): .github/ISSUE_TEMPLATE/catalog-finding.yml is GENERATED from this file (python -m catalog.findings_schema --write-template), apply_findings.py reads FINDING_COLS/STRUCT_COLS/ACTIONS/finding_types from it, ingest_issues.py maps issue-form headings to columns with it, and the CATALOG_AUDITOR profile text lists finding_types from it. tests/test_findings_schema.py asserts template == generated.",
- "version": "2026-09-26",
+ "version": "2026-09-27",
  "csv_columns": {
   "required": [
    "date",
@@ -258,5 +258,130 @@
    "retired_change_stage": "str|null — value_history.change_stage"
   },
   "release_tag_note": "the structured finding column release_tag (data-v<semver>) names the package the finding was raised against; apply_findings rows applied in release R get release_added = R"
+ },
+ "contribute_worklist": {
+  "$comment": "R2026.2 (config/contribute.yaml is the single source; docs/CONTRIBUTE.md): contribute_worklist.csv (one row per open include/uncertain study) and contribute_worklist_fields.csv (study × 6 fields). Values here MUST equal contribute.yaml (tests/test_contribute_worklist.py + test_findings_schema).",
+  "blocker_codes": [
+   "archive_only_uncertain",
+   "complete",
+   "controlled_access",
+   "no_linked_paper",
+   "no_supplement_found",
+   "partial_coverage",
+   "paywalled_abstract_only",
+   "pdf_only_supplement",
+   "tables_unjoinable_need_key",
+   "unitless_age_needs_curator"
+  ],
+  "blocker_order": [
+   "controlled_access",
+   "no_linked_paper",
+   "paywalled_abstract_only",
+   "tables_unjoinable_need_key",
+   "pdf_only_supplement",
+   "no_supplement_found",
+   "unitless_age_needs_curator",
+   "partial_coverage"
+  ],
+  "contribution_types": [
+   "age_schedule",
+   "id_key",
+   "paper_pointer",
+   "per_sample_table",
+   "verdict_evidence"
+  ],
+  "fields": [
+   "age",
+   "delivery",
+   "feeding",
+   "preterm",
+   "antibiotics",
+   "probiotic"
+  ],
+  "field_weights": {
+   "age": 3.0,
+   "delivery": 2.0,
+   "feeding": 2.0,
+   "preterm": 1.5,
+   "antibiotics": 1.0,
+   "probiotic": 0.5
+  },
+  "missing_threshold": 0.5,
+  "worklist_columns": [
+   "rank",
+   "study_accession",
+   "study_title",
+   "cohort_id",
+   "cohort_name",
+   "triage_verdict",
+   "n_samples",
+   "n_catalog_scope",
+   "n_infant_samples_est",
+   "missing_fields",
+   "n_missing_fields",
+   "coverage_age",
+   "coverage_delivery",
+   "coverage_feeding",
+   "coverage_preterm",
+   "coverage_antibiotics",
+   "coverage_probiotic",
+   "best_tier_age",
+   "best_tier_delivery",
+   "best_tier_feeding",
+   "best_tier_preterm",
+   "best_tier_antibiotics",
+   "best_tier_probiotic",
+   "blocker_code",
+   "blocker_detail",
+   "unlock_text",
+   "contribution_type",
+   "n_linked_papers",
+   "own_data_pmids",
+   "n_supp_tables_inventoried",
+   "controlled_access",
+   "priority_score",
+   "ena_url",
+   "ncbi_url",
+   "issue_url",
+   "release_added",
+   "release_retired",
+   "package_added"
+  ],
+  "fields_columns": [
+   "study_accession",
+   "field",
+   "coverage",
+   "n_with_value",
+   "n_catalog_scope",
+   "best_tier",
+   "blocker_code",
+   "evidence",
+   "release_added",
+   "release_retired",
+   "package_added"
+  ],
+  "issue_form": {
+   "template": "catalog-contribution.yml",
+   "name": "Catalog contribution",
+   "labels": [
+    "contribution"
+   ],
+   "field_ids": [
+    "study_accession",
+    "contribution_type",
+    "source",
+    "source_url",
+    "licence",
+    "note",
+    "attachment",
+    "release_tag"
+   ],
+   "source_options": [
+    "journal_supplement_url",
+    "author_correspondence",
+    "own_lab_records",
+    "other"
+   ]
+  }
  }
 }

@@ -9,7 +9,7 @@ export CATALOG_CONFIG_DIR := $(CURDIR)/config
 VERSION    := $(shell cat config/version.txt)
 DATA       ?= data/inputs
 # PKG_ZIP: the CURRENT release package zip (explicit, never a glob — R1-03); PKG_SRC: where `unpack` flattens it
-PKG_ZIP    ?= $(DATA)/data_package_v1.2.2.zip
+PKG_ZIP    ?= $(DATA)/data_package_v1.3.0.zip
 PKG_SRC    ?= $(DATA)/data_package
 BUILD      ?= build
 PKG_OUT    := $(BUILD)/package
@@ -36,7 +36,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: help bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: help bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -148,6 +148,12 @@ bitemporal:      ## stage 5b — release columns on every fact table + sample_de
 	$(PY) -m catalog.release.bitemporal --package $(PKG_OUT) --out $(PKG_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) \
 	  --previous-package-version $(PREV_VERSION) --previous-package $(PKG_SRC) --release-date $(BUILD_DATE)
 
+worklist:        ## stage 4b — contribute_worklist.csv + contribute_worklist_fields.csv from the package + $(DATA)/contribute inputs (config/contribute.yaml; docs/CONTRIBUTE.md)
+	@test -f "$(PKG_OUT)/sample_determinations.parquet" || { echo "run make package-assemble first"; exit 1; }
+	@test -f "$(DATA)/contribute/recoverability.parquet" || { echo "artifact inputs missing under $(DATA)/contribute (bootstrap.py materialises config/inputs.json group contribute)"; exit 1; }
+	$(PY) -m catalog.contribute.build_worklist --package $(PKG_OUT) --inputs $(DATA)/contribute --out $(PKG_OUT) \
+	  --release-id $(RELEASE_ID) --package-version $(VERSION) --report $(BUILD)/WORKLIST_REPORT.md
+
 package-docs:    ## stage 5c — build_counts.json from the tables; README heading/Files table, DATA_DICTIONARY release columns, CHANGELOG entry (docs/package_changelog/$(VERSION).md)
 	$(PY) -m catalog.release.package_docs --package $(PKG_OUT) --package-version $(VERSION) --release-id $(RELEASE_ID) --build-date $(BUILD_DATE) \
 	  --changelog-entry docs/package_changelog/$(VERSION).md
@@ -155,11 +161,12 @@ package-docs:    ## stage 5c — build_counts.json from the tables; README headi
 release-notes:   ## stage 5d — RELEASE_NOTES_<release_id>.md from PKG_SRC (previous) vs PKG_OUT (new); deterministic
 	$(PY) -m catalog.release.release_notes --prev $(PKG_SRC) --new $(PKG_OUT) --out $(RELEASE_NOTES)
 
-release:         ## stage 5 (R2026.n) — unpack → findings → assemble → bitemporal → package-docs → VERSION.json → release notes → VERSION.json+zip → check
+release:         ## stage 5 (R2026.n) — unpack → findings → assemble → bitemporal → worklist → package-docs → VERSION.json → release notes → VERSION.json+zip → check
 	@test -n "$(RELEASE_ID)" || { echo "config/releases.yaml has no release for package $(VERSION)"; exit 1; }
 	$(MAKE) unpack
 	$(MAKE) package-assemble
 	$(MAKE) bitemporal
+	$(MAKE) worklist
 	$(MAKE) package-docs
 	# VERSION.json must carry the NEW version before the notes are generated (release_notes reads it for the header);
 	# the second make_version run re-hashes the package with RELEASE_NOTES included, the third checks (R1-11)
@@ -200,6 +207,7 @@ install-workflows: ## owner bootstrap (once) — copy verify/deploy-pages + the 
 	mkdir -p $(SITE_CLONE)/.github/workflows $(SITE_CLONE)/.github/ISSUE_TEMPLATE $(DATA_CLONE)/.github/workflows
 	cp .github/workflows/verify.yml .github/workflows/deploy-pages.yml $(SITE_CLONE)/.github/workflows/
 	cp .github/ISSUE_TEMPLATE/catalog-finding.yml $(SITE_CLONE)/.github/ISSUE_TEMPLATE/
+	@test -f .github/ISSUE_TEMPLATE/catalog-contribution.yml && cp .github/ISSUE_TEMPLATE/catalog-contribution.yml $(SITE_CLONE)/.github/ISSUE_TEMPLATE/ || echo "catalog-contribution.yml not in this checkout (site track ships it)"
 	cp .github/workflows/release.yml $(DATA_CLONE)/.github/workflows/
 	@echo "now commit + push .github/ in both clones (owner; docs/RUNBOOK.md 'Owner bootstrap (once)')"
 

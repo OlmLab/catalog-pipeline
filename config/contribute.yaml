@@ -80,10 +80,10 @@ blocker_to_contribution_type:
 # unlock_text templates (imperative, ≤200 chars after substitution). Placeholders: {id_form} (from RESCUE_REPORT_v2),
 # {missing_fields} (comma-joined short names), {accession}.
 unlock_templates:
-  controlled_access:          "Share only DERIVED per-sample values ({missing_fields}) keyed by public accession, or a DAC-approved summary; raw controlled data must not be uploaded."
+  controlled_access:          "Share only DERIVED per-sample values ({missing_fields}) keyed by public accession, or a DAC-approved summary; never upload raw controlled data."
   no_linked_paper:            "Point to the paper (PMID/DOI) describing {accession}, or upload a per-sample table keyed by run accession (SRR/ERR/DRR) with {missing_fields}."
-  paywalled_abstract_only:    "Upload the journal's per-sample supplementary table (or its URL) keyed by run/BioSample accession with {missing_fields}; derived values only if the licence forbids redistribution."
-  tables_unjoinable_need_key: "Upload a key file mapping {id_form} -> SRR/ERR/DRR or BioSample accessions of {accession}, or a per-sample table already keyed by accession ({missing_fields})."
+  paywalled_abstract_only:    "Upload the journal supplement (or its URL) keyed by run/BioSample accession with {missing_fields}; derived values only if the licence forbids sharing."
+  tables_unjoinable_need_key: "Upload a key file mapping {id_form} -> SRR/ERR/DRR or BioSample accessions of {accession}, or a per-sample table keyed by accession ({missing_fields})."
   pdf_only_supplement:        "Upload the PDF/DOCX supplement re-typed as CSV/TSV (one row per sample, accession column) with {missing_fields}."
   no_supplement_found:        "Upload a per-sample table keyed by run accession (SRR/ERR/DRR) or BioSample with {missing_fields}, and state where it came from."
   archive_only_uncertain:     "Tell us whether {accession} is infant gut shotgun metagenomics: paper section, protocol or cohort description that settles it."

@@ -52,16 +52,21 @@ def test_cycle_log_row_is_read(tmp_path):
 
 @pytest.mark.skipif(not os.path.exists(os.path.join(PKG, "sample_determinations.parquet")), reason="no unpacked package")
 def test_real_pair_1_2_2_to_1_3_0(tmp_path):
+    """From a 1.2.2 package: reconstruction to R2026.1. From a 1.3.0 (bitemporal) package: incremental to R2026.2 (R2026.2 test)."""
+    import pyarrow.parquet as pq
     out = str(tmp_path / "new")
-    bt.run(PKG, out, "R2026.1", "1.3.0", "1.2.2", previous_package=PKG, release_date="2026-09-26")
+    incremental = "release_added" in pq.ParquetFile(os.path.join(PKG, "sample_determinations.parquet")).schema_arrow.names
+    rid, pv, prev = ("R2026.2", "1.4.0", "1.3.0") if incremental else ("R2026.1", "1.3.0", "1.2.2")
+    bt.run(PKG, out, rid, pv, prev, previous_package=PKG, release_date="2026-09-26")
     v = json.load(open(os.path.join(PKG, "VERSION.json")))
-    v.update(package_version="1.3.0", release_id="R2026.1", previous_release_id="1.2.2", release_tag="data-v1.3.0")
+    v.update(package_version=pv, release_id=rid, previous_release_id=("R2026.1" if incremental else "1.2.2"), release_tag=f"data-v{pv}")
     json.dump(v, open(os.path.join(out, "VERSION.json"), "w"))
     md = rn.build(PKG, out)
     assert "| included studies | 389 | 389 | 0 | 0 |" in md
     assert "| catalog samples | 154,206 | 154,206 | 0 | 0 |" in md
     assert "**0 flips.**" in md
-    assert "New files: `bitemporal_log.json`, `releases.csv`, `sample_determinations_all.parquet`" in md
+    if not incremental:
+        assert "New files: `bitemporal_log.json`, `releases.csv`, `sample_determinations_all.parquet`" in md
     assert "| 1.0.0 | 605,707 |" in md and "| 1.2.2 | 701 |" in md
     assert "| sandpiper_version | 2.0.0 | 2.0.0 |" in md
     assert md == rn.build(PKG, out)
