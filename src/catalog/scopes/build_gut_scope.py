@@ -90,10 +90,16 @@ def apply_condition_maps(det: pd.DataFrame, cond_map: pd.DataFrame | None, abx_m
         cm = cond_map.dropna(subset=["health_condition"])
         cm = cm[(cm.health_condition != "unknown") & (cm.confidence.fillna(0) >= 0.5)]
         key = {(str(k), str(v)): (c, cf, m) for k, v, c, cf, m in zip(cm.attr_key_norm, cm.attr_value, cm.health_condition, cm.confidence, cm.method)}
+        # value-only map for non-attribute sources (R2 supplementary columns): a value that every key maps to the same code
+        vals = cm.assign(v=cm.attr_value.astype(str).str.strip().str.lower()).groupby("v").agg(codes=("health_condition", lambda x: set(x)), cf=("confidence", "min"))
+        vmap = {v: (next(iter(r.codes)), float(r.cf)) for v, r in vals.iterrows() if len(r.codes) == 1}
         d = det[det.field_name == "health_condition_detail"]
         for r in d.itertuples(index=False):
             k = _attr_key(r.evidence_source)
             hit = key.get((k, str(r.field_value))) if k else None
+            if hit is None and k is None:
+                vh = vmap.get(str(r.field_value).strip().lower())
+                hit = (vh[0], min(vh[1], 0.8), "value_match") if vh else None
             if hit:
                 c, cf, m = hit
                 extra.append(_row(r.sample_key, "health_condition", r.study_accession, r.field_value, c, min(float(r.confidence), float(cf)), r.evidence_source, r.evidence_locator, r.evidence_quote, r.route, f"gut_condition_map:{m}", "code from config/vocab/health_conditions.yaml", release_id=release_id, pv=pv))
