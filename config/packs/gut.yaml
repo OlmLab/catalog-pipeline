@@ -1,0 +1,46 @@
+# Curated scope `gut_all` — every human gut shotgun metagenome in the registry (all ages). Owner decision 2026-09-28:
+# "curate all the non-infant samples as well, still just gut"; the infant catalog must be reproducible by filtering to the
+# infant category. This pack defines the per-sample fields, their vocabularies, the routes that may commit them, and the
+# tables the scope ships. The infant curated tables (sample_determinations / sample_metadata_wide / …) are NOT changed:
+# their rows are copied into the gut tables verbatim (source infant_catalog) and win over archive-only values.
+pack_id: gut_all
+label: Human gut shotgun metagenomes, all ages
+release_first: R2026.7
+package_version_first: "1.8.0"
+study_rule: registry_studies.host_human in {yes, mixed} and assay in {shotgun_dna, mixed} and gut_stool in body_sites, OR in_infant_catalog == include
+sample_rule: registry_biosamples of those studies (all body sites kept; body_site_class marks non-gut samples) + the curated infant samples
+age_categories:            # from age_at_collection_days when known, else the sample's life stage, else the study's life_stage_primary (basis recorded)
+  neonate: [0, 28]
+  infant: [29, 1100]
+  child: [1101, 4382]      # 3–12 y
+  adolescent: [4383, 6574] # 12–18 y
+  adult: [6575, 23741]     # 18–65 y
+  elderly: [23742, null]
+infant_filter: "age_category in {neonate, infant} and body_site_class in {primary, unknown} and in_infant_catalog == include  # == the infant catalog's catalog_scope"
+fields:                    # field_name → vocabulary / type; routes R1 (archive attributes) > R2 (supplementary tables) > R3 (paper prose) > R4 (abstract / study description)
+  age_at_collection_days: {type: float, unit: days, routes: [R1, R2, R3, R4]}
+  sex: {type: enum, values: [female, male, unknown], routes: [R1, R2, R3]}
+  bmi: {type: float, unit: kg/m2, range: [10, 80], routes: [R1, R2]}
+  country: {type: iso3166_alpha2, routes: [R1, R2, R3, R4]}
+  health_condition: {type: vocab, vocab: config/vocab/health_conditions.yaml, routes: [R1, R2, R3, R4], detail_field: health_condition_detail}
+  health_condition_detail: {type: text, max_len: 120, routes: [R1, R2, R3, R4]}
+  antibiotic_exposure: {type: enum, values: ["yes", "no", unknown], routes: [R1, R2, R3, R4], note: "yes = antibiotics at or shortly before sampling per the source's own window"}
+  subject_id: {type: text, routes: [R1, R2]}
+  timepoint_label: {type: text, routes: [R1, R2]}
+  # infant-only fields carried verbatim from the curated infant tables (never minted for non-infant samples):
+  delivery_mode: {type: enum, infant_only: true}
+  feeding_mode: {type: enum, infant_only: true}
+  preterm_status: {type: enum, infant_only: true}
+  gestational_age_weeks: {type: float, infant_only: true}
+  birth_weight_grams: {type: float, infant_only: true}
+  maternal_antibiotics: {type: enum, infant_only: true}
+  probiotic_exposure: {type: enum, infant_only: true}
+  hmo_supplementation: {type: enum, infant_only: true}
+  nec_status: {type: enum, infant_only: true}
+future_fields: [diet, smoking, medication_ppi, medication_metformin, stool_consistency_bristol, ethnicity]   # values exist in attributes; no vocabulary yet
+tables:
+  studies: gut_studies.parquet
+  samples_wide: gut_sample_metadata_wide.parquet
+  determinations: gut_sample_determinations.parquet
+determination_schema: same columns as sample_determinations.parquet (sample_key, field_name, study_accession, field_value, value_normalized, confidence, evidence_source, evidence_locator, evidence_quote, evidence_limited_to_abstract, determined_by, route, scope, parse_note, group_audit, src_track, release_added, release_retired, package_added)
+evidence_rules: infant-curation-rules §"Per-sample extraction" — verbatim quote ≤ 12 words, labelled source, confidence tier by route (R1 0.9 / R2 0.85 / R3 ≤ 0.7 / R4 ≤ 0.5), R4 rows evidence_limited_to_abstract = 1

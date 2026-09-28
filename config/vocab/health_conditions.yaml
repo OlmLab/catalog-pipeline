@@ -1,0 +1,38 @@
+schema_version: 1
+vocabulary: health_condition
+note: |
+  Sample-level health / disease context for the gut_all curated scope. Superset of the infant catalog's codes (marked
+  legacy_infant: true — kept verbatim on infant rows, never minted for non-infant samples). One code per sample; the raw
+  submitter text goes to health_condition_detail. `healthy_control` requires the source to say healthy / control / no disease;
+  absence of a disease attribute is `unknown`, not healthy.
+codes:
+  healthy_control: {label: Healthy / control, match_terms: [healthy, control, "normal", "non-diseased", "no disease", "HC"]}
+  ibd_unspecified: {label: IBD (unspecified), match_terms: [IBD, "inflammatory bowel"]}
+  crohns_disease: {label: Crohn's disease, match_terms: ["crohn", CD]}
+  ulcerative_colitis: {label: Ulcerative colitis, match_terms: ["ulcerative colitis", UC]}
+  ibs: {label: Irritable bowel syndrome, match_terms: [IBS, "irritable bowel"]}
+  colorectal_cancer: {label: Colorectal cancer, match_terms: [CRC, "colorectal cancer", "colon cancer", "rectal cancer", "colorectal carcinoma"]}
+  colorectal_adenoma: {label: Colorectal adenoma / polyp, match_terms: [adenoma, polyp, "advanced adenoma"]}
+  other_cancer: {label: Other cancer (incl. immunotherapy cohorts), match_terms: [cancer, carcinoma, melanoma, lymphoma, leukemia, tumor, tumour, oncolog]}
+  obesity: {label: Obesity / overweight, match_terms: [obese, obesity, overweight]}
+  type2_diabetes: {label: Type 2 diabetes / prediabetes, match_terms: [T2D, "type 2 diabetes", "type II diabetes", prediabet, "impaired glucose"]}
+  type1_diabetes: {label: Type 1 diabetes, match_terms: [T1D, "type 1 diabetes"]}
+  cardiometabolic_other: {label: Other cardiometabolic (hypertension, CVD, metabolic syndrome, NAFLD/MAFLD), match_terms: [hypertension, atherosclerosis, "cardiovascular", "metabolic syndrome", NAFLD, MAFLD, NASH, "fatty liver", dyslipid]}
+  liver_disease: {label: Liver disease (cirrhosis, hepatitis, HCC), match_terms: [cirrhosis, hepatitis, "liver disease", "hepatocellular", "hepatic encephalopathy"]}
+  kidney_disease: {label: Kidney disease, match_terms: [CKD, "kidney disease", "renal", dialysis, ESRD]}
+  gi_infection_or_diarrhoea: {label: GI infection / diarrhoea (incl. C. difficile), match_terms: ["C. difficile", "Clostridioides difficile", CDI, diarrh, cholera, "traveler", gastroenteritis, "enteric infection"]}
+  other_infection: {label: Other infection (HIV, TB, COVID-19, sepsis, …), match_terms: [HIV, tuberculosis, "COVID", "SARS-CoV-2", sepsis, malaria, infection]}
+  autoimmune_inflammatory: {label: Autoimmune / inflammatory (RA, SLE, spondyloarthritis, psoriasis, celiac), match_terms: ["rheumatoid", lupus, SLE, spondyl, psoria, celiac, coeliac, "Behcet", "Sjogren"]}
+  neurological_psychiatric: {label: Neurological / psychiatric (PD, MS, AD, ASD, depression, schizophrenia), match_terms: [Parkinson, "multiple sclerosis", Alzheimer, dementia, autism, ASD, depress, schizophren, bipolar, epilep, ALS, stroke]}
+  allergy_or_atopy: {label: Allergy / atopy / asthma, match_terms: [allerg, atopic, eczema, asthma]}
+  malnutrition: {label: Malnutrition / undernutrition, match_terms: [malnutrition, malnourished, undernutrition, stunting, wasting, SAM, MAM]}
+  transplant_or_immunocompromised: {label: Transplant / immunocompromised (HSCT, chemotherapy, ICU), match_terms: [transplant, HSCT, "stem cell", chemotherap, immunocompromised, ICU, "critically ill"]}
+  pregnancy_postpartum: {label: Pregnancy / postpartum, match_terms: [pregnan, postpartum, gestation, trimester]}
+  intervention_cohort: {label: Intervention cohort (drug, diet, probiotic, FMT trial arms), match_terms: [intervention, treatment, placebo, "FMT", "fecal microbiota transplant", probiotic, supplement, "trial"]}
+  other_disease: {label: Other disease / condition, match_terms: [disease, patient, case, syndrome, disorder]}
+  unknown: {label: Unknown / not stated, match_terms: []}
+  # legacy infant codes (config of the curated infant catalog; kept verbatim on infant rows)
+  preterm_nicu: {label: Preterm / NICU (infant), legacy_infant: true}
+  nec: {label: Necrotising enterocolitis (infant), legacy_infant: true}
+  sepsis_or_infection: {label: Sepsis / infection (infant), legacy_infant: true}
+  ibd_or_gi_disease: {label: IBD or GI disease (infant), legacy_infant: true}
