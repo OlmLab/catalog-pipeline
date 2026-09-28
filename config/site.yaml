@@ -3,9 +3,9 @@
 # for publish while base_url still contains the USERNAME/REPOSITORY placeholder.
 site:
   # Names live HERE only (owner decision 2026-09-28: site rebranded to the all-human catalog; repository names / URL unchanged until a final name is chosen)
-  title: "Human Shotgun-Metagenome Catalog"
-  short_title: "Human Metagenome Catalog"
-  tagline: "every public human shotgun-metagenome study in ENA/SRA/DDBJ — all body sites, all ages — plus curated, evidence-linked scopes"
+  title: "Microbiome Repo"
+  short_title: "Microbiome Repo"
+  tagline: "every public human shotgun-metagenome study in ENA/SRA/DDBJ — all body sites, all ages — plus curated, evidence-linked scopes (human gut, all ages, first)"
   curated_scope_title: "Infant Gut Shotgun-Metagenome Catalog"     # the first curated scope (infant_gut); its pages keep this name
   curated_scope_short: "Infant gut"
   base_url: "https://olmlab.github.io/infant-gut-catalog/"

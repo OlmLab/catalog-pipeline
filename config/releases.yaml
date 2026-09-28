@@ -102,6 +102,14 @@ releases:
     data_tag: data-v1.7.1
     site_tag: site-v1.7.1
     label: "rebrand — the site and package are the Human Shotgun-Metagenome Catalog (registry tier first); the infant gut catalog is its first curated scope; no data change"
+  - release_id: R2026.7
+    package_version: '1.8.0'
+    previous_package_version: '1.7.1'
+    previous_release_id: R2026.6
+    notes_file: RELEASE_NOTES_R2026.7.md
+    data_tag: data-v1.8.0
+    site_tag: site-v1.8.0
+    label: "curated scope gut_all — every human gut shotgun metagenome, all ages: gut_sample_determinations / gut_sample_metadata_wide / gut_studies (R1 + R2 + R4 for the non-infant studies; the infant catalog is the infant_scope filter); site renamed Microbiome Repo"
 
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
@@ -238,4 +246,18 @@ registry_tables:
   - file: registry_bioproject_records.parquet
     key: [study_accession]
     default_release_added: R2026.5
+    built_with_release_columns: true
+  - file: gut_sample_determinations.parquet
+    key: [sample_key, field_name]
+    default_release_added: R2026.7
+    built_with_release_columns: true
+    diff_column: value_normalized
+  - file: gut_sample_metadata_wide.parquet
+    key: [sample_key]
+    default_release_added: R2026.7
+    built_with_release_columns: true
+    diff_column: age_category
+  - file: gut_studies.parquet
+    key: [study_accession]
+    default_release_added: R2026.7
     built_with_release_columns: true

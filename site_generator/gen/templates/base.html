@@ -20,6 +20,7 @@
 <nav class="topnav"><div class="in">
 <a class="brand" href="{{ root }}index.html">{{ site.short_title }}</a>
 {% if site.has_registry %}<a href="{{ root }}{{ site.registry_page }}" {% if nav=='registry' %}class="active"{% endif %}>Registry</a>{% endif %}
+{% if site.has_gut %}<a href="{{ root }}{{ site.gut_page }}" {% if nav=='gut' %}class="active"{% endif %}>Gut (all ages)</a>{% endif %}
 <span class="navgroup" title="Curated scope: {{ site.curated_scope_title }}">{{ site.curated_scope_short }}:</span>
 <a href="{{ root }}studies/index.html" {% if nav=='studies' %}class="active"{% endif %}>Studies</a>
 <a href="{{ root }}cohorts/index.html" {% if nav=='cohorts' %}class="active"{% endif %}>Cohorts</a>

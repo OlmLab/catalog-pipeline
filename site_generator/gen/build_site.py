@@ -333,7 +333,7 @@ def main():
         sys.exit(f'refusing to build: base_url is the placeholder {placeholder!r} (A15). Set site.base_url in config/site.yaml or pass --base-url.')
     if out.exists():
         shutil.rmtree(out)
-    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes', 'contribute', 'registry/scopes']:
+    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes', 'contribute', 'registry/scopes', 'gut']:
         (out / d).mkdir(parents=True, exist_ok=True)
 
     # ---------- load ----------
@@ -543,7 +543,7 @@ def main():
                 description='Curated, evidence-linked catalog of public shotgun-metagenome studies of the human infant gut with per-sample metadata and Sandpiper community profiles.',
                 citation=f'{names["title"]}, release {release_id} (data package {version}), OlmLab, {cur_rel["release_date"]}.' + (f' doi:{doi}' if doi else ''),
                 sri=json.loads((HERE / 'static' / 'vendor' / 'SRI.json').read_text()), has_contribute=has_contribute, contribute_page='contribute/index.html',
-                has_registry=has_registry, registry_page='registry/index.html')
+                has_registry=has_registry, registry_page='registry/index.html', has_gut=(pkg / 'gut_sample_metadata_wide.parquet').exists(), gut_page='gut/index.html')
 
     env = Environment(loader=FileSystemLoader(HERE / 'templates'), autoescape=select_autoescape(['html']))
     env.filters.update(fmt=f_fmt, pct=f_pct, pct1=f_pct1, num2=f_num2, numint=f_numint)
@@ -572,6 +572,8 @@ def main():
         IN_DATA.append(sspec['files']['studies'])   # registry explorer reads data/registry_studies.parquet; registry_runs is never a site file
         if (pkg / 'registry_biosamples.parquet').exists():
             IN_DATA.append('registry_biosamples.parquet')   # sample tier (R2026.5): download + future explorer facet; ≈ 5 MB
+    if (pkg / 'gut_sample_metadata_wide.parquet').exists():
+        IN_DATA += ['gut_sample_metadata_wide.parquet', 'gut_studies.parquet']   # gut_all curated scope (R2026.7): explorer tables
     for name in IN_DATA:
         shutil.copyfile(pkg / name, out / 'data' / name)
     pkg_files = []
@@ -1075,6 +1077,44 @@ def main():
         _html = (out / site['contribute_page']).read_text(encoding='utf-8')
         assert _html.count('class="btn xs contribute"') == len(wl), 'contribute page must carry one Contribute button per worklist study'
         print(f'[{time.time()-t0:.0f}s] contribute page: {len(wl)} studies', file=sys.stderr)
+
+
+    # ---------- curated scope gut_all (R2026.7: gut/index.html — landing, coverage, explorer over gut_sample_metadata_wide.parquet) ----------
+    if site['has_gut']:
+        import yaml as _yaml
+        gpack = _yaml.safe_load((HERE.parent.parent / 'config' / 'packs' / 'gut.yaml').read_text(encoding='utf-8'))
+        hcv = _yaml.safe_load((HERE.parent.parent / 'config' / 'vocab' / 'health_conditions.yaml').read_text(encoding='utf-8'))['codes']
+        gw = pd.read_parquet(pkg / 'gut_sample_metadata_wide.parquet')
+        gst = pd.read_parquet(pkg / 'gut_studies.parquet')
+        assert gw.sample_key.is_unique and set(gw.study_accession) <= set(gst.study_accession), 'gut tables: one row per sample, every sample study listed'
+        assert int(gw.infant_scope.sum()) == stats['n_catalog_scope'], f"F14: gut infant_scope ({int(gw.infant_scope.sum())}) must equal the infant catalog_scope ({stats['n_catalog_scope']})"
+        assert set(gw.loc[gw.curated_source == 'infant_catalog', 'study_accession']) == set(st.study_accession), 'F14: infant-catalog studies in the gut scope == included studies'
+        gfields = ['age_at_collection_days', 'sex', 'bmi', 'country', 'health_condition', 'antibiotic_exposure', 'subject_id', 'timepoint_label']
+        cat_order = list(gpack['age_categories'].keys()) + ['unknown']
+        cov_rows = []
+        for c in cat_order:
+            m = gw[gw.age_category == c]
+            if len(m):
+                cov_rows.append(dict(cat=c, n=len(m), cov={f: int(round(100 * m[f].notna().mean())) for f in gfields}))
+        cov_rows.append(dict(cat='all', n=len(gw), cov={f: int(round(100 * gw[f].notna().mean())) for f in gfields}))
+        hc = gw.dropna(subset=['health_condition']).groupby('health_condition').agg(ns=('sample_key', 'size'), nst=('study_accession', 'nunique')).sort_values('ns', ascending=False)
+        co = gw.dropna(subset=['country']).groupby('country').agg(ns=('sample_key', 'size'), nst=('study_accession', 'nunique')).sort_values('ns', ascending=False).head(15)
+        route_rows = [dict(field=f, **{r: int((gw[f + '__route'] == r).sum()) for r in ('R1', 'R2', 'R3', 'R4')}) for f in gfields]
+        top = gst.sort_values('n_samples_curated', ascending=False).head(40)
+        top_rows = [dict(acc=r.study_accession, title=(r.study_title or '')[:110], n=int(r.n_samples_curated), ages=' '.join(f"{k}:{v}" for k, v in sorted(json.loads(r.age_categories or '{}').items(), key=lambda kv: -kv[1])[:3]),
+                         depth=r.curated_depth or '', cov_age=int(round(100 * (r.cov_age_at_collection_days or 0))), cov_hc=int(round(100 * (r.cov_health_condition or 0))),
+                         source=r.curated_source, infant=(r.curated_source == 'infant_catalog')) for r in top.itertuples(index=False)]
+        gstats = dict(n_studies=len(gst), n_samples=len(gw), n_infant_scope=int(gw.infant_scope.sum()), n_infant_studies=int((gst.curated_source == 'infant_catalog').sum()),
+                      n_gut_primary=int((gw.body_site_class == 'primary').sum()), n_site_unknown=int((gw.body_site_class == 'unknown').sum()), n_site_excluded=int(gw.body_site_class.isin(['excluded', 'linked']).sum()),
+                      age_counts=[(c, int((gw.age_category == c).sum())) for c in cat_order if (gw.age_category == c).any()], fields=gfields, cov_rows=cov_rows,
+                      hc_rows=[(k, int(v.ns), int(v.nst)) for k, v in hc.iterrows()], hc_labels={k: v.get('label', '') for k, v in hcv.items()}, hc_codes=list(hc.index),
+                      country_rows=[(k, int(v.ns), int(v.nst)) for k, v in co.iterrows()], countries=list(gw.country.dropna().value_counts().index[:60]),
+                      route_rows=route_rows, top_studies=top_rows, age_cats=[c for c in cat_order if (gw.age_category == c).any()], n_cols=int(gw.shape[1]),
+                      parquet_size=human((pkg / 'gut_sample_metadata_wide.parquet').stat().st_size), coverage_all={f: round(float(gw[f].notna().mean()), 4) for f in gfields})
+        stats['gut'] = {k: gstats[k] for k in ('n_studies', 'n_samples', 'n_infant_scope', 'n_infant_studies', 'coverage_all')}
+        render('gut.html', site['gut_page'], '../', nav='gut', g=gstats, included_accs=included,
+               crumbs=[dict(label='Home', href='../index.html'), dict(label='Gut, all ages')])
+        assert (out / site['gut_page']).stat().st_size < 2_000_000, 'gut/index.html over the 2 MB budget'
 
     # ---------- registry tier pages (scale-up S1: registry/index.html + registry/scopes/<id>.html) ----------
     reg_methods = None

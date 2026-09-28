@@ -40,7 +40,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: registry-fixture registry-classify-det registry-build registry-biosamples help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: gut-build registry-fixture registry-classify-det registry-build registry-biosamples help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -203,6 +203,7 @@ release:         ## stage 5 (R2026.n) — unpack → findings → assemble → b
 	$(MAKE) worklist
 	@if [ -f "$(REGISTRY_UNIVERSE)" ]; then $(MAKE) registry-build REGISTRY_OUT=$(PKG_OUT) && rm -f $(PKG_OUT)/registry_studies_fixture.parquet; else echo "no registry universe at $(REGISTRY_UNIVERSE) (registry tables not built)"; fi
 	@if [ -f "$(REGISTRY_UNIVERSE)" ] && [ -f "$(REGISTRY_ATTRIBUTES)" ] && [ -f "$(REGISTRY_NORM)" ]; then $(MAKE) registry-biosamples REGISTRY_OUT=$(PKG_OUT); else echo "no registry sample tier inputs (REGISTRY_ATTRIBUTES / REGISTRY_NORM) — registry_biosamples not built"; fi
+	@if [ -f "$(GUT_STUDIES)" ] && [ -f "$(PKG_OUT)/registry_biosamples.parquet" ]; then $(MAKE) gut-build GUT_OUT=$(PKG_OUT); else echo "no gut scope inputs ($(GUT_STUDIES)) — gut_* tables not built"; fi
 	@if [ -f "$(REGISTRY_UNIVERSE)" ] && [ -n "$(wildcard $(REGISTRY_EXTRA))" ]; then $(PY) -m catalog.registry.add_registry_tables --package $(PKG_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) --previous-dir $(PKG_SRC) $(wildcard $(REGISTRY_EXTRA)); else echo "no extra registry tables ($(REGISTRY_EXTRA))"; fi
 	$(MAKE) package-docs
 	# VERSION.json must carry the NEW version before the notes are generated (release_notes reads it for the header);
@@ -269,7 +270,23 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	@echo "  git -C $(SITE_CLONE) push origin release/$(VERSION) site-v$(VERSION)"
 	@echo "  git -C $(DATA_CLONE) push origin release/$(VERSION) data-v$(VERSION)"
 
-# ---------------------------------------------------------------- registry tier (S0 track; docs/EXPANSION.md, config/scope.yaml)
+# ---------------------------------------------------------------- curated scope gut_all (config/packs/gut.yaml; R2026.7)
+GUT_DIR      ?= $(DATA)/gut
+GUT_STUDIES  ?= $(GUT_DIR)/gut_studies.parquet
+GUT_R1       ?= $(GUT_DIR)/gut_r1_determinations.parquet
+GUT_R2_GLOB  ?= $(GUT_DIR)/r2/gut_r2_determinations_shard_*.parquet
+GUT_R4_GLOB  ?= $(GUT_DIR)/r4/gut_r4_determinations_shard_*.parquet
+GUT_COND_MAP ?= $(GUT_DIR)/gut_health_condition_map.parquet
+GUT_ABX_MAP  ?= $(GUT_DIR)/gut_antibiotic_map.parquet
+GUT_OUT      ?= $(BUILD)/gut
+
+gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations from registry_biosamples + R1/R2/R4 leaf outputs + the infant tables
+	mkdir -p $(GUT_OUT) $(BUILD)/gut
+	$(PY) -m catalog.scopes.build_gut_scope --studies $(GUT_STUDIES) --registry-studies $(PKG_OUT)/registry_studies.parquet --biosamples $(PKG_OUT)/registry_biosamples.parquet \
+	  --package $(PKG_OUT) --r1 $(GUT_R1) --r2-glob "$(GUT_R2_GLOB)" --r4-glob "$(GUT_R4_GLOB)" --condition-map $(GUT_COND_MAP) --antibiotic-map $(GUT_ABX_MAP) \
+	  --out $(GUT_OUT) --summary $(BUILD)/gut/gut_scope_summary.json --release-id $(RELEASE_ID) --package-version $(VERSION) --previous-dir $(PKG_SRC)
+	@rm -f $(GUT_OUT)/gut_sample_determinations_conflicts.parquet 2>/dev/null; true
+
 # REGISTRY_UNIVERSE: enumeration track output (frozen columns: audit/registry_schema.json)
 REGISTRY_UNIVERSE ?= $(DATA)/registry/registry_universe_studies.parquet
 REGISTRY_AUDIT    ?= $(DATA)/registry/registry_universe_audit.csv

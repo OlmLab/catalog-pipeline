@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ site.title }}</h1>
-<p class="lead">{{ site.tagline[:1]|upper }}{{ site.tagline[1:] }}. Two tiers: the <b>registry</b> lists every public ENA study with a human shotgun-metagenome signal{% if stats.has_registry %} — {{ stats.n_registry|fmt }} studies, {{ stats.n_registry_runs|fmt }} sequencing runs, all body sites and ages — each classified from the archive record (host, UBERON-anchored body sites, life stages, assay, access) and, where harvested, with per-BioSample site / age / sex / country{% endif %}; <b>curated scopes</b> go deeper, recovering per-sample metadata from supplementary tables and papers with a verbatim evidence quote, a route (R1–R4) and a confidence on every value. The first curated scope is the <b>{{ site.curated_scope_title }}</b> ({{ stats.n_studies|fmt }} studies, {{ stats.n_samples|fmt }} samples); the adult gut is next.</p>
+<p class="lead">{{ site.tagline[:1]|upper }}{{ site.tagline[1:] }}. Two tiers: the <b>registry</b> lists every public ENA study with a human shotgun-metagenome signal{% if stats.has_registry %} — {{ stats.n_registry|fmt }} studies, {{ stats.n_registry_runs|fmt }} sequencing runs, all body sites and ages — each classified from the archive record (host, UBERON-anchored body sites, life stages, assay, access) and, where harvested, with per-BioSample site / age / sex / country{% endif %}; <b>curated scopes</b> go deeper, recovering per-sample metadata from supplementary tables and papers with a verbatim evidence quote, a route (R1–R4) and a confidence on every value. The curated <b>human gut</b> scope covers all ages{% if stats.gut %} ({{ stats.gut.n_studies|fmt }} studies, {{ stats.gut.n_samples|fmt }} samples){% endif %}; its infant category is the <b>{{ site.curated_scope_title }}</b> ({{ stats.n_studies|fmt }} studies, {{ stats.n_samples|fmt }} samples), curated to the deepest level. <b>Future plans:</b> the same curation for the other human microbiomes in the registry — oral, skin, vaginal / urogenital, respiratory, milk — one scope at a time.</p>
 
 {% if stats.has_registry %}
 <h2 id="registry">Registry: all human shotgun metagenomes</h2>
@@ -11,7 +11,16 @@
 </div>
 {% endif %}
 
-<h2 id="curated">Curated scope 1: {{ site.curated_scope_title }}</h2>
+{% if stats.gut %}
+<h2 id="gut">Curated scope: human gut, all ages</h2>
+<div class="cards">
+<a class="card" href="gut/index.html"><div class="num">{{ stats.gut.n_studies|fmt }}</div><div class="lbl"><b>gut studies</b>, {{ stats.gut.n_samples|fmt }} samples curated at sample level — age category, age, sex, BMI, country, health condition, antibiotic exposure; every value with route, confidence and evidence quote</div></a>
+<a class="card" href="gut/index.html#explorer"><div class="num">explore</div><div class="lbl">sample explorer over all ages; tick <i>infant catalog scope</i> to get exactly the {{ stats.gut.n_infant_scope|fmt }} infant-catalog samples</div></a>
+<a class="card" href="gut/index.html#coverage"><div class="num">{{ (100 * stats.gut.coverage_all.age_at_collection_days)|round|int }}%</div><div class="lbl">of gut samples with age at collection · {{ (100 * stats.gut.coverage_all.health_condition)|round|int }}% with a health-condition code · {{ (100 * stats.gut.coverage_all.country)|round|int }}% with country</div></a>
+</div>
+{% endif %}
+
+<h2 id="curated">Curated scope 1 (deep): {{ site.curated_scope_title }}</h2>
 <p class="small">Every public shotgun-metagenome study of the human infant gut (0–36 months) in ENA/SRA/DDBJ, with per-sample metadata recovered from archive attributes, supplementary tables and papers. The pages linked in the navigation bar (Studies, Cohorts, Sample explorer, Fields, Authors, Universe) belong to this scope.</p>
 <div class="cards">
 <div class="card"><div class="num">{{ stats.n_studies|fmt }}</div><div class="lbl">included studies (BioProjects)</div></div>

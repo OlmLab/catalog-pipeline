@@ -1200,6 +1200,509 @@
     }
    ],
    "bitemporal": "release columns appended by catalog.registry.add_registry_tables (harvest 2026-09-27, docs/REGISTRY_S2_PAPERS.md)"
+  },
+  "gut_sample_determinations.parquet": {
+   "key": [
+    "sample_key",
+    "field_name"
+   ],
+   "one_row_per": "sample × field of the gut_all curated scope (current value; precedence infant catalog > R1 > R2 > R3 > R4)",
+   "columns": [
+    {
+     "name": "sample_key",
+     "type": "string",
+     "description": "BioSample accession (or run accession for run-unit samples); with field_name the key",
+     "key": true
+    },
+    {
+     "name": "field_name",
+     "type": "string",
+     "description": "Field of config/packs/gut.yaml",
+     "key": true
+    },
+    {
+     "name": "study_accession",
+     "type": "string",
+     "description": "ENA study"
+    },
+    {
+     "name": "field_value",
+     "type": "string",
+     "description": "Raw value as found in the source"
+    },
+    {
+     "name": "value_normalized",
+     "type": "string",
+     "description": "Normalised value (days for age, vocabulary codes, ISO-2 country, yes/no)"
+    },
+    {
+     "name": "confidence",
+     "type": "float64",
+     "description": "Route/parser confidence tier (R1 0.85–0.9, R2 0.8–0.85, R3 ≤ 0.7, R4 ≤ 0.5)"
+    },
+    {
+     "name": "evidence_source",
+     "type": "string",
+     "description": "Labelled source: sample.attr.<key> | paper.supp.<file>[sheet!column] | paper.abstract | study.description | study.title | …"
+    },
+    {
+     "name": "evidence_locator",
+     "type": "string",
+     "description": "biosample_attr | PMCID | PMID | accession"
+    },
+    {
+     "name": "evidence_quote",
+     "type": "string",
+     "description": "Verbatim quote ≤ 12 words"
+    },
+    {
+     "name": "evidence_limited_to_abstract",
+     "type": "float64",
+     "description": "1 when the evidence is abstract/description only (R4)"
+    },
+    {
+     "name": "determined_by",
+     "type": "string",
+     "description": "Parser / stage id"
+    },
+    {
+     "name": "route",
+     "type": "string",
+     "description": "R1 | R2 | R3 | R4"
+    },
+    {
+     "name": "scope",
+     "type": "string",
+     "description": "sample (rows expanded from study_all statements carry 'expanded from study_all' in parse_note)"
+    },
+    {
+     "name": "parse_note",
+     "type": "string",
+     "description": "Parser notes"
+    },
+    {
+     "name": "group_audit",
+     "type": "string",
+     "description": "Audit note for group statements (infant rows)"
+    },
+    {
+     "name": "src_track",
+     "type": "string",
+     "description": "infant_catalog (copied from the curated infant tables) | gut_all_v1"
+    },
+    {
+     "name": "release_added",
+     "type": "string",
+     "description": "Release id in which the row first appeared"
+    },
+    {
+     "name": "release_retired",
+     "type": "string",
+     "description": "Release id in which the row was retired (null = current)"
+    },
+    {
+     "name": "package_added",
+     "type": "string",
+     "description": "Package version that first carried the row"
+    }
+   ],
+   "bitemporal": "release columns written by catalog.scopes.build_gut_scope; infant-catalog rows keep their original release_added"
+  },
+  "gut_sample_metadata_wide.parquet": {
+   "key": [
+    "sample_key"
+   ],
+   "one_row_per": "sample of the gut_all curated scope (one column per field with its route and confidence)",
+   "columns": [
+    {
+     "name": "sample_key",
+     "type": "string",
+     "description": "BioSample accession; primary key",
+     "key": true
+    },
+    {
+     "name": "study_accession",
+     "type": "string",
+     "description": "ENA study"
+    },
+    {
+     "name": "biosample_accession",
+     "type": "string",
+     "description": "BioSample accession"
+    },
+    {
+     "name": "secondary_sample",
+     "type": "string",
+     "description": "ERS/SRS/DRS accession (infant rows)"
+    },
+    {
+     "name": "sample_unit",
+     "type": "string",
+     "description": "biosample | run"
+    },
+    {
+     "name": "body_site_code",
+     "type": "string",
+     "description": "Registry body-site code of the sample (from its attributes) or the infant catalog's class"
+    },
+    {
+     "name": "sample_life_stage",
+     "type": "string",
+     "description": "Registry life stage from the sample's age attribute"
+    },
+    {
+     "name": "curated_source",
+     "type": "string",
+     "description": "infant_catalog | gut_all_v1"
+    },
+    {
+     "name": "in_infant_catalog",
+     "type": "bool",
+     "description": "Study is an included infant-catalog study"
+    },
+    {
+     "name": "age_at_collection_days",
+     "type": "float64",
+     "description": "Age at collection in days"
+    },
+    {
+     "name": "sex",
+     "type": "string",
+     "description": "female | male"
+    },
+    {
+     "name": "bmi",
+     "type": "float64",
+     "description": "Body-mass index kg/m²"
+    },
+    {
+     "name": "country",
+     "type": "string",
+     "description": "ISO-3166-1 alpha-2"
+    },
+    {
+     "name": "health_condition",
+     "type": "string",
+     "description": "config/vocab/health_conditions.yaml code"
+    },
+    {
+     "name": "health_condition_detail",
+     "type": "string",
+     "description": "Raw health / disease text"
+    },
+    {
+     "name": "antibiotic_exposure",
+     "type": "string",
+     "description": "yes | no"
+    },
+    {
+     "name": "subject_id",
+     "type": "string",
+     "description": "Subject / participant identifier as given by the source"
+    },
+    {
+     "name": "timepoint_label",
+     "type": "string",
+     "description": "Timepoint / visit label as given"
+    },
+    {
+     "name": "age_at_collection_days__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed age_at_collection_days value"
+    },
+    {
+     "name": "age_at_collection_days__route",
+     "type": "string",
+     "description": "Route of the committed age_at_collection_days value"
+    },
+    {
+     "name": "sex__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed sex value"
+    },
+    {
+     "name": "sex__route",
+     "type": "string",
+     "description": "Route of the committed sex value"
+    },
+    {
+     "name": "bmi__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed bmi value"
+    },
+    {
+     "name": "bmi__route",
+     "type": "string",
+     "description": "Route of the committed bmi value"
+    },
+    {
+     "name": "country__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed country value"
+    },
+    {
+     "name": "country__route",
+     "type": "string",
+     "description": "Route of the committed country value"
+    },
+    {
+     "name": "health_condition__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed health_condition value"
+    },
+    {
+     "name": "health_condition__route",
+     "type": "string",
+     "description": "Route of the committed health_condition value"
+    },
+    {
+     "name": "health_condition_detail__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed health_condition_detail value"
+    },
+    {
+     "name": "health_condition_detail__route",
+     "type": "string",
+     "description": "Route of the committed health_condition_detail value"
+    },
+    {
+     "name": "antibiotic_exposure__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed antibiotic_exposure value"
+    },
+    {
+     "name": "antibiotic_exposure__route",
+     "type": "string",
+     "description": "Route of the committed antibiotic_exposure value"
+    },
+    {
+     "name": "subject_id__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed subject_id value"
+    },
+    {
+     "name": "subject_id__route",
+     "type": "string",
+     "description": "Route of the committed subject_id value"
+    },
+    {
+     "name": "timepoint_label__confidence",
+     "type": "float64",
+     "description": "Confidence of the committed timepoint_label value"
+    },
+    {
+     "name": "timepoint_label__route",
+     "type": "string",
+     "description": "Route of the committed timepoint_label value"
+    },
+    {
+     "name": "delivery_mode",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "feeding_mode",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "preterm_status",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "gestational_age_weeks",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "birth_weight_grams",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "maternal_antibiotics",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "probiotic_exposure",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "hmo_supplementation",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "nec_status",
+     "type": "string",
+     "description": "Infant-catalog field (only on infant rows)"
+    },
+    {
+     "name": "age_category",
+     "type": "string",
+     "description": "neonate | infant | child | adolescent | adult | elderly | unknown (config/packs/gut.yaml age_categories)"
+    },
+    {
+     "name": "age_category_basis",
+     "type": "string",
+     "description": "age_at_collection_days | infant_catalog_age_scope | sample_life_stage | study_life_stage | unknown"
+    },
+    {
+     "name": "body_site_class",
+     "type": "string",
+     "description": "primary (gut/stool) | unknown | excluded | linked"
+    },
+    {
+     "name": "body_site_basis",
+     "type": "string",
+     "description": "sample_attribute | study_single_site | none"
+    },
+    {
+     "name": "infant_scope",
+     "type": "bool",
+     "description": "== the infant catalog's catalog_scope rule (reproduces the infant catalog exactly)"
+    },
+    {
+     "name": "n_fields_with_value",
+     "type": "int64",
+     "description": "Pack fields with a committed value"
+    },
+    {
+     "name": "release_added",
+     "type": "string",
+     "description": "Release id"
+    },
+    {
+     "name": "release_retired",
+     "type": "string",
+     "description": "Release id when retired (null = current)"
+    },
+    {
+     "name": "package_added",
+     "type": "string",
+     "description": "Package version"
+    }
+   ],
+   "bitemporal": "release columns written by catalog.scopes.build_gut_scope"
+  },
+  "gut_studies.parquet": {
+   "key": [
+    "study_accession"
+   ],
+   "one_row_per": "study of the gut_all curated scope — registry columns plus curation coverage",
+   "columns": [
+    {
+     "name": "study_accession",
+     "type": "string",
+     "description": "ENA study; primary key",
+     "key": true
+    },
+    {
+     "name": "secondary_study_accession",
+     "type": "string",
+     "description": "registry_studies column (see registry_studies.parquet)"
+    },
+    {
+     "name": "study_title",
+     "type": "string",
+     "description": "registry_studies column (see registry_studies.parquet)"
+    },
+    {
+     "name": "description_short",
+     "type": "string",
+     "description": "registry_studies column (see registry_studies.parquet)"
+    },
+    {
+     "name": "center_name",
+     "type": "string",
+     "description": "registry_studies column (see registry_studies.parquet)"
+    },
+    {
+     "name": "first_public_min",
+     "type": "string",
+     "description": "registry_studies column (see registry_studies.parquet)"
+    },
+    {
+     "name": "first_public_max",
+     "type": "string",
+     "description": "registry_studies column (see registry_studies.parquet)"
+    },
+    {
+     "name": "n_runs",
+     "type": "int64",
+     "description": "Runs"
+    },
+    {
+     "name": "n_samples",
+     "type": "int64",
+     "description": "Samples"
+    },
+    {
+     "name": "n_biosamples",
+     "type": "int64",
+     "description": "BioSamples"
+    },
+    {
+     "name": "n_runs_sandpiper",
+     "type": "int64",
+     "description": "Runs with Sandpiper profiles"
+    },
+    {
+     "name": "…registry_studies columns…",
+     "type": "",
+     "description": "all registry_studies columns are carried (classification, evidence, scope memberships, sample roll-ups)"
+    },
+    {
+     "name": "cov_<field>",
+     "type": "float64",
+     "description": "Share of the study's samples with a value for each pack field"
+    },
+    {
+     "name": "n_samples_curated",
+     "type": "int64",
+     "description": "Samples in gut_sample_metadata_wide"
+    },
+    {
+     "name": "age_categories",
+     "type": "string",
+     "description": "JSON dict age_category → samples"
+    },
+    {
+     "name": "health_conditions",
+     "type": "string",
+     "description": "JSON dict health_condition → samples (top 6)"
+    },
+    {
+     "name": "curated_depth",
+     "type": "string",
+     "description": "Routes present among the study's committed values (e.g. R1;R2;R4)"
+    },
+    {
+     "name": "curated_source",
+     "type": "string",
+     "description": "infant_catalog | gut_all_v1"
+    },
+    {
+     "name": "release_added",
+     "type": "string",
+     "description": "Release id"
+    },
+    {
+     "name": "release_retired",
+     "type": "string",
+     "description": "Release id when retired"
+    },
+    {
+     "name": "package_added",
+     "type": "string",
+     "description": "Package version"
+    }
+   ],
+   "bitemporal": "release columns written by catalog.scopes.build_gut_scope",
+   "columns_note": "gut_studies carries every registry_studies column; the list above names only the scope-specific additions"
   }
  }
 }
