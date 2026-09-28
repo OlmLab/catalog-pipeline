@@ -123,3 +123,7 @@ a.card.contribute-card{text-decoration:none;color:var(--ink);border-left-color:v
 
 /* nav group label for the curated-scope pages (rebrand 2026-09-28) */
 .topnav .navgroup{color:#7a7f87;font-size:.85em;margin-left:.9rem;margin-right:-.2rem;white-space:nowrap}
+/* v3 (all-age site): stacked route bar on the Fields page */
+.routebar{position:relative;display:inline-block;width:160px;height:10px;background:var(--panel);border:1px solid var(--line);border-radius:3px;vertical-align:middle;overflow:hidden}
+.routebar .seg{position:absolute;top:0;bottom:0}.routebar .seg.R1{background:var(--cu-gold)}.routebar .seg.R2{background:#565A5C}.routebar .seg.R3{background:#A88B4A}.routebar .seg.R4{background:#8C8F91}
+.doc{max-width:1000px}

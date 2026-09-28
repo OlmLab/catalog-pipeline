@@ -5,8 +5,8 @@ site:
   # Names live HERE only (owner decision 2026-09-28: site rebranded to the all-human catalog; repository names / URL unchanged until a final name is chosen)
   title: "Microbiome Repo"
   short_title: "Microbiome Repo"
-  tagline: "every public human shotgun-metagenome study in ENA/SRA/DDBJ — all body sites, all ages — plus curated, evidence-linked scopes (human gut, all ages, first)"
-  curated_scope_title: "Infant Gut Shotgun-Metagenome Catalog"     # the first curated scope (infant_gut); its pages keep this name
+  tagline: "every public human shotgun-metagenome study in ENA/SRA/DDBJ (registry) and a curated, evidence-linked catalog of human gut metagenomes of all ages"
+  curated_scope_title: "Infant Gut Shotgun-Metagenome Catalog"     # historical name of the infant extension (package README history); no site section carries it since 1.10.0
   curated_scope_short: "Infant gut"
   base_url: "https://olmlab.github.io/infant-gut-catalog/"
   placeholder_base_url: "https://USERNAME.github.io/REPOSITORY/"   # build fails if base_url == this

@@ -1,31 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Included studies — {{ site.title }}{% endblock %}
+{% block title %}Studies — {{ site.title }}{% endblock %}
+{% block desc %}All {{ n_rows|fmt }} human gut shotgun-metagenome studies of the catalog (all ages) with sample counts, age categories, health conditions, curation depth and per-field coverage.{% endblock %}
 {% block content %}
-<h1>Included studies ({{ studies|length|fmt }})</h1>
-<p class="lead">One row per included BioProject. Coverage columns give the fraction of the study's infant-scope samples with a value for that field; Sandpiper = fraction of samples with a SingleM community profile. Click a column header to sort; use the search box to filter by accession, title or cohort.</p>
-<div class="btns"><a class="btn sec" href="../data/package/study_metadata_wide.csv" download>Download table (CSV)</a> <a class="btn sec" href="../data/package/study_metadata_wide.parquet" download>parquet</a></div>
-<table id="studies" class="tbl display compact">
-<thead><tr><th>Accession</th><th>Title</th><th class="num">Samples</th><th class="num">Runs</th><th>First public</th><th>Cohort</th><th class="num">Papers</th><th class="num">Age</th><th class="num">Delivery</th><th class="num">Feeding</th><th class="num">Preterm</th><th class="num">Antibiotics</th><th class="num">Sandpiper</th><th>First author</th><th>Stage</th></tr></thead>
-<tbody>
-{% for s in studies %}<tr>
-<td><a href="{{ s.study_accession }}.html">{{ s.study_accession }}</a></td>
-<td>{{ s.study_title }}</td>
-<td class="num" data-order="{{ s.n_samples }}">{{ s.n_samples|fmt }} <span class="small">({{ s.n_age_scope_infant|fmt }} infant-scope)</span></td>
-<td class="num" data-order="{{ s.n_runs }}">{{ s.n_runs|fmt }}</td>
-<td>{{ s.first_public_min or '' }}</td>
-<td>{% if s.cohort_id %}<a href="../cohorts/{{ s.cohort_id }}.html">{{ s.cohort_name }}</a>{% endif %}</td>
-<td class="num">{{ s.n_linked_papers }}</td>
-<td class="num">{{ s.cov_age_at_collection_days|pct }}</td>
-<td class="num">{{ s.cov_delivery_mode|pct }}</td>
-<td class="num">{{ s.cov_feeding_mode|pct }}</td>
-<td class="num">{{ s.cov_preterm_status|pct }}</td>
-<td class="num">{{ s.cov_antibiotic_exposure|pct }}</td>
-<td class="num">{{ s.sp_frac_samples_profiled|pct }}</td>
-<td class="small">{{ s.first_author or '' }}</td>
-<td class="small">{{ s.decision_stage }}</td>
-</tr>{% endfor %}
-</tbody></table>
+<h1>Studies ({{ n_rows|fmt }})</h1>
+<p class="lead">Every ENA BioProject in the catalog — human gut shotgun metagenomes of all ages — with the number of curated samples, the age-category mix, the most frequent health-condition code, the routes that contributed values (<span class="mono">depth</span>: R1 archive attributes · R2 supplementary tables · R3 paper full text · R4 abstracts) and the per-field coverage. Click an accession for the study page (classification, papers, authors, evidence, sample table, downloads). The table is loaded from <a href="../data/studies_index.json">studies_index.json</a>; the full study table with every column is <a href="../data/gut_studies.parquet" download>gut_studies.parquet</a>.</p>
+<div class="btns"><a class="btn sec" href="../data/gut_studies.parquet" download>Download study table (parquet)</a> <a class="btn sec" href="../samples/index.html">Open the sample explorer</a></div>
+<table id="studies" class="tbl display compact" style="width:100%">
+<thead><tr><th>Study</th><th>Title</th><th class="num">Samples</th><th>Age categories</th><th>Top condition</th><th>Country</th><th>Depth</th><th class="num">Age %</th><th class="num">Health %</th><th class="num">Country %</th><th>First author</th><th class="num">Papers</th><th>Public</th></tr></thead>
+<tbody></tbody></table>
 {% endblock %}
 {% block scripts %}
-<script>new DataTable('#studies',{pageLength:50,order:[[2,'desc']],lengthMenu:[25,50,100,500]});</script>
+<script>
+fetch('../data/studies_index.json').then(r => r.json()).then(rows => {
+  const h = s => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  new DataTable('#studies', {
+    data: rows, pageLength: 50, lengthMenu: [25, 50, 100, 500], order: [[2, 'desc']], deferRender: true,
+    columns: [
+      {data: 'a', render: (d, t) => t === 'display' ? '<a href="' + h(d) + '.html">' + h(d) + '</a>' : d},
+      {data: 't', render: (d, t) => t === 'display' ? '<span class="small">' + h(d) + '</span>' : d},
+      {data: 'n', className: 'num', render: (d, t) => t === 'display' ? Number(d).toLocaleString() : d},
+      {data: 'ag', render: (d, t) => t === 'display' ? '<span class="mono small">' + h(d) + '</span>' : d},
+      {data: 'hc', render: (d, t) => t === 'display' ? '<span class="mono small">' + h(d) + '</span>' : d},
+      {data: 'co', className: 'mono'},
+      {data: 'd', render: (d, t) => t === 'display' ? '<span class="mono small">' + h(d) + '</span>' : d},
+      {data: 'ca', className: 'num', render: (d, t) => t === 'display' ? d + '%' : d},
+      {data: 'ch', className: 'num', render: (d, t) => t === 'display' ? d + '%' : d},
+      {data: 'cc', className: 'num', render: (d, t) => t === 'display' ? d + '%' : d},
+      {data: 'fa', render: (d, t) => t === 'display' ? '<span class="small">' + h(d) + '</span>' : d},
+      {data: 'p', className: 'num'},
+      {data: 'y', className: 'mono'}
+    ]
+  });
+});
+</script>
 {% endblock %}

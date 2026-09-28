@@ -188,7 +188,7 @@ worklist:        ## stage 4b — contribute_worklist.csv + contribute_worklist_f
 
 package-docs:    ## stage 5c — build_counts.json from the tables; README heading/Files table, DATA_DICTIONARY release columns, CHANGELOG entry (docs/package_changelog/$(VERSION).md)
 	$(PY) -m catalog.release.package_docs --package $(PKG_OUT) --package-version $(VERSION) --release-id $(RELEASE_ID) --build-date $(BUILD_DATE) \
-	  --changelog-entry docs/package_changelog/$(VERSION).md
+	  --changelog-entry docs/package_changelog/$(VERSION).md --readme-intro docs/package_readme_intro.md
 
 release-notes:   ## stage 5d — RELEASE_NOTES_<release_id>.md from PKG_SRC (previous) vs PKG_OUT (new); deterministic
 	$(PY) -m catalog.release.release_notes --prev $(PKG_SRC) --new $(PKG_OUT) --out $(RELEASE_NOTES)

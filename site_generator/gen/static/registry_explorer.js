@@ -1,7 +1,7 @@
 // Registry explorer (scale-up S1): DuckDB-WASM over data/registry_studies.parquet, fully client-side.
 // Same boot / failure pattern as explorer.js (samples). One row per ENA study; list columns (body_sites, life_stages,
 // scope_memberships) are ';'-joined codes and are matched with a delimited LIKE. Detail panel shows every column, the
-// evidence rows behind host / body site / life stage (JSON lists of {source, quote}) and the infant-catalog verdict.
+// evidence rows behind host / body site / life stage (JSON lists of {source, quote}); catalog studies link to their study page.
 const DUCKDB_URL = 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 const CFG = window.REGISTRY_CFG;
 const PAGE = 50;
@@ -40,6 +40,8 @@ async function init() {
     await db.registerFileBuffer('registry.parquet', new Uint8Array(await resp.arrayBuffer()));
     conn = await db.connect();
     await conn.query(`CREATE VIEW registry AS SELECT * FROM read_parquet('registry.parquet')`);
+    await conn.query(`CREATE TABLE catalog_studies (study_accession VARCHAR)`);
+    const accs = [...INCLUDED]; for (let i = 0; i < accs.length; i += 500) await conn.query(`INSERT INTO catalog_studies VALUES ${accs.slice(i, i + 500).map(a => `('${esc(a)}')`).join(',')}`);
     window.__registryReady = true;
     $('boot').style.display = 'none'; $('exp').style.display = '';
     readUrl();
@@ -66,6 +68,7 @@ function whereClause() {
     w.push(`"${sel.dataset.field}" = '${esc(v)}'`);
   }
   const mr = $('f-min_runs').value; if (mr !== '') w.push(`n_runs >= ${parseInt(mr)}`);
+  if ($('f-catalog') && $('f-catalog').checked) w.push(`study_accession IN (SELECT study_accession FROM catalog_studies)`);
   return w.length ? 'WHERE ' + w.join(' AND ') : '';
 }
 
@@ -74,6 +77,7 @@ function writeUrl() {
   if ($('f-q').value.trim()) p.set('q', $('f-q').value.trim());
   for (const sel of document.querySelectorAll('select[data-list], select[data-field]')) if (sel.value) p.set(sel.id.replace(/^f-/, ''), sel.value);
   if ($('f-min_runs').value !== '') p.set('min_runs', $('f-min_runs').value);
+  if ($('f-catalog') && $('f-catalog').checked) p.set('catalog', '1');
   if (page) p.set('page', page + 1);
   if (sortCol !== 'n_samples' || sortDir !== 'DESC') p.set('sort', sortCol + ':' + sortDir);
   const keep = new URLSearchParams(location.search).get('study'); if (keep && $('detail').classList.contains('open')) p.set('study', keep);
@@ -84,6 +88,7 @@ function readUrl() {
   if (p.get('q')) $('f-q').value = p.get('q');
   for (const sel of document.querySelectorAll('select[data-list], select[data-field]')) { const v = p.get(sel.id.replace(/^f-/, '')); if (v) sel.value = v; }
   if (p.get('min_runs')) $('f-min_runs').value = p.get('min_runs');
+  if (p.get('catalog') && $('f-catalog')) $('f-catalog').checked = true;
   if (p.get('page')) page = Math.max(0, parseInt(p.get('page')) - 1);
   if (p.get('sort')) { const [c, d] = p.get('sort').split(':'); if (SORTABLE.has(c)) { sortCol = c; sortDir = d === 'ASC' ? 'ASC' : 'DESC'; } }
 }
@@ -91,7 +96,7 @@ function readUrl() {
 function stageBadge(v) { return v ? `<span class="tag ${STAGE_CLASS[v] || ''}" title="${h(CFG.stageLabels[v] || v)}">${h(v)}</span>` : ''; }
 function accLink(acc, verdict) {
   const ena = `<a class="small" href="${CFG.enaUrl}${h(acc)}">ENA</a>`;
-  return (verdict === 'include' && INCLUDED.has(acc)) ? `<a href="${CFG.studiesUrl}${h(acc)}.html">${h(acc)}</a> ${ena}` : `<span class="mono">${h(acc)}</span> ${ena}`;
+  return INCLUDED.has(acc) ? `<a href="${CFG.studiesUrl}${h(acc)}.html">${h(acc)}</a> ${ena}` : `<span class="mono">${h(acc)}</span> ${ena}`;
 }
 
 async function run() {
@@ -143,12 +148,11 @@ async function showDetail(acc) {
   if (!rows.length) { body.innerHTML = `<p>No registry study <b>${h(acc)}</b>.</p>`; return; }
   const s = rows[0].toJSON();
   const p = new URLSearchParams(location.search); p.set('study', acc); history.replaceState(null, '', location.pathname + '?' + p.toString() + location.hash);
-  const inc = s.in_infant_catalog === 'include' && INCLUDED.has(acc);
+  const inc = INCLUDED.has(acc);
   const scopes = (s.scope_memberships || '').split(';').filter(Boolean);
   let html = `<h2 style="margin-top:0">${h(acc)} ${stageBadge(s.classification_stage)}</h2>
-  <p class="small"><a href="${CFG.enaUrl}${h(acc)}">ENA study</a>${inc ? ` · <a href="${CFG.studiesUrl}${h(acc)}.html">infant catalog study page</a>` : ' · registry-only study (no page on this site)'}</p>
+  <p class="small"><a href="${CFG.enaUrl}${h(acc)}">ENA study</a>${inc ? ` · <a href="${CFG.studiesUrl}${h(acc)}.html">catalog study page</a>` : ' · registry-only study (not in the curated catalog)'}</p>
   <p>${h(s.study_title)}</p>${s.description_short ? `<p class="small">${h(s.description_short)}</p>` : ''}
-  <h3>Infant-catalog verdict</h3><p><span class="tag ${s.in_infant_catalog === 'include' ? 'included' : s.in_infant_catalog === 'exclude' ? 'excluded' : ''}">${h(s.in_infant_catalog)}</span>${s.infant_reason_code ? ` reason <span class="mono">${h(s.infant_reason_code)}</span>` : ''}${s.in_infant_catalog === 'not_screened' ? ' <span class="small">(not in the infant triage universe)</span>' : ''}</p>
   <h3>Classification</h3><table class="tbl kv">
   <tr><td>Host human</td><td>${h(s.host_human)} <span class="small">signal rule ${h(s.human_signal_rule)}${s.ambiguous ? ' · ambiguous' : ''}</span></td></tr>
   <tr><td>Body sites</td><td>${h(s.body_sites)} <span class="small">(primary ${h(s.body_site_primary)}${s.body_site_primary && CFG.siteLabels[s.body_site_primary] ? ' — ' + h(CFG.siteLabels[s.body_site_primary]) : ''})</span></td></tr>
@@ -192,6 +196,6 @@ $('result-table').addEventListener('keydown', e => { if (e.key === 'Enter' || e.
 function closeDetail() { $('detail').classList.remove('open'); const p = new URLSearchParams(location.search); p.delete('study'); history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '') + location.hash); if (lastFocus && document.body.contains(lastFocus)) lastFocus.focus(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('detail').classList.contains('open')) closeDetail(); });
 for (const el of document.querySelectorAll('.filters input')) el.addEventListener('keydown', e => { if (e.key === 'Enter') { page = 0; run(); } });
-for (const el of document.querySelectorAll('.filters select')) el.addEventListener('change', () => { page = 0; run(); });
+for (const el of document.querySelectorAll('.filters select, .filters input[type=checkbox]')) el.addEventListener('change', () => { page = 0; run(); });
 
 init();

@@ -136,6 +136,10 @@ def expand_study_all(det_sample: pd.DataFrame, det_study: pd.DataFrame, samples:
     """study_all statements → one row per study sample lacking a sample-level value for that field."""
     if det_study.empty:
         return pd.DataFrame(columns=DET_COLS)
+    # one statement per (study, field): route precedence R1 > R2 > R3 > R4, then confidence (1.9.0 shipped both an R3 and an R4 row
+    # for the same sample × field when a full-text statement and an abstract statement coexisted — fixed in 1.10.0)
+    det_study = det_study.assign(_rank=det_study.route.map(ROUTE_RANK).fillna(9)).sort_values(["study_accession", "field_name", "_rank", "confidence"], ascending=[True, True, True, False], kind="mergesort")
+    det_study = det_study.drop_duplicates(["study_accession", "field_name"], keep="first").drop(columns=["_rank"])
     have = set(zip(det_sample.sample_key, det_sample.field_name))
     per_study = samples.groupby("study_accession").sample_key.apply(list)
     rows = []

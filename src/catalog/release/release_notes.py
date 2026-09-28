@@ -104,9 +104,36 @@ def build(prev: str, new: str, cfg: dict | None = None, cycle_log: str | None = 
     def keys(pkg, f, k):
         p = os.path.join(pkg, f)
         return set(pd.read_parquet(p, columns=[k])[k].astype(str)) if os.path.exists(p) else set()
+
+    # ---- catalog (gut_*, all ages) and registry — first when the tables exist (1.8.0+)
+    CORE = ["age_at_collection_days", "sex", "bmi", "country", "health_condition", "antibiotic_exposure", "subject_id", "timepoint_label"]
+    gp, gn = os.path.join(prev, "gut_sample_metadata_wide.parquet"), os.path.join(new, "gut_sample_metadata_wide.parquet")
+    if os.path.exists(gn):
+        gsp, gsn = keys(prev, "gut_studies.parquet", "study_accession"), keys(new, "gut_studies.parquet", "study_accession")
+        gwp = pd.read_parquet(gp, columns=["sample_key"] + CORE) if os.path.exists(gp) else pd.DataFrame(columns=["sample_key"] + CORE)
+        gwn = pd.read_parquet(gn, columns=["sample_key"] + CORE)
+        ndp = pq.ParquetFile(os.path.join(prev, "gut_sample_determinations.parquet")).metadata.num_rows if os.path.exists(os.path.join(prev, "gut_sample_determinations.parquet")) else 0
+        ndn = pq.ParquetFile(os.path.join(new, "gut_sample_determinations.parquet")).metadata.num_rows
+        L += ["## Catalog (human gut, all ages: `gut_*` tables)", "",
+              _md_table([["catalog studies", _fmt(len(gsp)), _fmt(len(gsn)), _fmt(len(gsn - gsp)), _fmt(len(gsp - gsn))],
+                         ["catalog samples", _fmt(len(gwp)), _fmt(len(gwn)), _fmt(len(set(gwn.sample_key) - set(gwp.sample_key))), _fmt(len(set(gwp.sample_key) - set(gwn.sample_key)))],
+                         ["sample × field values (current)", _fmt(ndp), _fmt(ndn), f"{ndn - ndp:+,}", ""]],
+                        ["entity", pv_prev, pv_new, "added", "removed"]), ""]
+        rows = []
+        for f in CORE:
+            a, b = int(gwp[f].notna().sum()) if len(gwp) else 0, int(gwn[f].notna().sum())
+            rows.append([f"`{f}`", _fmt(a), f"{100 * a / len(gwp):.1f}%" if len(gwp) else "—", _fmt(b), f"{100 * b / len(gwn):.1f}%" if len(gwn) else "—", f"{b - a:+,}"])
+        L += ["Per-field coverage over all catalog samples (`gut_sample_metadata_wide`):", "", _md_table(rows, ["field", f"n {pv_prev}", "cov", f"n {pv_new}", "cov", "Δ n"]), ""]
+        if gsn - gsp:
+            L += ["New catalog studies: " + ", ".join(sorted(gsn - gsp)[:60]) + (" …" if len(gsn - gsp) > 60 else ""), ""]
+    rp_, rn_ = os.path.join(prev, "registry_studies.parquet"), os.path.join(new, "registry_studies.parquet")
+    if os.path.exists(rn_):
+        rsp, rsn = keys(prev, "registry_studies.parquet", "study_accession"), keys(new, "registry_studies.parquet", "study_accession")
+        L += ["## Registry (`registry_studies`)", "", _md_table([["registry studies", _fmt(len(rsp)), _fmt(len(rsn)), _fmt(len(rsn - rsp)), _fmt(len(rsp - rsn))]], ["entity", pv_prev, pv_new, "added", "removed"]), ""]
+
     sp, sn = keys(prev, "study_metadata_wide.parquet", "study_accession"), keys(new, "study_metadata_wide.parquet", "study_accession")
     mp, mn = keys(prev, "sample_metadata_wide.parquet", "sample_key"), keys(new, "sample_metadata_wide.parquet", "sample_key")
-    L += ["## Studies and samples", "",
+    L += ["## Infant extension: studies and samples", "",
           _md_table([["included studies", _fmt(len(sp)), _fmt(len(sn)), _fmt(len(sn - sp)), _fmt(len(sp - sn))],
                      ["catalog samples", _fmt(len(mp)), _fmt(len(mn)), _fmt(len(mn - mp)), _fmt(len(mp - mn))]],
                     ["entity", pv_prev, pv_new, "added", "removed"]), ""]
@@ -117,7 +144,7 @@ def build(prev: str, new: str, cfg: dict | None = None, cycle_log: str | None = 
 
     # ---- coverage
     cp, cn = coverage_catalog_scope(prev), coverage_catalog_scope(new)
-    L += ["## Per-field coverage on `catalog_scope`", ""]
+    L += ["## Infant extension: per-field coverage on `catalog_scope`", ""]
     if cp and cn:
         (sp_, np_), (sn_, nn_) = cp, cn
         rows = []

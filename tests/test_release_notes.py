@@ -13,7 +13,7 @@ from catalog.release import bitemporal as bt  # noqa: E402
 from catalog.release import release_notes as rn  # noqa: E402
 
 PKG = os.environ.get("CATALOG_PACKAGE_DIR", os.path.join(REPO, "data", "inputs", "data_package"))
-SECTIONS = ["## Studies and samples", "## Per-field coverage on `catalog_scope`", "## Triage verdict flips", "## Findings applied",
+SECTIONS = ["## Infant extension: studies and samples", "## Infant extension: per-field coverage on `catalog_scope`", "## Triage verdict flips", "## Findings applied",
             "## Sandpiper snapshot", "## Gold metrics", "## Schema changes", "## Token cost"]
 
 

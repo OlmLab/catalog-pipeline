@@ -107,8 +107,9 @@ def update_readme(pkg: str, package_version: str, release_id: str, build_date: s
         _title, _scope = _site.get("title"), _site.get("curated_scope_title")
     except Exception:
         _title, _scope = None, None
-    if _title and s.startswith(f"# {_scope} — data package"):
-        s = s.replace(f"# {_scope} — data package", f"# {_title} — data package", 1)
+    if _title and s.startswith("# ") and " — data package" in s.split("\n", 1)[0]:
+        # the H1 always carries the current site title (config/site.yaml) — a rename is a one-line config change
+        s = re.sub(r"^# .*? — data package", f"# {_title} — data package", s, count=1)
         intro = ("\n\n**Two tiers in one package.** The `registry_*` tables cover every public human shotgun-metagenome study in ENA/SRA/DDBJ "
                  "(all body sites, all ages; archive-only classification plus the harvested BioSample tier). All other tables belong to the first "
                  f"**curated scope**, the {_scope} — the description below is that scope's.\n")
@@ -381,6 +382,38 @@ def prepend_changelog(pkg: str, entry_path: str | None) -> bool:
     return True
 
 
+def rewrite_readme_intro(pkg: str, package_version: str, intro_template: str | None) -> bool:
+    """1.10.0 (all-age site): replace the README text between the H1 and '## Files' with docs/package_readme_intro.md filled from the
+    gut_* / registry_* tables; the former infant description is kept under an 'Infant extension (historical description)' heading."""
+    if not intro_template or not os.path.exists(intro_template):
+        return False
+    rp = os.path.join(pkg, "README.md")
+    s = open(rp, encoding="utf-8").read()
+    if "## Files" not in s or not s.startswith("# "):
+        return False
+    gs = pd.read_parquet(os.path.join(pkg, "gut_studies.parquet"))
+    gw = pd.read_parquet(os.path.join(pkg, "gut_sample_metadata_wide.parquet"), columns=["sample_key", "age_at_collection_days", "sex", "country", "health_condition", "antibiotic_exposure", "infant_scope"])
+    gd = pq.ParquetFile(os.path.join(pkg, "gut_sample_determinations.parquet")).metadata.num_rows
+    rg = pd.read_parquet(os.path.join(pkg, "registry_studies.parquet"), columns=["study_accession", "n_biosamples_harvested", "release_retired"])
+    rg = rg[rg.release_retired.isna()]
+    vals = dict(n_registry=len(rg), n_registry_biosamples=int(pd.to_numeric(rg.n_biosamples_harvested, errors="coerce").fillna(0).sum()),
+                n_gut_studies=len(gs), n_gut_samples=len(gw), n_gut_determinations=int(gd), package_version=package_version,
+                cov_age=float(gw.age_at_collection_days.notna().mean()), cov_sex=float(gw.sex.notna().mean()), cov_country=float(gw.country.notna().mean()),
+                cov_hc=float(gw.health_condition.notna().mean()), cov_abx=float(gw.antibiotic_exposure.notna().mean()),
+                n_infant_studies=int((gs.curated_source == "infant_catalog").sum()), n_infant_scope=int(gw.infant_scope.fillna(False).astype(bool).sum()))
+    intro = open(intro_template, encoding="utf-8").read().format(**vals).strip()
+    h1_end = s.index("\n")
+    files_at = s.index("## Files")
+    old_body = s[h1_end:files_at].strip()
+    hist_marker = "### Infant extension (historical description)"
+    if hist_marker in old_body:  # already rewritten in an earlier release: keep the historical part as is
+        old_body = old_body[old_body.index(hist_marker) + len(hist_marker):].strip()
+    old_body = old_body.replace("**Two tiers in one package.**", "").strip()
+    new_body = f"\n\n{intro}\n\n{hist_marker}\n\n{old_body}\n\n"
+    open(rp, "w", encoding="utf-8").write(s[:h1_end] + new_body + s[files_at:])
+    return True
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--package", required=True)
@@ -388,6 +421,7 @@ def main(argv=None):
     ap.add_argument("--release-id", required=True)
     ap.add_argument("--build-date", required=True)
     ap.add_argument("--changelog-entry", default=None)
+    ap.add_argument("--readme-intro", default=None, help="docs/package_readme_intro.md — rewrites the README intro from the gut_* / registry_* tables (1.10.0)")
     ap.add_argument("--config", default=None)
     a = ap.parse_args(argv)
     cfg = yaml.safe_load(open(a.config or os.path.join(CONFIG_DIR, "releases.yaml"), encoding="utf-8"))
@@ -400,13 +434,14 @@ def main(argv=None):
     counts["release_added_counts"] = ra.value_counts().sort_index().to_dict() if ra is not None else {}
     json.dump(counts, open(os.path.join(a.package, "build_counts.json"), "w"), indent=1, sort_keys=True)
     update_readme(a.package, a.package_version, a.release_id, a.build_date, counts)
+    intro_doc = rewrite_readme_intro(a.package, a.package_version, a.readme_intro)
     update_dictionary(a.package, a.package_version, a.release_id, cfg, counts)
     worklist_doc = update_docs_worklist(a.package, a.package_version, a.release_id, counts)
     registry_doc = update_docs_registry(a.package, a.package_version, a.release_id, counts)
     json.dump(counts, open(os.path.join(a.package, "build_counts.json"), "w"), indent=1, sort_keys=True)
     changed = prepend_changelog(a.package, a.changelog_entry)
     sanitised = sanitise_session_tokens(a.package)  # F7
-    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed, "worklist_documented": worklist_doc, "registry_documented": registry_doc, "session_tokens_stripped": sanitised}))
+    print(json.dumps({k: counts[k] for k in ("package_version", "release_id", "n_samples", "n_studies", "n_catalog_scope", "n_determinations_current")} | {"changelog_prepended": changed, "worklist_documented": worklist_doc, "registry_documented": registry_doc, "readme_intro_rewritten": intro_doc, "session_tokens_stripped": sanitised}))
     return 0
 
 

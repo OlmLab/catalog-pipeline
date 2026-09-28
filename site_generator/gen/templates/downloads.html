@@ -2,34 +2,21 @@
 {% block title %}Downloads — {{ site.title }}{% endblock %}
 {% block content %}
 <h1>Downloads</h1>
-<p class="small">One data package per release carries both tiers: the registry tables (<span class="mono">registry_*</span>) and the curated {{ site.curated_scope_short|lower }} tables. The run-level registry table is a GitHub Release asset.</p>
-<p class="lead">Data package <span class="mono">{{ site.version }}</span> (release <span class="mono">{{ site.release_tag }}</span>, {{ site.build_date }}) and each file in it with its SHA-256 and row count from <a href="data/VERSION.json">VERSION.json</a>. Column definitions are in <a href="fields/index.html">Fields</a>; per-study and per-cohort slices are on the individual <a href="studies/index.html">study</a> and <a href="cohorts/index.html">cohort</a> pages, and arbitrary slices can be exported from the <a href="samples/index.html">sample explorer</a>.</p>
-<div class="btns">{% if zip_name %}<a class="btn" href="{{ zip_href }}" download>Whole package (zip, {{ zip_size }}{% if not zip_href.startswith("data/") %}, GitHub Release asset{% endif %})</a>{% endif %} <a class="btn sec" href="data/package/getting_started.ipynb" download>getting_started.ipynb</a> <a class="btn sec" href="docs/README.html">README</a> <a class="btn sec" href="docs/DATA_DICTIONARY.html">Data dictionary</a> <a class="btn sec" href="docs/CHANGELOG.html">Changelog</a></div>
-<h2>Catalog tables</h2>
-<table class="tbl"><thead><tr><th>File</th><th class="num">Rows</th><th class="num">Size</th><th>SHA-256</th><th>Description</th></tr></thead><tbody>
-{% for f in files if not f.sandpiper %}<tr><td class="mono"><a href="{{ f.href }}" download>{{ f.name }}</a></td><td class="num">{{ f.rows|fmt if f.rows is not none else '' }}</td><td class="num">{{ f.size }}</td><td class="mono small" title="{{ f.sha256 }}">{{ f.sha256[:12] }}</td><td>{{ f.desc }}</td></tr>{% endfor %}
+<p class="lead">Data package <b>{{ site.version }}</b> (release {{ site.release_id }}, built {{ site.build_date }}). Start with <span class="mono">gut_studies.parquet</span> (one row per catalog study) and <span class="mono">gut_sample_metadata_wide.parquet</span> (one row per sample); the evidence behind every value is in <span class="mono">gut_sample_determinations.parquet</span>; the registry of all human shotgun metagenomes is <span class="mono">registry_studies.parquet</span>. Column definitions: <a href="docs/DATA_DICTIONARY.html">data dictionary</a>.</p>
+{% if zip_name %}<div class="btns"><a class="btn" href="{{ zip_href }}">Whole package: {{ zip_name }} ({{ zip_size }})</a> {% if site.data_release_url %}<a class="btn sec" href="{{ site.data_release_url }}">GitHub Release {{ site.release_tag }}</a>{% endif %}</div>{% endif %}
+{% for gid, glabel in groups %}
+<h2>{{ glabel }}</h2>
+<table class="tbl small"><thead><tr><th>file</th><th class="num">rows</th><th class="num">size</th><th>description</th></tr></thead><tbody>
+{% for f in files if f.group == gid %}<tr><td><a class="mono" href="{{ f.href }}" download>{{ f.name }}</a></td><td class="num">{{ f.rows|fmt if f.rows is not none else '' }}</td><td class="num">{{ f.size }}</td><td class="small">{{ f.desc }}</td></tr>{% endfor %}
 </tbody></table>
-<h2 id="sandpiper">Sandpiper / SingleM tables (on site)</h2>
-<p class="small">Community profiles from <a href="https://sandpiper.qut.edu.au/">Sandpiper</a> (Woodcroft et al. 2025, <i>Nat Biotechnol</i>; Zenodo record <a href="https://doi.org/10.5281/zenodo.20419175">20419175</a>, CC-BY), GTDB R232, aggregated to the catalog sample unit. Method and caveats: <a href="methods.html#taxonomy">Methods › Taxonomy</a>, <a href="docs/SANDPIPER_REPORT.html">Sandpiper report</a>.</p>
-<table class="tbl"><thead><tr><th>File</th><th class="num">Rows</th><th class="num">Size</th><th>SHA-256</th><th>Description</th></tr></thead><tbody>
-{% for f in files if f.sandpiper %}<tr><td class="mono"><a href="{{ f.href }}" download>{{ f.name }}</a></td><td class="num">{{ f.rows|fmt if f.rows is not none else '' }}</td><td class="num">{{ f.size }}</td><td class="mono small" title="{{ f.sha256 }}">{{ f.sha256[:12] }}</td><td>{{ f.desc }}</td></tr>{% endfor %}
+{% endfor %}
+<h2>Release assets not on this site</h2>
+<table class="tbl small"><thead><tr><th>file</th><th>description</th></tr></thead><tbody>
+{% for o in offsite %}<tr><td class="mono">{{ o.name }}</td><td class="small">{{ o.desc }}{% if site.data_release_url %} — <a href="{{ site.data_release_url }}">release page</a>{% endif %}</td></tr>{% endfor %}
 </tbody></table>
-<h2 id="offsite">Off-site release assets (not on this site)</h2>
-<p class="small">Files above GitHub Pages' practical size limits are attached to the GitHub Release tagged <span class="mono">{{ site.release_tag }}</span> in the data repository (built by GitHub Actions; see the pipeline runbook).</p>
-<table class="tbl"><thead><tr><th>File</th><th>Description</th></tr></thead><tbody>
-{% for o in offsite %}<tr><td class="mono">{{ o.name }}</td><td>{{ o.desc }}</td></tr>{% endfor %}
-</tbody></table>
-<h2>Reports</h2>
-<ul>
-<li><a href="docs/CATALOG_REPORT.html">CATALOG_REPORT</a> (<a href="docs/CATALOG_REPORT.md">markdown</a>) — universe enumeration, triage cascade, coverage estimate, audits.</li>
-<li><a href="docs/EXTRACTION_REPORT.html">EXTRACTION_REPORT</a> (<a href="docs/EXTRACTION_REPORT.md">markdown</a>) — per-sample metadata extraction, four routes, gold evaluation, recovery rounds.</li>
-<li><a href="docs/SANDPIPER_REPORT.html">SANDPIPER_REPORT</a> — community-profile join, method, validation.</li>
-<li><a href="docs/AUTHORS_REPORT.html">AUTHORS_REPORT</a> — author/organisation index sources and coverage.</li>
-<li><a href="docs/DATA_MODEL_FIX_REPORT.html">DATA_MODEL_FIX_REPORT</a> — v1.2 age-scope / parent / history fix.</li>
-</ul>
 <h2>Site data files</h2>
-<p class="small">Files used by the explorer and the per-study pages; listed with SHA-256 in <a href="data/manifest.json">data/manifest.json</a>.</p>
-<table class="tbl"><thead><tr><th>Path</th><th class="num">Files</th><th class="num">Size</th><th>Description</th></tr></thead><tbody>
-{% for d in sitedata %}<tr><td class="mono">{{ d.path }}</td><td class="num">{{ d.n }}</td><td class="num">{{ d.size }}</td><td>{{ d.desc }}</td></tr>{% endfor %}
+<table class="tbl small"><thead><tr><th>path</th><th class="num">files</th><th class="num">size</th><th>description</th></tr></thead><tbody>
+{% for d in sitedata %}<tr><td class="mono">{{ d.path }}</td><td class="num">{{ d.n }}</td><td class="num">{{ d.size }}</td><td class="small">{{ d.desc }}</td></tr>{% endfor %}
 </tbody></table>
+<p class="small">Integrity: <a href="data/manifest.json">manifest.json</a> (SHA-256 of every data file) · <a href="data/VERSION.json">VERSION.json</a> (package tables with row counts and SHA-256). Licence: curated tables CC-BY-4.0; archive metadata under INSDC terms.</p>
 {% endblock %}

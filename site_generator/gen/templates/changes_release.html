@@ -1,43 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Changes in {{ c.release_id }} — {{ site.title }}{% endblock %}
+{% block title %}What changed in {{ c.release_id }} — {{ site.title }}{% endblock %}
 {% block content %}
-<h1>Changes in release {{ c.release_id }} <span class="small">(package {{ c.package_version }}, {{ c.release_date }})</span></h1>
-{% if c.nothing %}
-<p class="note">Nothing changed in this release: no verdict row and no determination carries <span class="mono">release_added</span> or <span class="mono">release_retired</span> = {{ c.release_id }}.</p>
-{% else %}
+<h1>What changed in {{ c.release_id }} <span class="small">(package {{ c.package_version }}, {{ c.release_date }})</span></h1>
+{% if c.nothing %}<p class="lead">No catalog value, catalog study or registry study carries <span class="mono">release_added = {{ c.release_id }}</span> — this release changed documents, machinery or tables outside the current fact tables. See the <a href="../releases/index.html#rel-{{ c.release_id }}">release notes</a>.</p>{% else %}
 <div class="cards">
-<div class="card"><div class="num">{{ c.n_verdicts|fmt }}</div><div class="lbl">study verdict rows added ({{ c.n_verdict_studies|fmt }} studies)</div></div>
-<div class="card"><div class="num">{{ c.n_added|fmt }}</div><div class="lbl">determinations added ({{ c.n_samples_added|fmt }} samples)</div></div>
-<div class="card"><div class="num">{{ c.n_retired|fmt }}</div><div class="lbl">determinations retired ({{ c.n_samples_retired|fmt }} samples)</div></div>
-<div class="card"><div class="num">{{ c.n_studies_changed|fmt }}</div><div class="lbl">studies with value changes</div></div>
+<div class="card"><div class="num">{{ c.n_added|fmt }}</div><div class="lbl">sample × field values added ({{ c.n_samples_added|fmt }} samples, {{ c.n_studies_changed|fmt }} studies)</div></div>
+<div class="card"><div class="num">{{ c.n_studies_added|fmt }}</div><div class="lbl">catalog studies added</div></div>
+<div class="card"><div class="num">{{ c.n_registry_added|fmt }}</div><div class="lbl">registry studies added</div></div>
 </div>
-
-<h2 id="verdicts">Study verdicts added in {{ c.release_id }} ({{ c.n_verdicts|fmt }})</h2>
-{% if c.verdicts %}
-{% if c.verdicts|length > 500 %}<p class="small">Showing the first 500 of {{ c.n_verdicts|fmt }} rows; the full list is in <span class="mono">universe_studies_all.parquet</span> (<span class="mono">release_added = '{{ c.release_id }}'</span>).</p>{% endif %}
-<table class="tbl compact"><thead><tr><th>Study</th><th>Title</th><th>Verdict</th><th>Previous verdict</th><th class="num">Confidence</th><th>Stage</th><th>Status</th></tr></thead><tbody>
-{% for v in c.verdicts[:500] %}<tr><td class="mono">{% if v.included %}<a href="../studies/{{ v.acc }}.html">{{ v.acc }}</a>{% else %}{{ v.acc }}{% endif %}</td><td class="small">{{ v.title }}</td>
-<td><span class="tag {{ 'included' if v.verdict in ['include','included'] else ('excluded' if v.verdict in ['exclude','excluded'] else 'human_review') }}">{{ v.verdict or '—' }}</span>{% if v.retired %} <span class="small">(retired in {{ v.retired }})</span>{% endif %}</td>
-<td>{% if v.previous %}<span class="tag">{{ v.previous }}</span>{% else %}<span class="small">— (no earlier differing verdict in study_verdict_history)</span>{% endif %}</td>
-<td class="num">{{ v.conf if v.conf is not none else '' }}</td><td class="mono small">{{ v.stage }}</td><td class="small">{{ v.status }}</td></tr>{% endfor %}
+{% if c.fields_added %}<h2>Values added, by field</h2>
+<table class="tbl small" style="max-width:760px"><thead><tr><th>field</th><th class="num">values</th><th class="num">samples</th><th class="num">studies</th></tr></thead><tbody>
+{% for f in c.fields_added %}<tr><td><a class="mono" href="../fields/index.html#{{ f.field }}">{{ f.field }}</a></td><td class="num">{{ f.n|fmt }}</td><td class="num">{{ f.n_samples|fmt }}</td><td class="num">{{ f.n_studies|fmt }}</td></tr>{% endfor %}
 </tbody></table>
-{% else %}<p class="small">No verdict rows were added in this release.</p>{% endif %}
-
-<h2 id="fields">Determinations by field</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-<div><h3>Added ({{ c.n_added|fmt }})</h3>{% if c.fields_added %}<table class="tbl compact"><thead><tr><th>Field</th><th class="num">Rows</th><th class="num">Samples</th><th class="num">Studies</th></tr></thead><tbody>
-{% for f in c.fields_added %}<tr><td>{% if f.link %}<a href="../fields/index.html#{{ f.field }}">{{ f.label }}</a>{% else %}<span class="mono">{{ f.field }}</span>{% endif %}</td><td class="num">{{ f.n|fmt }}</td><td class="num">{{ f.n_samples|fmt }}</td><td class="num">{{ f.n_studies|fmt }}</td></tr>{% endfor %}</tbody></table>{% else %}<p class="small">none</p>{% endif %}</div>
-<div><h3>Retired ({{ c.n_retired|fmt }})</h3>{% if c.fields_retired %}<table class="tbl compact"><thead><tr><th>Field</th><th class="num">Rows</th><th class="num">Samples</th><th class="num">Studies</th></tr></thead><tbody>
-{% for f in c.fields_retired %}<tr><td>{% if f.link %}<a href="../fields/index.html#{{ f.field }}">{{ f.label }}</a>{% else %}<span class="mono">{{ f.field }}</span>{% endif %}</td><td class="num">{{ f.n|fmt }}</td><td class="num">{{ f.n_samples|fmt }}</td><td class="num">{{ f.n_studies|fmt }}</td></tr>{% endfor %}</tbody></table>
-<p class="small">Retiring stages: {% for k, v in c.retired_stages %}<span class="mono">{{ k }}</span> {{ v|fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% else %}<p class="small">none</p>{% endif %}</div>
-</div>
-
-<h2 id="studies">Top studies by rows changed ({{ c.per_study|length }} of {{ c.n_studies_changed|fmt }})</h2>
-{% if c.per_study %}
-<table class="tbl compact"><thead><tr><th>Study</th><th>Title</th><th class="num">Added</th><th class="num">Retired</th><th class="num">Samples affected</th><th class="num">Samples in study</th><th>Fields</th><th>Stage · reason</th><th>Explore</th></tr></thead><tbody>
-{% for r in c.per_study %}<tr><td class="mono">{% if r.included %}<a href="../studies/{{ r.acc }}.html">{{ r.acc }}</a>{% else %}{{ r.acc }}{% endif %}</td><td class="small">{{ r.title }}</td><td class="num">{{ r.n_added|fmt }}</td><td class="num">{{ r.n_retired|fmt }}</td><td class="num">{{ r.n_samples|fmt }}</td><td class="num">{{ r.n_samples_study|fmt }}</td><td class="small mono">{{ r.fields }}</td><td class="small"><span class="mono">{{ r.stage }}</span>{% if r.reason %}<br>{{ r.reason }}{% endif %}</td><td>{% if r.included %}<a href="../samples/index.html?study={{ r.acc }}">explorer</a>{% endif %}</td></tr>{% endfor %}
-</tbody></table>
-{% else %}<p class="small">No determinations changed in this release.</p>{% endif %}
+<p class="small">By route: {% for r, n in c.routes_added %}<span class="tag {{ r }}">{{ r }}</span> {{ n|fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+{% if c.per_study %}<h2>Studies with the most added values</h2>
+<table class="tbl small"><thead><tr><th>study</th><th>title</th><th class="num">values</th><th class="num">samples touched</th><th class="num">samples in study</th><th>fields</th><th>routes</th></tr></thead><tbody>
+{% for s in c.per_study %}<tr><td><a class="mono" href="../studies/{{ s.acc }}.html">{{ s.acc }}</a></td><td class="small">{{ s.title }}</td><td class="num">{{ s.n_rows|fmt }}</td><td class="num">{{ s.n_samples|fmt }}</td><td class="num">{{ s.n_samples_study|fmt }}</td><td class="small mono">{{ s.fields }}</td><td class="small mono">{{ s.routes }}</td></tr>{% endfor %}
+</tbody></table>{% endif %}
+{% if c.studies_added %}<h2>Catalog studies added</h2>
+<table class="tbl small"><thead><tr><th>study</th><th>title</th><th class="num">samples</th></tr></thead><tbody>
+{% for s in c.studies_added %}<tr><td><a class="mono" href="../studies/{{ s.acc }}.html">{{ s.acc }}</a></td><td class="small">{{ s.title }}</td><td class="num">{{ s.n|fmt }}</td></tr>{% endfor %}
+</tbody></table>{% if c.n_studies_added > 25 %}<p class="small">First 25 of {{ c.n_studies_added|fmt }}.</p>{% endif %}{% endif %}
 {% endif %}
-<p class="small">Back to <a href="index.html">all releases</a> · <a href="../releases/index.html#rel-{{ c.release_id }}">registry row</a>.</p>
+<p class="small"><a href="../releases/index.html#rel-{{ c.release_id }}">Release notes</a> · <a href="index.html">all changes</a></p>
 {% endblock %}

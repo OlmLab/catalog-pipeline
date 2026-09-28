@@ -194,6 +194,7 @@ def carry_release_columns(df: pd.DataFrame, previous: pd.DataFrame | None, key: 
         prev = prev[prev["release_retired"].isna()]
     else:
         prev_retired = prev.iloc[0:0]
+    prev = prev.drop_duplicates(key, keep="first")  # a previous package may carry duplicate keys (1.9.0 gut R3/R4 rows); one carrier per key
     idx = prev.set_index(key)
     cur = df.set_index(key)
     common = cur.index.intersection(idx.index)

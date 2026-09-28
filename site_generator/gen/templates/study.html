@@ -1,153 +1,102 @@
 {% extends "base.html" %}
-{% block title %}{{ s.study_accession }} — {{ s.study_title }} — {{ site.title }}{% endblock %}
-{% block desc %}{{ s.study_title }} — {{ s.n_samples }} samples, {{ s.n_runs }} runs; infant gut shotgun metagenome study in the catalog.{% endblock %}
+{% block title %}{{ s.study_accession }} — {{ (s.study_title or '')[:80] }} — {{ site.title }}{% endblock %}
+{% block desc %}{{ s.study_accession }}: {{ (s.study_title or '')[:120] }} — {{ n_total|fmt }} curated gut samples with age, sex, BMI, country, health condition and antibiotic exposure where recoverable; papers, authors, evidence and downloads.{% endblock %}
 {% block content %}
-<h1><span class="mono">{{ s.study_accession }}</span></h1>
-<p class="lead">{{ s.study_title }}</p>
-{% if s.mixed_age_deposit %}<p class="note"><b>Mixed-age deposit.</b> Triage estimated fewer infants than this study's samples: {{ s.n_infant_evidenced|fmt }} samples carry per-sample or per-subject infant evidence, {{ s.n_age_unknown_mixed_study|fmt }} have unknown age, {{ s.n_adult_flagged|fmt }} carry an out-of-range age. Filter on <span class="mono">age_scope</span> before using this study's metadata as infant data.</p>{% endif %}
+<h1><span class="mono">{{ s.study_accession }}</span>{% if s.secondary_study_accession %} <span class="small mono">{{ s.secondary_study_accession }}</span>{% endif %}</h1>
+<p class="lead">{{ s.study_title or '(no title in the archive record)' }}</p>
 <div class="btns">
-<a class="btn sec" href="{{ s.ena_url }}">ENA browser</a>
-<a class="btn sec" href="{{ s.ncbi_url }}">NCBI BioProject</a>
-<a class="btn" href="../samples/index.html?study={{ s.study_accession }}">Open in sample explorer</a>
-<a class="btn flag" href="{{ flag_url }}" title="Opens a prefilled GitHub issue (template catalog-finding.yml) — needs a GitHub account">Flag an issue</a>
-<a class="btn confirm" href="{{ confirm_url }}" title="Record that you checked this study and its verdict is correct">Confirm correct</a>
+<a class="btn sec" href="https://www.ebi.ac.uk/ena/browser/view/{{ s.study_accession }}">ENA</a>
+<a class="btn sec" href="https://www.ncbi.nlm.nih.gov/bioproject/{{ s.study_accession }}">NCBI BioProject</a>
+<a class="btn sec" href="../samples/index.html?q={{ s.study_accession }}">Open in the sample explorer</a>
+<a class="btn sec" href="../registry/index.html?study={{ s.study_accession }}">Registry record</a>
+{% if s.cohort_id %}<a class="btn sec" href="../cohorts/{{ s.cohort_id }}.html">Cohort: {{ s.cohort_name[:50] }}</a>{% endif %}
+<a class="btn flag" href="{{ flag_url }}">Flag an issue</a> <a class="btn sec xs" href="{{ confirm_url }}">Confirm correct</a>
 </div>
 
-<div class="grid2">
-<div>
-<h2>Summary</h2>
-<table class="tbl kv">
-<tr><td>Samples / runs</td><td>{{ s.n_sample_rows|fmt }} / {{ s.n_runs|fmt }}{% if s.n_biosamples_shared_with_other_study %} <span class="tag" title="{{ s.shared_biosample_note }}">{{ s.n_samples|fmt }} in the archive study</span>{% endif %}{% if s.sample_unit == 'run' %} <span class="tag" title="This deposit registered one BioSample per infant and one run per stool; the catalog uses the RUN as the sample unit here.">sample unit: ENA run · {{ s.n_biosamples|fmt }} BioSamples</span>{% endif %}</td></tr>
-{% if s.n_biosamples_shared_with_other_study %}<tr><td>Shared BioSamples</td><td class="small">{{ s.shared_biosample_note }}</td></tr>{% endif %}
-<tr><td>Catalog scope</td><td><b>{{ s.n_catalog_scope|fmt }}</b> <span class="small">(age-scope infant AND body_site_class primary/unknown — the headline denominator)</span></td></tr>
-<tr><td>Age scope</td><td><b>{{ s.n_age_scope_infant|fmt }}</b> infant-scope by age evidence ({{ s.n_infant_evidenced|fmt }} per-sample/subject evidence{% if s.n_study_all_infant %} + {{ s.n_study_all_infant|fmt }} study-all-infant{% endif %}){% for k,n in ages %}{% if k not in ['infant_evidenced','study_all_infant'] %} · {{ k }} {{ n|fmt }}{% endif %}{% endfor %}</td></tr>
-<tr><td>Body-site infant-scope</td><td>{{ s.n_infant_scope_samples|fmt }} <span class="small">(body_site_class primary or unknown)</span></td></tr>
-<tr><td>First public</td><td>{{ s.first_public_min or '—' }}</td></tr>
-<tr><td>Cohort</td><td>{% if s.cohort_id %}<a href="../cohorts/{{ s.cohort_id }}.html">{{ s.cohort_name }}</a> <span class="small mono">{{ s.cohort_id }}</span>{% else %}—{% endif %}</td></tr>
-<tr><td>Instrument (top)</td><td>{{ s.instrument_model_top or '—' }}</td></tr>
-<tr><td>Median Gbp / run</td><td>{{ s.median_gbp|num2 }}</td></tr>
-<tr><td>Country (archive top value)</td><td>{{ s.country_top or '—' }}</td></tr>
-<tr><td>Controlled access</td><td>{{ 'yes' if s.controlled_access else 'no' }}</td></tr>
-<tr><td>Sandpiper profiles</td><td>{% if s.sp_n_samples_profiled %}{{ s.sp_n_samples_profiled|fmt }} of {{ s.n_sample_rows|fmt }} samples ({{ s.sp_frac_samples_profiled|pct }}) · {{ s.sp_n_runs_profiled|fmt }} of {{ s.n_runs|fmt }} runs ({{ s.sp_frac_runs_profiled|pct }}){% if s.sp_coverage_note %} <span class="small">{{ s.sp_coverage_note }}</span>{% endif %}{% else %}none profiled{% endif %}</td></tr>
-</table>
-
-<h2>Subjects</h2>
-<table class="tbl kv">
-<tr><td>Unique infants</td><td>{{ s.n_unique_infants_display or '—' }} <span class="small">(source: {{ s.n_unique_infants_source or '—' }})</span></td></tr>
-<tr><td>Longitudinal</td><td>{{ 'yes' if s.longitudinal else 'no' }}{% if s.max_timepoints %} (max {{ s.max_timepoints|int }} timepoints per subject){% endif %}</td></tr>
-<tr><td>Mother samples</td><td>{{ s.n_mothers|fmt }}</td></tr>
-<tr><td>Roles (as evidenced; unknown when unevidenced)</td><td>{% for r,n in roles %}{{ r }} {{ n|fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
-<tr><td>Body-site classes</td><td>{% for r,n in sites %}{{ r }} {{ n|fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</td></tr>
-</table>
-
-<h2>Authors and organisations</h2>
-{% if study_authors %}<p>{% for au in study_authors %}<a href="../authors/index.html?q={{ au.name|urlencode }}">{{ au.name }}</a>{% if au.first %} <span class="tag">first</span>{% endif %}{% if au.last %} <span class="tag">last</span>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</p>{% else %}<p class="small">No author on record for this BioProject (no linked paper, no BioProject publication, no ENA PubMed cross-reference).</p>{% endif %}
-<p class="small">Organisations: {{ sas.organisations or '—' }}</p>
-<p class="small">Names are string-matched from Europe PMC author strings and NCBI BioProject records; the same person may appear under several initial variants. See <a href="../docs/AUTHORS_REPORT.html">Authors report</a>.</p>
+<div class="cards">
+<div class="card"><div class="num">{{ n_total|fmt }}</div><div class="lbl">curated samples ({{ s.n_biosamples|fmt }} BioSamples in the archive record, {{ s.n_runs|fmt }} runs)</div></div>
+<div class="card"><div class="num">{{ n_det|fmt }}</div><div class="lbl">sample × field values with evidence</div></div>
+<div class="card"><div class="num mono" style="font-size:1.1rem">{{ s.curated_depth or 'none' }}</div><div class="lbl">routes that contributed (R1 archive · R2 tables · R3 full text · R4 abstract)</div></div>
+<div class="card"><div class="num mono" style="font-size:1.1rem">{{ s.life_stage_primary or '—' }}</div><div class="lbl">primary life stage (registry); body sites {{ s.body_sites or '—' }}</div></div>
+{% if s.n_runs_sandpiper %}<div class="card"><div class="num">{{ s.n_runs_sandpiper|fmt }}</div><div class="lbl">runs with a <a href="https://sandpiper.qut.edu.au/">Sandpiper</a> community profile</div></div>{% endif %}
 </div>
-<div>
-<h2>Inclusion evidence</h2>
-<table class="tbl kv">
-<tr><td>Verdict</td><td><span class="tag included">{{ s.triage_verdict }}</span> → {{ s.catalog_status }}</td></tr>
-<tr><td>Decision stage</td><td>{{ s.decision_stage }}</td></tr>
-<tr><td>Confidence (tier)</td><td>{{ s.confidence|num2 }}</td></tr>
-<tr><td>Body-site call</td><td>{{ s.body_site_call or '—' }}</td></tr>
-{% if s.n_infant_samples_est %}<tr><td>Infant samples (triage estimate)</td><td>{{ s.n_infant_samples_est|fmt }}</td></tr>{% endif %}
+
+{% if s.description %}<h2>Archive description</h2><p class="small">{{ s.description[:2500] }}{% if s.description|length > 2500 %} …{% endif %}</p>{% endif %}
+
+<h2>Registry classification</h2>
+<table class="tbl kv small">
+<tr><td>Host human</td><td>{{ rg.host_human }} <span class="small">{{ rg.host_evidence or '' }}</span></td></tr>
+<tr><td>Body sites</td><td>{% for b in s.body_sites_l %}<span class="tag">{{ b }}</span> {{ site_labels.get(b, '') }}{% if not loop.last %} · {% endif %}{% endfor %} <span class="small">{{ rg.body_site_evidence or '' }}</span></td></tr>
+<tr><td>Life stages</td><td>{% for b in s.life_stages_l %}<span class="tag">{{ b }}</span> {{ stage_labels.get(b, '') }}{% if not loop.last %} · {% endif %}{% endfor %} <span class="small">{{ rg.life_stage_evidence or '' }}</span></td></tr>
+<tr><td>Assay · access</td><td>{{ rg.assay }} · {{ rg.access }}</td></tr>
+<tr><td>Health context (registry)</td><td class="small">{{ rg.health_context or '—' }}</td></tr>
+<tr><td>Population flags</td><td class="small">{{ rg.population_flags or '—' }}</td></tr>
+<tr><td>Classification</td><td class="small">{{ rg.classification_stage }}{% if rg.classification_confidence %} · confidence {{ rg.classification_confidence|num2 }}{% endif %}{% if rg.classification_model %} · {{ rg.classification_model }}{% endif %}</td></tr>
+<tr><td>Centre · first public</td><td class="small">{{ s.center_name or '—' }} · {{ s.first_public_min or '—' }}</td></tr>
+<tr><td>Curated source</td><td class="small">{{ s.curated_source }}{% if s.curated_source == 'infant_catalog' %} — this study carries the deep infant-field curation (delivery mode, feeding, gestational age …) in addition to the core fields{% endif %}</td></tr>
 </table>
-{% if evidence %}<ul>{% for e in evidence %}<li><span class="quote">“{{ e.quote }}”</span> <span class="small mono">{{ e.source }}</span></li>{% endfor %}</ul>{% endif %}
-{% if s.note %}<p class="small">{{ s.note }}</p>{% endif %}
+
+<h2>Samples: what the curated values say</h2>
+<div class="sections" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+<div class="card"><b>Age category</b><table class="tbl small compact">{% for k, n in ages %}<tr><td class="mono">{{ k }}</td><td class="num">{{ n|fmt }}</td></tr>{% endfor %}</table></div>
+<div class="card"><b>Health condition</b>{% if conds %}<table class="tbl small compact">{% for k, n in conds %}<tr><td><span class="mono">{{ k }}</span> <span class="small">{{ hc_labels.get(k, '') }}</span></td><td class="num">{{ n|fmt }}</td></tr>{% endfor %}</table>{% else %}<p class="small">no committed value</p>{% endif %}</div>
+<div class="card"><b>Country</b>{% if countries %}<table class="tbl small compact">{% for k, n in countries %}<tr><td class="mono">{{ k }}</td><td class="num">{{ n|fmt }}</td></tr>{% endfor %}</table>{% else %}<p class="small">no committed value</p>{% endif %}</div>
+<div class="card"><b>Sex</b>{% if sexes %}<table class="tbl small compact">{% for k, n in sexes %}<tr><td>{{ k }}</td><td class="num">{{ n|fmt }}</td></tr>{% endfor %}</table>{% else %}<p class="small">no committed value</p>{% endif %}</div>
+<div class="card"><b>Body-site class</b><table class="tbl small compact">{% for k, n in sites %}<tr><td class="mono">{{ k }}</td><td class="num">{{ n|fmt }}</td></tr>{% endfor %}</table></div>
+</div>
+
+<h2>Field coverage and routes</h2>
+<table class="tbl small"><thead><tr><th>field</th><th class="num">samples with value</th><th class="num">coverage</th><th class="num">R1</th><th class="num">R2</th><th class="num">R3</th><th class="num">R4</th></tr></thead><tbody>
+{% for c in cov %}<tr{% if c.infant %} class="small"{% endif %}><td><a class="mono" href="../fields/index.html#{{ c.field }}">{{ c.field }}</a>{% if c.infant %} <span class="small">(infant field)</span>{% endif %}</td><td class="num">{{ c.n|fmt }}</td><td class="num">{{ c.frac|pct }}</td>{% for r in ['R1','R2','R3','R4'] %}<td class="num">{{ c.routes[r]|fmt }}</td>{% endfor %}</tr>{% endfor %}
+</tbody></table>
+
+{% if group_stmts %}
+<h2>Cohort-wide statements applied to this study's samples</h2>
+<p class="small">Statements from the abstract / archive description (R4, confidence ≤ 0.5) or the paper's Methods / Results (R3, two independent replicates agreed, confidence ≤ 0.7). A statement is committed only when it is true of every sequenced subject; it fills samples that have no sample-level (R1/R2) value for the field.</p>
+<table class="tbl small"><thead><tr><th>field</th><th>value</th><th>route</th><th class="num">conf.</th><th>source</th><th>quote</th></tr></thead><tbody>
+{% for g in group_stmts %}<tr><td class="mono">{{ g.field_name }}</td><td>{{ g.value_normalized }}</td><td><span class="tag {{ g.route }}">{{ g.route }}</span></td><td class="num">{{ g.confidence|num2 }}</td><td class="small mono">{{ g.evidence_source }} {{ g.evidence_locator or '' }}</td><td class="small">“{{ g.evidence_quote }}”</td></tr>{% endfor %}
+</tbody></table>
+{% endif %}
+
+{% if ev_rows %}
+<h2>Evidence examples (one per field × route)</h2>
+<table class="tbl small"><thead><tr><th>sample</th><th>field</th><th>value</th><th>route</th><th class="num">conf.</th><th>source</th><th>quote</th></tr></thead><tbody>
+{% for e in ev_rows %}<tr><td class="mono small">{{ e.sample_key }}</td><td class="mono">{{ e.field_name }}</td><td>{{ e.value_normalized }}</td><td><span class="tag {{ e.route }}">{{ e.route }}</span></td><td class="num">{{ e.confidence|num2 }}</td><td class="small mono">{{ e.evidence_source }}</td><td class="small">“{{ e.evidence_quote }}”</td></tr>{% endfor %}
+</tbody></table>
+<p class="small">All {{ n_det|fmt }} evidence rows of this study: <a href="../data/studies/{{ s.study_accession }}_determinations.csv.gz" download>{{ s.study_accession }}_determinations.csv.gz</a> ({{ dl.det_size }}).</p>
+{% endif %}
+
+{% if panel %}
+<h2>Community composition (Sandpiper, {{ panel.taxonomy }})</h2>
+<p class="small">Mean relative abundance over {{ panel.n|fmt }} profiled samples ({{ panel.definition }}).</p>
+{% for rank in ['phylum', 'genus'] %}{% if panel[rank] %}<div class="small"><b>{{ rank }}</b></div>
+<div class="bar" style="display:flex;height:22px;border:1px solid #565A5C;margin:.2rem 0 .6rem 0">{% for seg in panel[rank].segs %}<div title="{{ seg.label }} {{ seg.pct }}%" style="width:{{ seg.w }}%;background:{{ seg.color }};border-right:1px solid #565A5C"></div>{% endfor %}</div>
+<p class="small">{% for seg in panel[rank].segs %}<span class="mono">{{ seg.label }}</span> {{ seg.pct }}%{% if not loop.last %} · {% endif %}{% endfor %}</p>{% endif %}{% endfor %}
+{% endif %}
+
+<h2>Papers ({{ papers|length }})</h2>
+{% if papers %}<ul class="small">{% for p in papers[:12] %}<li>{% if p.title %}{{ p.title }}{% else %}(no title){% endif %}{% if p.year %} ({{ p.year }}){% endif %} — {% if p.pmid %}<a href="https://europepmc.org/article/MED/{{ p.pmid }}">PMID {{ p.pmid }}</a>{% endif %}{% if p.pmcid %} · <a href="https://europepmc.org/article/PMC/{{ p.pmcid }}">{{ p.pmcid }}</a>{% endif %}{% if p.doi %} · <a href="https://doi.org/{{ p.doi }}">doi</a>{% endif %} <span class="tag">{{ p.relation }}</span></li>{% endfor %}</ul>
+{% if papers|length > 12 %}<details><summary class="small">{{ papers|length - 12 }} more linked papers</summary><ul class="small">{% for p in papers[12:] %}<li>{% if p.title %}{{ p.title }}{% else %}(no title){% endif %}{% if p.year %} ({{ p.year }}){% endif %} — {% if p.pmid %}<a href="https://europepmc.org/article/MED/{{ p.pmid }}">PMID {{ p.pmid }}</a>{% endif %}{% if p.pmcid %} · <a href="https://europepmc.org/article/PMC/{{ p.pmcid }}">{{ p.pmcid }}</a>{% endif %}{% if p.doi %} · <a href="https://doi.org/{{ p.doi }}">doi</a>{% endif %} <span class="tag">{{ p.relation }}</span></li>{% endfor %}</ul></details>{% endif %}
+<p class="small">Relation: <span class="mono">own_data</span> = the paper describes this deposit; <span class="mono">unsure</span> = the paper cites the accession but may re-analyse it; <span class="mono">curated</span> = link confirmed by the infant-scope curation.</p>{% else %}<p class="small">No paper is linked to this study in Europe PMC or the BioProject record.</p>{% endif %}
+
+<h2>Authors ({{ study_authors|length }})</h2>
+{% if study_authors %}<p class="small">{% for au in study_authors %}<a href="../authors/index.html?q={{ au.name|urlencode }}">{{ au.name }}</a>{% if au.first %} <span class="tag">first</span>{% endif %}{% if au.last %} <span class="tag">last</span>{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}</p>{% else %}<p class="small">No author list (no linked paper).</p>{% endif %}
 
 {% if help %}
-<div class="help-panel" id="help-complete">
-<h2>Help complete this study</h2>
-<p class="small">Worklist rank <b>#{{ help.rank }}</b> of {{ stats_n_contribute|fmt }} open studies (<a href="../contribute/index.html">contribute/</a>) · verdict {{ help.triage_verdict }} · {{ help.n_catalog_scope|fmt }} catalog-scope samples · priority {{ help.priority_score|num2 }}</p>
-<p><b>Missing:</b> {% for c in help.chips %}<span class="chip {{ 'miss' if c.missing else 'ok' }}" title="{{ c.label }}: {{ c.pct }} of catalog-scope samples have a value; predicted recoverability tier {{ c.tier }}">{{ c.label }} {{ c.pct }} <span class="tag {{ c.tier }}">{{ c.tier }}</span></span> {% endfor %}</p>
-<p><b>Blocker:</b> {{ help.blocker_label }} <span class="mono small">{{ help.blocker_code }}</span>{% if help.blocker_detail %} — <span class="small">{{ help.blocker_detail }}</span>{% endif %}</p>
-<p><b>What would unlock this:</b> {{ help.unlock_text }}</p>
-<div class="btns"><a class="btn contribute" href="{{ help.issue_url }}" title="Opens a prefilled GitHub Issue (template catalog-contribution.yml, type {{ help.contribution_type }}) — needs a GitHub account">Contribute: {{ help.type_label }}</a> <a class="btn sec" href="../contribute/index.html#how">How contributions work</a></div>
-<p class="small">Data only (CSV/TSV/XLSX ≤ 50 MB, no participant names or e-mail addresses); redistributed under CC-BY-4.0 or derived values only; deterministic joinability check, then Curator review; attribution in the next release.</p>
-</div>
+<h2 id="contribute">Help complete this study</h2>
+<p class="small">{{ help.n_missing }} of the five core fields are below {{ thr_pct }}% coverage: {% for f in help.missing %}<span class="mono">{{ f }}</span>{% if not loop.last %}, {% endif %}{% endfor %}. {{ help.blocker_label }}. <a class="btn xs contribute" href="{{ help.issue_url }}">Contribute: {{ help.type_label }}</a></p>
 {% endif %}
-<h2>Recoverability tiers (predicted before extraction)</h2>
-<p class="small">R1 archive attribute · R2 supplementary table · R3 paper text · R4 abstract · R0 none</p>
-<p>{% for k,v in recov %}<span class="tag {{ v }}">{{ k }}: {{ v }}</span> {% endfor %}</p>
 
-<h2 id="timeline">Verdict timeline across releases ({{ timeline|length }} row{{ '' if timeline|length == 1 else 's' }})</h2>
-<p class="small">One row per verdict state of this study in <span class="mono">universe_studies_all.parquet</span>, oldest first: the release in which the verdict row was added and, if it is no longer current, the release in which it was retired. The stage-by-stage judgements <i>within</i> a release are the decision history below. See <a href="../changes/index.html">changes by release</a>.</p>
-<table class="tbl compact"><thead><tr><th>Release added</th><th>Release retired</th><th>Verdict</th><th class="num">Confidence</th><th>Stage</th><th>Reason · evidence</th></tr></thead><tbody>
-{% for t in timeline %}<tr{% if t.current %} class="final"{% endif %}><td class="mono"><a href="../changes/{{ t.release_added }}.html">{{ t.release_added }}</a></td><td class="mono">{% if t.release_retired %}<a href="../changes/{{ t.release_retired }}.html">{{ t.release_retired }}</a>{% else %}<b>current</b>{% endif %}</td>
-<td><span class="tag {{ 'included' if t.verdict in ['include','included'] else ('excluded' if t.verdict in ['exclude','excluded'] else 'human_review') }}">{{ t.verdict or '—' }}</span> <span class="small">{{ t.status }}</span></td><td class="num">{{ t.conf if t.conf is not none else '' }}</td><td class="mono small">{{ t.stage }}</td><td>{% if t.reason %}<span class="mono">{{ t.reason }}</span> {% endif %}<span class="quote small">{{ t.quote }}</span></td></tr>{% endfor %}
+<h2>Sample table</h2>
+<p class="small">{% if n_shown < n_total %}First {{ n_shown|fmt }} of {{ n_total|fmt }} samples; the full slice is in the downloads below or in the <a href="../samples/index.html?q={{ s.study_accession }}">sample explorer</a>.{% else %}All {{ n_total|fmt }} samples.{% endif %} Route badges: R1 archive attribute · R2 supplementary table · R3 paper full text · R4 abstract.</p>
+<table id="samples" class="tbl display compact small" style="width:100%"><thead><tr><th>sample</th><th>BioSample</th><th>age cat.</th><th class="num">age (d)</th><th>sex</th><th class="num">BMI</th><th>country</th><th>health condition</th><th>antibiotics</th><th>subject</th><th>timepoint</th><th>site class</th></tr></thead><tbody>
+{% for r in samples %}<tr><td class="mono"><a href="../samples/index.html?sample={{ r.sample_key }}">{{ r.sample_key }}</a></td><td class="mono small">{{ r.biosample_accession or '' }}</td><td>{{ r.age_category or '' }}</td><td class="num">{{ r.age_at_collection_days|fmt if r.age_at_collection_days is not none else '' }}{% if r.age_at_collection_days__route %} <span class="tag {{ r.age_at_collection_days__route }}">{{ r.age_at_collection_days__route }}</span>{% endif %}</td><td>{{ r.sex or '' }}</td><td class="num">{{ r.bmi|fmt if r.bmi is not none else '' }}</td><td class="mono">{{ r.country or '' }}</td><td>{{ r.health_condition or '' }}{% if r.health_condition__route %} <span class="tag {{ r.health_condition__route }}">{{ r.health_condition__route }}</span>{% endif %}</td><td>{{ r.antibiotic_exposure or '' }}</td><td class="small">{{ r.subject_id or '' }}</td><td class="small">{{ r.timepoint_label or '' }}</td><td class="small">{{ r.body_site_class or '' }}</td></tr>{% endfor %}
 </tbody></table>
-
-<h2>Decision history ({{ history|length }} rows)</h2>
-<details><summary class="small">Every triage stage that judged this study, in stage order (screen → tier-1 rubric → confirmation → adjudication → growth waves → re-judgement → human review → final), from <span class="mono">study_verdict_history.parquet</span>. A haiku screen pass is a candidate forward, not a verdict.{% if n_consolidated_hidden %} {{ n_consolidated_hidden }} consolidated bookkeeping rows that repeat the deciding stage are folded into the single <b>final</b> line.{% endif %}</summary>
-<table class="tbl compact small"><thead><tr><th>#</th><th>Stage</th><th>Level</th><th>Verdict</th><th class="num">Conf.</th><th>Model</th><th>Reason / quotes</th><th>Source table</th></tr></thead><tbody>
-{% for h in history %}<tr{% if h.final %} class="final"{% endif %}><td class="num">{{ h.order }}{% if h.replicate %}.{{ h.replicate }}{% endif %}</td><td class="mono">{{ h.stage }}</td><td class="small">{{ h.level }}</td><td>{% if h.verdict != '—' %}<span class="tag {{ 'included' if h.verdict in ['include','included'] else ('excluded' if h.verdict in ['exclude','excluded'] else 'human_review') }}">{{ h.verdict }}</span>{% else %}—{% endif %}{% if h.verdict_note %} <span class="small">({{ h.verdict_note }}{% if h.verdict_raw and h.verdict_raw != h.verdict %}; raw: {{ h.verdict_raw }}{% endif %})</span>{% endif %}{% if h.final %} <b>final</b>{% endif %}</td><td class="num">{{ h.conf if h.conf is not none else '' }}</td><td class="mono">{{ h.model }}</td><td>{% if h.reason %}<span class="mono">{{ h.reason }}</span> {% endif %}<span class="quote">{{ h.quotes }}</span></td><td class="mono">{{ h.table }}</td></tr>{% endfor %}
-</tbody></table></details>
-</div>
-</div>
-
-<h2>Community composition (Sandpiper/SingleM, {{ panel.taxonomy if panel else stats_taxonomy or 'GTDB R232' }})</h2>
-{% if panel and panel.genus.segs %}
-<p class="small">Mean relative abundance over <b>n = {{ panel.n|fmt }}</b> catalog-scope samples with adequate depth (catalog scope = age-scope infant AND gut/unknown body site; {{ panel.n_profiled_catalog_scope|fmt }} of {{ panel.n_catalog_scope|fmt }} catalog-scope samples profiled{% if panel.n_low_depth %}, {{ panel.n_low_depth|fmt }} low-depth samples excluded{% endif %}). Age-scope breakdown of all {{ panel.n_profiled|fmt }} profiled samples in this study: infant {{ panel.n_age_infant|fmt }} · adult/over-age {{ panel.n_age_adult|fmt }} · unknown/other {{ panel.n_age_unknown|fmt }} — only the infant catalog-scope ones enter the panel. Relative abundance = fraction of prokaryotic (Bacteria + Archaea) coverage, coverage summed across a sample's runs then normalised — approximately cell proportions, not read fractions; not comparable with MetaPhlAn or 16S. Grey = coverage not resolved to this rank; white = named taxa outside the top list. <a href="../methods.html#taxonomy">Method and caveats</a>.</p>
-{% for rank in ['phylum','genus'] %}{% set pr = panel[rank] %}
-<div class="stackrow"><div class="stacklbl">Top {{ rank|replace('phylum','phyla')|replace('genus','genera') }}</div>
-<div class="stack" role="img" aria-label="Mean {{ rank }} composition">{% for sg in pr.segs %}<span style="left:{{ sg.left }}%;width:{{ sg.w }}%;background:{{ sg.color }}" title="{{ sg.label }} {{ sg.pct }}%"></span>{% endfor %}</div></div>
-<p class="legend small">{% for sg in pr.segs %}<span class="sw" style="background:{{ sg.color }}"></span>{% if rank=='genus' and sg.taxon != 'other' and not sg.taxon.startswith('unassigned') %}<i>{{ sg.label }}</i>{% else %}{{ sg.label }}{% endif %} {{ sg.pct }}%{% if not loop.last %} · {% endif %}{% endfor %}</p>
-{% endfor %}
-{% else %}<p class="small">{% if pstatus and pstatus.scope_text %}{{ pstatus.scope_text }}{% else %}No community panel for this study{% endif %}{% if pstatus and pstatus.n_profiled %} ({{ pstatus.n_profiled|fmt }} of {{ pstatus.n_samples_study|fmt }} samples profiled; age-scope of profiled samples: infant {{ pstatus.n_profiled_age_infant|fmt }} · adult/over-age {{ pstatus.n_profiled_age_adult|fmt }} · unknown/other {{ pstatus.n_profiled_age_unknown_or_other|fmt }}; catalog-scope samples {{ pstatus.n_catalog_scope|fmt }}){% endif %}{% if spcov and pstatus and pstatus.panel_scope == 'no_profiled_samples' %} — runs not in the Sandpiper snapshot: {% for k,v in spcov.items() if k.startswith('miss_') and k != 'miss_profiled' and v %}{{ k|replace('miss_','') }} {{ v|fmt }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}.</p>{% endif %}
-{% if spqc and spqc.n_runs_profiled %}
-<p class="small"><b>QC (profiled runs, display only — never a triage signal):</b> low complexity {{ spqc.frac_low_complexity_profiled|pct }} (expected for Bifidobacterium-/Enterobacterales-dominated neonatal stool) · low depth (&lt;2× root) {{ spqc.frac_low_depth_profiled|pct }} · median prokaryotic read fraction {{ spqc.median_spf|num2 }}% · median known-species fraction {{ spqc.median_known_species_fraction|num2 }}% · runs whose organism/library label fires a non-human-host / named-microbe / synthetic / RNA rule: {{ s.sp_frac_runs_flagged|pct1 }}{% if spqc.auditor_attention %} · <span class="tag human_review">auditor attention: {{ spqc.auditor_reason }}</span>{% endif %}.</p>
-{% endif %}
-
-<h2>Linked papers ({{ papers|length }})</h2>
-{% if papers %}
-<table class="tbl">
-<thead><tr><th>Title</th><th>PMID</th><th>PMCID</th><th>DOI</th></tr></thead>
-<tbody>{% for p in papers %}<tr>
-<td>{{ p.title or '' }}</td>
-<td>{% if p.pmid %}<a href="https://europepmc.org/article/MED/{{ p.pmid }}">{{ p.pmid }}</a>{% endif %}</td>
-<td>{% if p.pmcid %}<a href="https://europepmc.org/article/PMC/{{ p.pmcid }}">{{ p.pmcid }}</a>{% endif %}</td>
-<td>{% if p.doi %}<a href="https://doi.org/{{ p.doi }}">{{ p.doi }}</a>{% endif %}</td>
-</tr>{% endfor %}</tbody></table>
-{% else %}<p class="small">No paper is linked to this BioProject in the catalog (orphan deposit or link not resolved).</p>{% endif %}
-
-<h2>Field coverage (fraction of body-site infant-scope samples with a value)</h2>
-<div style="max-width:760px">
-{% for c in cov %}<div class="covrow"><a href="../fields/index.html#{{ c.field }}">{{ c.label }}</a><div class="bar"><span style="width:{{ (c.frac*100)|round(1) }}%"></span></div><span class="num">{{ c.frac|pct }}</span></div>{% endfor %}
-</div>
-
-{% if parents %}
-<h2>Parent BioSamples (pooled) — {{ parents|length }}</h2>
-<p class="small">This deposit registered one BioSample per infant; the catalog keys its samples by ENA run. The parent BioSamples are listed for provenance only and are counted in no sample, run or determination total.</p>
-<table class="tbl compact"><thead><tr><th>BioSample</th><th>Title</th><th class="num">Run units</th><th>Runs</th></tr></thead><tbody>
-{% for p in parents %}<tr><td class="mono"><a href="{{ p.ena_sample_url }}">{{ p.sample_key }}</a></td><td>{{ p.sample_title or '' }}</td><td class="num">{{ p.n_child_run_units|numint }}</td><td class="small mono">{{ (p.child_run_units or '')|replace(';', ', ') }}</td></tr>{% endfor %}
-</tbody></table>
-{% endif %}
 
 <h2>Downloads</h2>
-<div class="btns">
-<a class="btn sec" href="../data/studies/{{ s.study_accession }}.csv.gz" download>Samples (CSV.gz, {{ dl.csv_size }})</a>
-<a class="btn sec" href="../data/studies/{{ s.study_accession }}.parquet" download>Samples (parquet, {{ dl.parquet_size }})</a>
-<a class="btn sec" href="../data/studies/{{ s.study_accession }}_determinations.csv.gz" download>Determinations with evidence (CSV.gz, {{ dl.det_size }}, {{ dl.det_rows|fmt }} rows)</a>
-</div>
-
-<h2>Samples ({{ n_total|fmt }}{% if n_shown < n_total %}; showing first {{ n_shown|fmt }}{% endif %})</h2>
-{% if n_shown < n_total %}<p class="note">This study has {{ n_total|fmt }} samples; the table shows the first {{ n_shown|fmt }} ordered by subject and timepoint. <a href="../samples/index.html?study={{ s.study_accession }}">See all in the explorer</a> or download the CSV above.</p>{% endif %}
-<table id="samples" class="tbl display compact">
-<thead><tr><th>Sample</th><th>Links</th><th>Age scope</th><th class="num">Age (d)</th><th>Delivery</th><th>Feeding</th><th>Preterm</th><th>Antibiotics</th><th>Sex</th><th>Subject</th><th class="num">t</th><th>Role</th><th class="num">Runs</th><th>Top genus</th><th class="num"><i>Bifidobacterium</i></th></tr></thead>
-<tbody>
-{% for r in samples %}<tr>
-<td class="mono"><a href="../samples/index.html?sample={{ r.sample_key }}">{{ r.sample_key }}</a>{% if r.sample_unit == 'run' %} <span class="tag" title="run-level sample unit">ENA run</span>{% endif %}</td>
-<td class="small"><a href="{{ r.ena_sample_url }}">{{ 'ENA run' if r.sample_unit == 'run' else 'ENA sample' }}</a>{% if r.sandpiper_url %} · <a href="{{ r.sandpiper_url }}">Sandpiper</a>{% endif %}</td>
-<td class="small">{{ r.age_scope or '' }}</td>
-<td class="num">{{ r.age_at_collection_days|numint }}</td>
-<td>{{ r.delivery_mode or '' }}</td><td>{{ r.feeding_mode or '' }}</td><td>{{ r.preterm_status or '' }}</td><td>{{ r.antibiotic_exposure or '' }}</td><td>{{ r.sex or '' }}</td>
-<td class="small">{{ r.subject_key or '' }}</td><td class="num">{{ r.t_index|numint }}</td><td>{{ r.role or '' }}</td><td class="num">{{ r.n_runs|numint }}</td>
-<td class="small"><i>{{ (r.sp_top_genus or '')|replace('g__','') }}</i></td><td class="num">{% if r.sp_ra_g_Bifidobacterium is not none %}{{ r.sp_ra_g_Bifidobacterium|pct }}{% endif %}</td>
-</tr>{% endfor %}
-</tbody></table>
+<ul class="small">
+<li><a href="../data/studies/{{ s.study_accession }}.csv.gz" download>{{ s.study_accession }}.csv.gz</a> ({{ dl.csv_size }}) · <a href="../data/studies/{{ s.study_accession }}.parquet" download>parquet</a> ({{ dl.parquet_size }}) — all {{ n_total|fmt }} samples, every field with route and confidence</li>
+<li><a href="../data/studies/{{ s.study_accession }}_determinations.csv.gz" download>{{ s.study_accession }}_determinations.csv.gz</a> ({{ dl.det_size }}) — {{ dl.det_rows|fmt }} evidence rows</li>
+</ul>
 {% endblock %}
-{% block scripts %}
-<script>new DataTable('#samples',{pageLength:25,lengthMenu:[25,100,500],order:[]});</script>
-{% endblock %}
+{% block scripts %}<script>new DataTable('#samples',{pageLength:25,lengthMenu:[25,100,300],order:[]});</script>{% endblock %}

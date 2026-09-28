@@ -1,35 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Sample explorer — {{ site.title }}{% endblock %}
+{% block title %}Samples — {{ site.title }}{% endblock %}
+{% block desc %}Filter {{ stats.n_samples|fmt }} human gut shotgun-metagenome samples of all ages by age category, health condition, country, sex and antibiotic exposure; every value with its route and confidence; CSV export.{% endblock %}
 {% block content %}
-<h1>Sample explorer</h1>
-<p class="small">Filters {{ n_samples|fmt }} samples in your browser using <a href="https://duckdb.org/docs/api/wasm/overview">DuckDB-WASM</a> over <span class="mono">data/sample_metadata_wide.parquet</span> ({{ parquet_size }}); nothing is sent to a server. Click a row for every field with confidence tier, route, scope, evidence quotes, value history and the Sandpiper top-genera profile. The URL updates with your filters so you can share a view. Confidence / route filters apply to the fields you have constrained (and to age when an age range is set).</p>
-<noscript><p class="note">The explorer needs JavaScript (and WebAssembly). Without it, download the full table: <a href="../data/sample_metadata_wide.parquet">parquet</a> · <a href="../data/package/sample_metadata_wide.csv.gz">CSV (gzip)</a>.</p></noscript>
+<h1>Samples ({{ stats.n_samples|fmt }})</h1>
+<p class="lead">One row per curated sample of the {{ stats.n_studies|fmt }} catalog studies. Filters run in your browser with <a href="https://duckdb.org/docs/api/wasm/overview">DuckDB-WASM</a> over <span class="mono">data/gut_sample_metadata_wide.parquet</span> ({{ parquet_size }}); nothing is sent to a server. Click a row for every field with its route and confidence; the verbatim evidence quotes are in <span class="mono">gut_sample_determinations.parquet</span> ({{ det_size }}, <a href="../downloads.html">Downloads</a>) and per study on the study pages.</p>
+<noscript><p class="note">The explorer needs JavaScript (and WebAssembly). Without it, download the tables: <a href="../data/gut_sample_metadata_wide.parquet">gut_sample_metadata_wide.parquet</a>, <a href="../data/gut_studies.parquet">gut_studies.parquet</a>.</p></noscript>
 <div id="boot" class="note" role="status" aria-live="polite">Loading DuckDB-WASM (from cdn.jsdelivr.net, pinned 1.29.0) and the sample table… <span id="boot-msg"></span></div>
 <div class="exp" id="exp" style="display:none">
 <aside class="filters">
-  <label for="f-q">Sample / BioSample / run / secondary accession</label><input id="f-q" placeholder="SAMEA…, SAMN…, SRR…, ERS…">
-  <span class="chk" title="README reading rule: R1/R2 values at any confidence; R3/R4 (group statements) only at confidence ≥ 0.5. Applies to results AND exports."><input type="checkbox" id="f-rule" checked> <b>README rule</b> (hide R3/R4 values with confidence &lt; 0.5)</span>
-  <label for="f-study-filter">Study (type to narrow, Ctrl/Cmd-click for several)</label>
-  <input id="f-study-filter" placeholder="filter studies by accession or title">
-  <select id="f-study" aria-label="Study" multiple size="6">{% for s in studies %}<option value="{{ s.study_accession }}">{{ s.study_accession }} · {{ s.study_title|truncate(60) }}</option>{% endfor %}</select>
-  <label for="f-cohort">Cohort</label><select id="f-cohort"><option value="">(any)</option>{% for c in cohorts %}<option value="{{ c.cohort_id }}">{{ c.cohort_name|truncate(50) }} ({{ c.n }})</option>{% endfor %}</select>
-  <label for="f-age_scope">Age scope</label><select id="f-age_scope" data-field="age_scope"><option value="">(any)</option><option value="__infant__">infant-scope (infant_evidenced + study_all_infant)</option>{% for v in age_scopes %}<option>{{ v }}</option>{% endfor %}</select>
-  <label for="f-body_site_class">Body-site class</label><select id="f-body_site_class" data-field="body_site_class"><option value="">(any)</option>{% for v in site_classes %}<option>{{ v }}</option>{% endfor %}</select>
-  <label for="f-sample_unit">Sample unit</label><select id="f-sample_unit" data-field="sample_unit"><option value="">(any)</option><option value="biosample">BioSample</option><option value="run">ENA run</option></select>
-  <label for="f-role">Role</label><select id="f-role" data-field="role"><option value="">(any)</option>{% for v in roles %}<option>{{ v }}</option>{% endfor %}</select>
-  <label for="f-age_min">Age at collection (days)</label><div class="row2"><input id="f-age_min" type="number" min="0" placeholder="min" aria-label="minimum age in days"><input id="f-age_max" type="number" min="0" placeholder="max" aria-label="maximum age in days"></div>
-  <span class="chk"><input type="checkbox" id="f-has_age"> has age</span> <span class="chk"><input type="checkbox" id="f-no_adult"> exclude adult_age_flag</span>
-  <span class="lbl">Sandpiper / SingleM ({{ topgen_size }} top-genera table loaded on demand)</span>
-  <span class="chk"><input type="checkbox" id="f-sp"> profiled in Sandpiper</span>
-  <label for="f-bifido">Min <i>Bifidobacterium</i> share (% of prokaryotic coverage): <span id="f-bifido-val">0</span>%</label><input id="f-bifido" type="range" min="0" max="100" step="1" value="0">
-  <label for="f-country">Country (ISO-2)</label><select id="f-country" data-field="country"><option value="">(any)</option>{% for v in countries %}<option>{{ v }}</option>{% endfor %}</select>
-  {% for f in catfields %}
-  <label for="f-{{ f.name }}">{{ f.label }} <a class="small" href="../fields/index.html#{{ f.name }}" title="definition of {{ f.label }}">?</a></label>
-  <select id="f-{{ f.name }}" data-field="{{ f.name }}" class="cat"><option value="">(any)</option><option value="__has__">(has value)</option>{% for v in f.opts %}<option>{{ v }}</option>{% endfor %}</select>
-  {% endfor %}
-  <label for="f-conf">Min confidence tier (for constrained fields)</label><input id="f-conf" type="number" min="0" max="1" step="0.05" placeholder="e.g. 0.5">
-  <span class="lbl" id="routes-lbl">Routes allowed (for constrained fields)</span>
-  <div role="group" aria-labelledby="routes-lbl"><span class="chk"><input type="checkbox" class="rt" value="R1" checked>R1</span><span class="chk"><input type="checkbox" class="rt" value="R2" checked>R2</span><span class="chk"><input type="checkbox" class="rt" value="R3" checked>R3</span><span class="chk"><input type="checkbox" class="rt" value="R4" checked>R4</span></div>
+  <label for="f-q">Study / sample accession or title word</label><input id="f-q" placeholder="PRJ…, SAMN…, or a word">
+  <label for="f-age_category">Age category</label><select id="f-age_category" data-field="age_category"><option value="">(any)</option>{% for c in age_cats %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+  <label for="f-health_condition">Health condition</label><select id="f-health_condition" data-field="health_condition"><option value="">(any)</option>{% for c in hc_codes %}<option value="{{ c }}">{{ c }}</option>{% endfor %}<option value="__null__">(no value)</option></select>
+  <label for="f-sex">Sex</label><select id="f-sex" data-field="sex"><option value="">(any)</option><option>female</option><option>male</option><option value="__null__">(no value)</option></select>
+  <label for="f-country">Country</label><select id="f-country" data-field="country"><option value="">(any)</option>{% for c in countries %}<option value="{{ c }}">{{ c }}</option>{% endfor %}<option value="__null__">(no value)</option></select>
+  <label for="f-antibiotic_exposure">Antibiotic exposure</label><select id="f-antibiotic_exposure" data-field="antibiotic_exposure"><option value="">(any)</option><option>yes</option><option>no</option><option value="__null__">(no value)</option></select>
+  <label for="f-body_site_class">Body site class</label><select id="f-body_site_class" data-field="body_site_class"><option value="">(any)</option><option>primary</option><option>unknown</option><option>excluded</option><option>linked</option></select>
+  <label><input type="checkbox" id="f-has_age"> has numeric age</label>
+  <label><input type="checkbox" id="f-has_subject"> has subject id</label>
+  <label><input type="checkbox" id="f-infant"> infant-scope samples only <span class="small">(the former infant catalog)</span></label>
+  <label for="f-min_fields">Minimum fields with a value</label><input id="f-min_fields" type="number" min="0" max="9" placeholder="e.g. 3">
   <div class="btns"><button class="btn" id="apply">Apply</button><button class="btn sec" id="reset">Reset</button></div>
 </aside>
 <section>
@@ -37,18 +26,17 @@
     <span class="status" id="count">…</span>
     <button class="btn sec" id="prev">‹ prev</button><span class="status" id="pageinfo"></span><button class="btn sec" id="next">next ›</button>
     <span style="flex:1"></span>
-    <button class="btn" id="dl-csv">Download CSV</button><button class="btn" id="dl-parquet">Download parquet</button>
+    <button class="btn" id="dl-csv">Download CSV</button>
   </div>
   <div class="status" id="dl-status"></div>
   <div id="result-wrap"><table class="tbl" id="result-table"><thead></thead><tbody></tbody></table></div>
-  <p class="small">Columns shown are a subset; downloads include all {{ n_cols }} columns of the filtered rows (with the README rule applied when the toggle is on — masked values are exported as empty with <span class="mono">__route</span>/<span class="mono">__confidence</span> kept, so you can see what was hidden). Full table: <a href="../data/sample_metadata_wide.parquet" download>parquet</a> · <a href="../data/package/sample_metadata_wide.csv.gz" download>CSV.gz</a>. Evidence for every value: <a href="../data/sample_determinations.parquet" download>sample_determinations.parquet</a>; value timeline across releases (current + retired values): <a href="../data/{{ sda_name }}" download>{{ sda_name }}</a> ({{ sda_size }}, loaded on demand when a sample detail is opened); history: <a href="../data/value_history.parquet" download>value_history.parquet</a> ({{ vh_size }}).</p>
+  <p class="small">Route badges: R1 archive attribute · R2 supplementary table · R3 paper full text · R4 abstract / description. The CSV export carries all {{ n_cols }} columns of the filtered rows.</p>
 </section>
 </div>
 <div class="detail" id="detail" role="dialog" aria-modal="false" aria-label="Sample details" tabindex="-1"><button class="close" id="detail-close" title="close (Escape)" aria-label="close sample details">×</button><div id="detail-body"></div></div>
 {% endblock %}
 {% block scripts %}
-<script>window.EXPLORER_CFG={parquet:'../data/sample_metadata_wide.parquet',det:'../data/sample_determinations.parquet',vh:'../data/value_history.parquet',sdall:'../data/{{ sda_name }}',releaseCols:{{ release_cols|tojson }},releaseId:'{{ site.release_id }}',topgen:'../data/sandpiper_top_genera.parquet',fields:{{ field_names|tojson }},studiesUrl:'../studies/',cohortsUrl:'../cohorts/',fieldsUrl:'../fields/index.html',csvgz:'../data/package/sample_metadata_wide.csv.gz'};</script>
-<script>// F5 watchdog: if the module (or the CDN behind it) never runs, show the failure text and download links after 20 s
-setTimeout(function(){ if (!window.__explorerReady) { var b=document.getElementById('boot'); if (b && b.style.display !== 'none') { var C=window.EXPLORER_CFG; b.innerHTML='<b>The explorer could not start within 20 s.</b> DuckDB-WASM (pinned 1.29.0) is loaded from cdn.jsdelivr.net; the CDN may be blocked on your network (corporate proxy, CSP, offline) or the browser blocks WebAssembly/Workers. Everything the explorer shows is also downloadable: <a href="'+C.parquet+'">sample_metadata_wide.parquet</a> · <a href="'+C.csvgz+'">sample_metadata_wide.csv.gz</a> · <a href="'+C.det+'">sample_determinations.parquet</a> · per-study CSVs on each study page.'; } } }, 20000);</script>
+<script>window.GUT_CFG={samples:'../data/gut_sample_metadata_wide.parquet',studies:'../data/gut_studies.parquet',studiesUrl:'../studies/',registryUrl:'../registry/index.html',enaSampleUrl:'https://www.ebi.ac.uk/ena/browser/view/'};</script>
+<script>setTimeout(function(){ if (!window.__gutReady) { var b=document.getElementById('boot'); if (b && b.style.display !== 'none') { b.innerHTML='<b>The explorer could not start within 20 s.</b> DuckDB-WASM (pinned 1.29.0) is loaded from cdn.jsdelivr.net; the CDN may be blocked on your network or the browser blocks WebAssembly/Workers. Everything the explorer shows is also downloadable: <a href="../data/gut_sample_metadata_wide.parquet">gut_sample_metadata_wide.parquet</a>.'; } } }, 20000);</script>
 <script type="module" src="../static/explorer.js"></script>
 {% endblock %}

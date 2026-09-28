@@ -1,47 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Fields and data dictionary — {{ site.title }}{% endblock %}
+{% block title %}Fields — {{ site.title }}{% endblock %}
+{% block desc %}Every curated field of the catalog (human gut, all ages): definition, vocabulary, coverage by age category, route mix and confidence; plus the package data dictionary.{% endblock %}
 {% block content %}
-<h1>Fields and data dictionary</h1>
-<p class="lead">Each metadata field in <span class="mono">sample_metadata_wide</span> comes with a companion <span class="mono">&lt;field&gt;__confidence</span> (tier, 0–1), <span class="mono">&lt;field&gt;__route</span> (R1–R4) and, for the {{ scope_cols|length }} coverage fields, <span class="mono">&lt;field&gt;__scope</span> (sample / subject / biosample / group). Coverage counts body-site infant-scope samples (primary or unknown; the package's <span class="mono">field_coverage_summary</span> denominator) and, in the next column, age-scope infant samples ({{ stats.n_age_scope_infant|fmt }} with infant age evidence).</p>
-<p class="note"><b>Definition caveats.</b> <span class="mono">antibiotic_exposure</span> = <i>any</i> antibiotics to the infant before or at sampling (sources that record only current use disagree; precision 0.87 against that definition). <span class="mono">feeding_mode</span> categories differ between sources (precision 0.89). Exposure fields (probiotic, HMO, NEC, birth weight, maternal antibiotics) have no external truth set and were audited by blind model re-judgement only. Extension fields (health_condition, multiple_birth, sibling_in_study, geo_subregion) were added in one pass and are less audited. R3/R4 values are group statements applied to samples — use them only at confidence ≥ 0.5 (the explorer's default <b>README rule</b>).</p>
-
-<h2 id="confidence">Confidence is a tier, not a probability</h2>
-<div class="md">{{ conf_para_html|safe }}</div>
-<h3>Engine tiers (confidence_tiers.csv)</h3>
-<table class="tbl compact"><thead><tr><th>Route</th><th>Determined by</th><th>Scope</th><th class="num">Rows</th><th>Confidence values emitted</th><th class="num">Fields</th></tr></thead><tbody>
-{% for t in tiers %}<tr><td><span class="tag {{ t.route }}">{{ t.route }}</span></td><td class="mono small">{{ t.determined_by }}</td><td>{{ t.scope }}</td><td class="num">{{ t.n_rows|fmt }}</td><td class="mono">{{ t.conf_values }}</td><td class="num">{{ t.n_fields }}</td></tr>{% endfor %}
-</tbody></table>
-<h3>Empirical precision per route × tier against the cMD gold join (tier_field_precision.csv, hi-res set)</h3>
-<table class="tbl compact"><thead><tr><th>Field</th><th>Route</th><th class="num">Tier</th><th class="num">Covered</th><th class="num">Correct</th><th class="num">Precision</th></tr></thead><tbody>
-{% for p in prec %}<tr><td class="mono">{{ p.field }}</td><td><span class="tag {{ p.route }}">{{ p.route }}</span></td><td class="num">{{ p.confidence_tier }}</td><td class="num">{{ p.n_covered|fmt }}</td><td class="num">{{ p.n_correct|fmt }}</td><td class="num">{{ p.precision|num2 }}</td></tr>{% endfor %}
-{% for p in prec_all %}<tr class="final"><td class="mono">{{ p.field }}</td><td>all routes</td><td class="num"></td><td class="num">{{ p.n_covered|fmt }}</td><td class="num">{{ p.n_correct|fmt }}</td><td class="num">{{ p.precision|num2 }} <span class="small">(recall {{ p.recall|num2 }})</span></td></tr>{% endfor %}
-</tbody></table>
-<p class="small">Only fields with gold coverage appear; exposure fields have no external truth set. Group-scope (R3/R4) values are audited by model only.</p>
-
-<h2>Coverage, route mix and definition per field</h2>
-<table class="tbl">
-<thead><tr><th>Field</th><th>Vocabulary / unit · definition caveat</th><th class="num">Samples</th><th class="num">% body-site scope</th><th class="num">Age-scope samples</th><th class="num">Studies</th><th>Route mix (R1 / R2 / R3 / R4; body-site scope determinations) · scopes</th></tr></thead>
-<tbody>{% for f in fields %}<tr id="{{ f.name }}">
-<td class="mono"><b>{{ f.name }}</b><br><span class="small">{{ f.label }}</span></td>
-<td class="small">{{ f.vocab }}{% if f.caveat %}<br><i>{{ f.caveat }}</i>{% endif %}</td>
-<td class="num">{{ f.samples|fmt }}</td>
-<td class="num">{{ f.frac|pct }}</td>
-<td class="num">{{ f.n_age_scope|fmt }} <span class="small">({{ f.frac_age_scope|pct }})</span></td>
-<td class="num">{{ f.studies|fmt }} <span class="small">({{ f.frac_studies|pct }})</span></td>
-<td><div class="bar" style="width:160px">{% for seg in f.route_segs %}<span style="left:{{ seg.left }}%;width:{{ seg.w }}%;background:var(--{{ seg.r|lower }})" title="{{ seg.r }}: {{ seg.n|fmt }}"></span>{% endfor %}</div> <span class="small">{{ f.n_R1|fmt }} / {{ f.n_R2|fmt }} / {{ f.n_R3|fmt }} / {{ f.n_R4|fmt }}</span>{% if f.scopes %}<br><span class="small">scope: {% for k,n in f.scopes %}{{ k }} {{ n|fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</span>{% endif %}</td>
-</tr>{% endfor %}</tbody></table>
-<p class="small">Route colours: <span class="tag R1">R1 archive attribute</span> <span class="tag R2">R2 supplementary table</span> <span class="tag R3">R3 paper text</span> <span class="tag R4">R4 abstract / description</span>.</p>
-<h3>Sex and free-text identifier fields</h3>
-<table class="tbl"><thead><tr><th>Field</th><th>Vocabulary · caveat</th><th class="num">Samples</th><th class="num">% body-site scope</th><th class="num">Studies</th><th>R1 / R2 / R3 / R4 determinations (body-site scope)</th></tr></thead><tbody>
-{% for f in extra %}<tr id="{{ f.name }}"><td class="mono"><b>{{ f.name }}</b></td><td class="small">{{ f.vocab }}{% if f.caveat %}<br><i>{{ f.caveat }}</i>{% endif %}</td><td class="num">{{ f.samples|fmt }}</td><td class="num">{{ f.frac|pct }}</td><td class="num">{{ f.studies|fmt }}</td><td class="small">{{ f.n_R1|fmt }} / {{ f.n_R2|fmt }} / {{ f.n_R3|fmt }} / {{ f.n_R4|fmt }}</td></tr>{% endfor %}
+<h1>Fields</h1>
+<p class="lead">The catalog curates {{ fields|selectattr('infant', 'equalto', false)|list|length }} core fields for every sample (<span class="mono">config/packs/gut.yaml</span>) and {{ fields|selectattr('infant')|list|length }} infant fields that exist only where an infant study was curated in depth. Every committed value is one row of <span class="mono">gut_sample_determinations.parquet</span> with a route (<b>R1</b> archive attribute · <b>R2</b> supplementary table · <b>R3</b> paper full text · <b>R4</b> abstract / description), a scope (<span class="mono">sample</span> or <span class="mono">study_all</span> = a cohort-wide statement applied to the study's samples), a confidence and a verbatim evidence quote. Precedence per sample × field: R1 &gt; R2 &gt; R3 &gt; R4 (the infant-scope curation wins for its studies). Coverage below is the share of all {{ stats.n_samples|fmt }} samples with a value.</p>
+<table class="tbl small"><thead><tr><th>field</th><th>type</th><th class="num">samples</th><th class="num">coverage</th><th class="num">studies</th>{% for c in age_cats %}<th class="num">{{ c }}</th>{% endfor %}<th>routes (share of values)</th></tr></thead><tbody>
+{% for f in fields %}<tr id="{{ f.name }}"{% if f.infant %} class="small"{% endif %}><td><span class="mono">{{ f.name }}</span>{% if f.infant %} <span class="tag">infant</span>{% endif %}</td><td class="small">{{ f.type }}</td><td class="num">{{ f.samples|fmt }}</td><td class="num">{{ f.frac|pct1 }}</td><td class="num">{{ f.studies|fmt }}</td>{% for c in age_cats %}<td class="num small">{{ f.by_cat[c]|pct if f.by_cat[c] is not none else '—' }}</td>{% endfor %}<td><div class="routebar" title="{% for s in f.route_segs %}{{ s.r }} {{ s.n|fmt }} {% endfor %}">{% for s in f.route_segs %}<div class="seg {{ s.r }}" style="left:{{ s.left }}%;width:{{ s.w }}%"></div>{% endfor %}</div> <span class="small mono">{% for s in f.route_segs %}{{ s.r }} {{ s.n|fmt }}{% if not loop.last %} · {% endif %}{% endfor %}</span></td></tr>{% endfor %}
 </tbody></table>
 
-<h2>Full data dictionary</h2>
-<h2 id="sandpiper-flags">Sandpiper QC flag vocabulary</h2>
-<p class="small">One table, one source (<span class="mono">sandpiper_flag_table.csv</span>): every <span class="mono">sp_flag*</span> / class column in <span class="mono">sandpiper_run_qc.parquet</span> and the sample table, with the label used on this site.</p>
-<table class="tbl compact small"><thead><tr><th>Column</th><th>Level</th><th>Site label</th><th>Definition</th><th>Used</th></tr></thead><tbody>
-{% for fr in flag_rows %}<tr><td class="mono">{{ fr.field }}</td><td>{{ fr.level }}</td><td>{{ fr.site_label }}</td><td class="small">{{ fr.definition }}</td><td>{{ 'yes' if fr.used else 'no' }}</td></tr>{% endfor %}
+<h2>Definitions and caveats</h2>
+<table class="tbl small"><thead><tr><th>field</th><th>allowed routes</th><th>vocabulary / values</th><th>definition and caveats</th></tr></thead><tbody>
+{% for f in fields %}<tr><td class="mono">{{ f.name }}</td><td class="mono small">{{ f.routes_allowed|join(' ') }}</td><td class="small">{{ f.vocab }}</td><td class="small">{{ f.caveat }}</td></tr>{% endfor %}
 </tbody></table>
-<h2 id="dictionary">Data dictionary</h2>
-<div class="md">{{ dictionary_html|safe }}</div>
+
+<h2 id="health_condition">Health-condition vocabulary</h2>
+<p class="small"><span class="mono">config/vocab/health_conditions.yaml</span>. Codes are assigned from archive attributes and tables by rule and by a utility model over distinct (key, value) pairs, and from papers as cohort-wide statements only when every sequenced subject shares the condition; <span class="mono">unknown</span> is never a value.</p>
+<table class="tbl small"><thead><tr><th>code</th><th>label</th><th class="num">samples</th><th class="num">studies</th></tr></thead><tbody>
+{% for k, lbl, ns, nst in hc_rows %}<tr><td><a class="mono" href="../samples/index.html?health_condition={{ k }}">{{ k }}</a></td><td>{{ lbl }}</td><td class="num">{{ ns|fmt }}</td><td class="num">{{ nst|fmt }}</td></tr>{% endfor %}
+</tbody></table>
+
+<h2 id="confidence">Confidence by route</h2>
+<p class="small">Confidence is a discrete engine tier, not a calibrated probability: R1 parsers 0.7–0.9 by unit certainty; R2 table joins 0.8–0.85; R3 two-replicate full-text statements 0.6–0.7; R4 abstract statements ≤ 0.5. Cohort-wide rows (<span class="mono">scope = study_all</span>) are counted per sample they were applied to.</p>
+<table class="tbl small"><thead><tr><th>route</th><th>source</th><th class="num">values</th>{% for b in cbins %}<th class="num">{{ b }}</th>{% endfor %}<th class="num">cohort-wide (study_all)</th></tr></thead><tbody>
+{% for r in conf_rows %}<tr><td><span class="tag {{ r.route }}">{{ r.route }}</span></td><td>{{ r.label }}</td><td class="num">{{ r.n|fmt }}</td>{% for b in r.bins %}<td class="num">{{ b|fmt }}</td>{% endfor %}<td class="num">{{ r.n_group|fmt }}</td></tr>{% endfor %}
+</tbody></table>
+
+<h2 id="dictionary">Package data dictionary</h2>
+<p class="small">Every column of every package table (<a href="../docs/DATA_DICTIONARY.html">DATA_DICTIONARY.md</a>). The catalog tables are <span class="mono">gut_studies</span>, <span class="mono">gut_sample_metadata_wide</span>, <span class="mono">gut_sample_determinations</span>; the registry tables are <span class="mono">registry_*</span>; the remaining tables are the infant extension.</p>
+<details><summary>Show the data dictionary</summary><div class="doc">{{ dictionary_html|safe }}</div></details>
 {% endblock %}
