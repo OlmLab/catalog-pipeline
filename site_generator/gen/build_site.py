@@ -586,11 +586,17 @@ def main():
         pkg_files.append(dict(name=f.name, size=human(f.stat().st_size), bytes=f.stat().st_size, rows=meta.get('rows'),
                               sha256=meta.get('sha256', ''), href=('data/' if f.name in IN_DATA else 'data/package/') + f.name,
                               desc=FILE_DESC.get(f.name, ''), sandpiper=f.name.startswith('sandpiper') or f.name == 'SANDPIPER_REPORT.md'))
-    zip_name, zip_size = None, None
+    zip_name, zip_size, zip_href = None, None, None
     if a.package_zip:
         zip_name = f'data_package_v{version}.zip'
-        shutil.copyfile(a.package_zip, out / 'data' / 'package' / zip_name)
-        zip_size = human(Path(a.package_zip).stat().st_size)
+        _zb = Path(a.package_zip).stat().st_size
+        zip_size = human(_zb)
+        # GitHub Pages refuses files > 100 MB: from 1.8.0 the whole-package zip is served from the GitHub Release when it exceeds 90 MB
+        if _zb > 90 * 1024 * 1024:
+            zip_href = f"https://github.com/{read_github_repo(a.config, 'data')}/releases/download/data-v{version}/{zip_name}"
+        else:
+            shutil.copyfile(a.package_zip, out / 'data' / 'package' / zip_name)
+            zip_href = f'data/package/{zip_name}'
 
     sw_sorted = sw.sort_values(['study_accession', 'subject_key', 't_index', 'sample_key'], na_position='last', kind='mergesort')
     study_dl = {}
@@ -1213,7 +1219,7 @@ def main():
     ] + ([dict(path='data/' + sspec['files']['studies'], desc='Registry tier: one row per human shotgun-metagenome study, loaded by the registry explorer', **dirstat('data', sspec['files']['studies']))] if has_registry else []
       ) + ([dict(path='data/contribute_worklist.json', desc='Contribution worklist (one object per open study; same content as contribute_worklist.csv)', **dirstat('data', 'contribute_worklist.json'))] if has_contribute else [])
     offsite = [dict(o, desc=o['desc'].replace('{v}', version)) for o in OFFSITE]
-    render('downloads.html', 'downloads.html', '', nav='downloads', files=pkg_files, zip_name=zip_name, zip_size=zip_size, sitedata=sitedata, offsite=offsite, vj=vj,
+    render('downloads.html', 'downloads.html', '', nav='downloads', files=pkg_files, zip_name=zip_name, zip_size=zip_size, zip_href=zip_href, sitedata=sitedata, offsite=offsite, vj=vj,
            crumbs=[dict(label='Home', href='index.html'), dict(label='Downloads')])
     manifest = dict(site=site['title'], package_version=version, release_tag=vj['release_tag'], release_id=release_id, build_date=build_date, generator_git_sha=gen_sha, base_url=base_url,
                     files=[dict(path=str(p.relative_to(out)), bytes=p.stat().st_size, sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in sorted((out / 'data').rglob('*')) if p.is_file()],

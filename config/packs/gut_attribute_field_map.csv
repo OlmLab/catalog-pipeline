@@ -1,0 +1,533 @@
+attr_key_norm,field_name,parser,unit_default,confidence,note,n_samples,n_studies,n_distinct_values
+host_age,age_at_collection_days,age_text_unitkey,,0.9,"unit from sibling host_age_units/host_age_unit/age_unit/age_units when value bare; otherwise BARE NUMBER = YEARS (adult default, conf 0.7); text with unit parsed; ranges/bins skipped",39616,242,3218
+age,age_at_collection_days,age_text_unitkey,,0.9,"unit from sibling host_age_units/host_age_unit/age_unit/age_units when value bare; otherwise BARE NUMBER = YEARS (adult default, conf 0.7); text with unit parsed; ranges/bins skipped",26673,191,1594
+age_years,age_at_collection_days,age_numeric,years,0.9,unit in key name,383,3,100
+age_in_years,age_at_collection_days,age_numeric,years,0.9,unit in key name,37,1,6
+age_months,age_at_collection_days,age_numeric,months,0.9,unit in key name,182,2,101
+age_month,age_at_collection_days,age_numeric,months,0.9,unit in key name,110,1,42
+host_age_months,age_at_collection_days,age_numeric,months,0.9,unit in key name,44,1,25
+age_days,age_at_collection_days,age_numeric,days,0.9,unit in key name,105,1,89
+age_wk,age_at_collection_days,age_numeric,weeks,0.9,unit in key name,92,1,24
+age_weeks,age_at_collection_days,age_numeric,weeks,0.9,unit in key name,8,1,2
+age_at_collection,age_at_collection_days,age_numeric,years,0.7,"unitless adult key (values 54-84) -> YEARS rule, inferred unit conf 0.7",725,1,51
+age_at_visit,age_at_collection_days,age_numeric,years,0.7,"unitless adult key (values 54-84) -> YEARS rule, inferred unit conf 0.7",74,1,31
+gender_and_age,age_at_collection_days,gender_and_age,years,0.85,Female_44 -> sex + age in years,103,1,70
+age_t0,age_at_collection_days,SKIP,,0.0,"baseline/consent/visit-specific age, not age at collection",440,1,39
+consent_age,age_at_collection_days,SKIP,,0.0,"baseline/consent/visit-specific age, not age at collection",73,1,20
+age_study_initiation,age_at_collection_days,SKIP,,0.0,"baseline/consent/visit-specific age, not age at collection",49,1,15
+age_at_a1,age_at_collection_days,SKIP,,0.0,"baseline/consent/visit-specific age, not age at collection",197,1,196
+calc_age_day1,age_at_collection_days,SKIP,,0.0,"baseline/consent/visit-specific age, not age at collection",226,1,111
+raw_age,age_at_collection_days,SKIP,,0.0,"unit unknown (1.1-5.3, one study)",116,1,31
+donor_age,age_at_collection_days,SKIP,,0.0,FMT donor age; sample subject may be recipient,14,1,11
+age_cat,age_at_collection_days,SKIP,,0.0,age bins/ranges are not values (rule: ranges are not values),261,2,9
+age_group,age_at_collection_days,SKIP,,0.0,age bins/ranges are not values (rule: ranges are not values),650,1,3
+host_age_group,age_at_collection_days,SKIP,,0.0,age bins/ranges are not values (rule: ranges are not values),54,1,3
+host_age_5yr_bin,age_at_collection_days,SKIP,,0.0,age bins/ranges are not values (rule: ranges are not values),163,1,14
+age_at_a1_cat,age_at_collection_days,SKIP,,0.0,age bins/ranges are not values (rule: ranges are not values),197,1,2
+age_at_diagnosis,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",289,2,87
+age_diagnosis,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",263,3,61
+diagnosis_age,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",46,2,37
+age_at_disease_onset,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",192,1,41
+age_of_pd_diagnosis,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",54,1,27
+age_at_transplant_yrs,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",152,1,20
+age_started_drinking,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",178,1,35
+moved_to_current_location_at_age,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",255,1,37
+feedingage,age_at_collection_days,SKIP,,0.0,"age at diagnosis/onset/first use, not at collection",99,1,25
+gestational_age_at_sampling,age_at_collection_days,SKIP,,0.0,"pregnancy gestational age, not host age",232,1,53
+gestational_age,age_at_collection_days,SKIP,,0.0,"pregnancy gestational age, not host age",100,1,38
+gestational_age_biospecimen,age_at_collection_days,SKIP,,0.0,"pregnancy gestational age, not host age",32,1,8
+sex,sex,categorical_sex,,0.9,,53631,210,15
+host_sex,sex,categorical_sex,,0.9,,34845,225,5
+gender,sex,categorical_sex,,0.9,,6361,28,10
+arrayexpress_sex,sex,categorical_sex,,0.9,,797,5,2
+gender1,sex,categorical_sex,,0.9,,217,1,2
+sexe,sex,categorical_sex,,0.9,,115,1,1
+biological_sex,sex,categorical_sex,,0.9,,71,1,2
+sex_of_baby,sex,categorical_sex,,0.9,,100,1,2
+ca_ld_sex_of_baby,sex,categorical_sex,,0.9,,72,1,2
+host_other_gender,sex,categorical_sex,,0.9,,156,1,3
+gender_and_age,sex,gender_and_age,,0.85,Female_44 -> sex + age,103,1,70
+host_sexual_orientation,sex,SKIP,,0.0,"sexual orientation, not sex",156,1,2
+sexual_behavior,sex,SKIP,,0.0,"sexual orientation, not sex",124,1,2
+host_body_mass_index,bmi,bmi_numeric,,0.9,"numeric kg/m2, plausible 10-80",20246,102,6330
+bmi,bmi,bmi_numeric,,0.9,"numeric kg/m2, plausible 10-80",6009,38,2855
+body_mass_index,bmi,bmi_numeric,,0.9,"numeric kg/m2, plausible 10-80",1066,10,192
+bmi_calulated,bmi,bmi_numeric,,0.9,"numeric kg/m2, plausible 10-80",216,1,69
+bmi_pbl,bmi,bmi_numeric,,0.9,"numeric kg/m2, plausible 10-80",93,1,22
+baseline_bmi,bmi,bmi_numeric,,0.7,baseline BMI; may predate collection,243,1,117
+bmi_t0,bmi,bmi_numeric,,0.7,baseline BMI; may predate collection,428,1,107
+bmi_cat,bmi,SKIP,,0.0,"category/z-score/percentile, not BMI value",617,4,9
+bmi_cat_2,bmi,SKIP,,0.0,"category/z-score/percentile, not BMI value",191,1,2
+bmi_class,bmi,SKIP,,0.0,"category/z-score/percentile, not BMI value",124,1,6
+host_body_mass_index_z_score,bmi,SKIP,,0.0,"category/z-score/percentile, not BMI value",112,1,91
+host_body_mass_index_percentile,bmi,SKIP,,0.0,"category/z-score/percentile, not BMI value",112,1,108
+bmiz,bmi,SKIP,,0.0,"category/z-score/percentile, not BMI value",105,1,89
+mat_pregravbmigrp,bmi,SKIP,,0.0,"maternal pre-pregnancy BMI, not the sampled host",105,1,4
+prepreg_bmi,bmi,SKIP,,0.0,"maternal pre-pregnancy BMI, not the sampled host",80,1,72
+host_disease,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,12907,126,544
+host_disease_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,3756,24,78
+disease,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,3113,29,127
+diagnosis,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,2736,13,37
+host_phenotype,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,1513,20,46
+phenotype,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,5935,6,11
+arrayexpress_phenotype,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,5500,3,5
+gastrointestinal_tract_disorder,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,1081,9,20
+health_state,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,854,12,24
+disease_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,532,6,16
+condition,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,483,5,25
+study_disease,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,470,6,6
+disease_state,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,341,2,3
+host_health_state,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,240,4,2
+host_disease_stat,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,108,3,4
+health_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,25,1,2
+diseaseclass,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,181,1,4
+disease_course,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,301,1,5
+liver_disorder,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,298,3,11
+diseasesubtype,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,284,1,6
+ibd_subtype,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,114,1,2
+ibd_diagnosis,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,91,1,3
+diagnosis_by_ibd_type,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,96,1,6
+case_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,725,1,2
+diagnostic_group,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,226,1,2
+host_disease_status_biospecimen,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,194,1,2
+tumor_groups,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,159,1,6
+cancer_type,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,13,1,6
+gastrointestinal_conditions,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,96,1,8
+endocrine_conditions,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,96,1,6
+clinical_condition,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,180,1,2
+infection_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,114,1,2
+hiv_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,183,2,5
+hiv_serostatus,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,156,1,2
+hivserostatus,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,139,1,2
+sars_cov2_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,944,1,2
+covid_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,69,1,3
+diabetes_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,341,1,2
+diabetes_type,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,571,2,3
+patient_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,57,1,2
+ibdstatus,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,37,1,2
+group_by_nafld_status_in_2018,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,176,1,2
+analysis_disease_stage,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,112,1,4
+mecfs_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,197,1,2
+colorectal_adenoma_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,136,1,2
+histological_diagnosis,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,23,1,8
+clinical_information,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,1,1,1
+background_disease,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,70,1,8
+cf_liver_disease,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,93,1,3
+disease_sub,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,90,1,4
+host_disease_stage,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,1,1,1
+disease_severity,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,44,2,2
+patient_group,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,38,1,2
+donor_disease_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,28,1,3
+cancer_diagnosis_icd_10_code,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,1364,1,236
+term_status,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,100,1,2
+subgroup,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,74,1,3
+overallgroup,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,74,1,2
+igram_group,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,80,1,2
+grouping,health_condition_detail,health_text,,0.9,raw disease/diagnosis/status text passed through; code assigned by normalisation leaf,76,1,3
+crohns_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",702,1,2
+celiac_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",701,1,2
+intestinal_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",665,1,2
+ibd,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",884,2,3
+diabetes,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",922,5,5
+cancer,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",288,2,4
+inflammatory_bowel_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+diabetes_mellitus_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+chronic_gi_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",380,1,2
+autoimmune_disease_any,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",112,1,2
+infection,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",99,1,2
+mental_illness,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",192,1,2
+irritable_stomach_bowel_disease_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+gastrointestinal_cancer_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+hematologic_cancer_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+cardiovascular_disease_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+rheumatic_disease_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+other_neurological_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+other_gastrointestinal_diseases_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+extra_gastrointestinal_cancer_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",97,2,2
+activedisease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",58,1,2
+schisto_status,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",113,1,2
+liver_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",192,1,1
+kidney_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",192,1,1
+cardiovascular_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",187,1,1
+lung_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",187,1,2
+epilepsy_or_seizure_disorder,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",192,1,2
+skin_condition,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",187,1,3
+any_diagnosed_disease_yes_no,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",482,1,4
+other_medical_conditions,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",595,2,2
+hcv_coinfection,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",144,1,2
+hbv_coinfection,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",131,1,2
+mdro_status,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",95,1,2
+renal_disease,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",100,1,1
+cancer_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",66,1,2
+other_liver_disease_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",66,1,2
+neurological_psychiatric_disease_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",66,1,2
+clostridiodides_diff_infection_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",66,1,1
+clostridioides_diff_infection_in_past,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",31,1,1
+subject_is_affected,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",841,7,2
+iscontrol,health_condition_detail,health_bool_key,,0.85,"disease-specific yes/no key: value_normalized = ""<condition from key>: yes|no""",474,1,2
+group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,8488,32,139
+cohort,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,7391,19,325
+study_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,1232,10,28
+treatment_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,880,5,13
+status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,700,6,15
+treatment_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,360,2,7
+host_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,335,1,10
+subject_cohort,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,273,1,3
+group_num,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,186,1,4
+samplegroup,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,226,1,1
+sample_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,44,1,44
+experimental_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,60,1,2
+group_pool,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,171,1,4
+group_rp,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,83,1,16
+regroup,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,62,1,12
+group_for_case_control,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,62,1,10
+subgroup2,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,74,1,4
+subgroup3,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,74,1,4
+cognitive_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,30,1,3
+inflammatory_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,30,1,3
+diagnosis_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,30,1,2
+fmtgroup_fmtsourcegtrecipientbackground,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,96,1,12
+donor_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,310,2,8
+true_control,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,201,3,2
+reagent_control,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,104,1,2
+replace_control,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,547,1,2
+birth_control,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,1800,2,5
+birth_control_or_estrogen,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,691,1,2
+smoking_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,1262,1,2
+marital_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,341,2,6
+work_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,170,1,2
+required_sample_info_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,1786,2,1
+insdc_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,111,11,1
+form_status_complete_x,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,100,1,1
+form_status_complete_y,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,100,1,2
+sample_condition,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,73,1,1
+sample_capture_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,71,1,1
+capturestatus,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,94,1,2
+indigenous_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,100,1,3
+rural_urban_status,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,40,1,2
+ethnic_group,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,24,1,1
+racial_group_biospecimen,health_condition_detail,SKIP,,0.0,trial arm / cohort label / generic group without disease semantics; left to R2/R3,194,1,14
+disease_duration,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",440,3,41
+duration_disease,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",174,1,33
+disease_seniority,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",192,1,46
+disease_extent,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",250,1,3
+disease_complication,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",298,1,4
+disease_subtype,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",325,1,9
+crohns_disease_behavior,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",196,1,3
+endoscopic_disease_activity,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",195,1,4
+histologic_disease_activity,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",185,1,2
+perianal_disease,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",325,1,2
+cd_disease_distrn,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",312,1,3
+uc_disease_extent_diagnsis,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",114,1,3
+historical_disease_extent,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",74,1,6
+montreal_cd_behavior_perianal_disease,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",91,1,2
+simple_endoscopic_score_crohns_disease,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",84,1,17
+disease_staging,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",24,1,17
+pre_treatment_disease_stage,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",94,1,4
+disease_stage,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",182,1,3
+diabetes_med,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",698,1,2
+diabetes_meds,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",96,1,2
+cancer_meds,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",96,1,2
+antidiabetics,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",97,2,2
+other_antidiabetics,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",97,2,2
+ibdmeds_biologics,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",60,1,2
+ibdmeds_non_biologics,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",60,1,2
+noibd_meds,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",60,1,27
+noibd_meds_bin,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",60,1,2
+diagnosis_date,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",192,1,122
+ibd_history,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",173,1,24
+crc_familiarity,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",873,1,2
+esa_lec_familyillness_combined,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",40,1,4
+general_health_compared_to_pretravel,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",380,1,2
+illness_duration,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",717,2,3
+sample_inflammation_status,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",97,1,2
+sample_ulceration_status,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",97,1,2
+clinical_recurrence,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",74,1,2
+clinical_remission_d3,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",24,1,2
+clinical_remission_d5,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",24,1,2
+clinical_remission_d10,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",24,1,2
+response_status,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",26,1,2
+history_of_diabetes,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",52,1,1
+history_of_cdifficile_infection,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",5,1,1
+gynecological_disorder_previous_3_months,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",184,1,4
+urine_urogenital_tract_disorder,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",138,1,6
+nose_mouth_teeth_throat_disorder,health_condition_detail,SKIP,,0.0,"disease sub-attribute (duration, extent, activity, medication) not the condition itself",42,1,2
+antibiotics,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),1239,9,47
+antibiotic_use,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),971,3,8
+current_antibiotics,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),661,6,14
+antibiotic,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),608,3,11
+antibiotics_past_3_months,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),1961,2,3
+abx_last_month,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),1651,1,2
+antibiotics_lastmonth,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),894,1,2
+antibiotics_current,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),706,1,2
+antibiotics_before_hospital,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),592,2,5
+antibiotic_treatment_during_hospitalization,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),1118,2,3
+interval_antibiotics,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),322,1,2
+antibiotic_treated,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),140,1,2
+antibiotic_use_within_3m,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),178,1,1
+antibiotics_past_3months,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),157,1,3
+antibiotics_use_6months,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),123,1,2
+antibiotics_last_6_months_y_n,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),77,1,2
+recent_antibiotic_yn,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),189,1,2
+current_antibiotics_yn,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),191,1,1
+current_antibiotics_3t,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),80,1,2
+abx_use,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),94,1,3
+meds_antibiotics,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),100,1,2
+antibiotic_treatment_before_enrollment,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),97,2,5
+antibiotic_history,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),355,2,93
+anyantimicrobials,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),229,1,4
+antibio_flag_1mo,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),48,1,2
+antibio_flag_6mo,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),48,1,2
+gut_antibiotic,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),40,1,2
+antibiotics_supplements,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),64,1,3
+antibiotics_used,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),11,1,10
+antibiotics_type,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),10,1,8
+specific_antibiotics,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),10,1,7
+specific_current_antibiotics,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),5,1,5
+antibiotic_regimen,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),6,1,1
+meds_antibiotics_name,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),3,1,3
+30_days_prior_additional_antibiotics,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),12,2,10
+recent_antibiotic_details,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),16,1,8
+host_subject_assigned_to_antibiotics_arm,antibiotic_exposure,abx_yesno,,0.8,boolean-like or drug name; window = source own (<=6 months or current),182,1,2
+antibiotics_last_12_mo,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",547,1,2
+abx_day_365,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",1364,1,2
+antibiotic_use_last_taken,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",255,1,6
+anyantimicrobials_15to30days_rf,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",229,1,2
+anyantimicrobials_4to14days_rf,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",229,1,2
+anyantimicrobials_1to3days_rf,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",229,1,2
+gut_antibiotic_recent,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",40,1,3
+gut_antibiotic_frequency,antibiotic_exposure,SKIP,,0.0,"12-month or lifetime window; not ""at or shortly before sampling""",40,1,3
+abx_code2,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,547,1,6
+s_antibiotics_v2,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,124,1,3
+days_since_last_abx,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,547,1,39
+minimum_time_since_antibiotics_biospecimen,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,194,1,5
+antibiotic_dose,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,60,2,5
+abx_class,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,283,1,6
+antibiotic_exposure_cohort,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,101,1,4
+pre_infusion_abx_risk,antibiotic_exposure,SKIP,,0.0,coded without legend / numeric time since / dose,124,1,2
+prenatal_antibiotics_yn,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,193,1,3
+prenatal_antibiotics,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,20,1,9
+antibiotics_during_pregnancy,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,99,1,2
+antibiotic_during_labor,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,99,1,2
+antibiotic_during_cs,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,40,1,2
+matabx_b4gdm,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,105,1,2
+consume_animal_products_abx,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,192,1,3
+antibiotic_name,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,517,2,29
+selection_agent,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,151,1,14
+med_antibiotic_topical_clindamycin_gel,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,112,1,2
+antibiotics_infant_yn,antibiotic_exposure,SKIP,,0.0,not the sampled host (maternal/prenatal/animal products) or culture selection agent,191,1,2
+host_subject_id,subject_id,identifier,,0.85,,53605,241,23093
+subject_id,subject_id,identifier,,0.85,,14890,49,11172
+participant_id,subject_id,identifier,,0.85,,3708,10,1645
+patient_id,subject_id,identifier,,0.85,,3228,27,1337
+patient,subject_id,identifier,,0.85,,1430,9,578
+individual,subject_id,identifier,,0.85,,1897,12,946
+subjectid,subject_id,identifier,,0.85,,1448,10,636
+subject,subject_id,identifier,,0.85,,6051,23,1246
+subject_number,subject_id,identifier,,0.85,,861,3,228
+host_id,subject_id,identifier,,0.85,,519,2,310
+donor_id,subject_id,identifier,,0.85,,277,2,21
+gap_subject_id,subject_id,identifier,,0.85,,25785,15,3053
+submitted_subject_id,subject_id,identifier,,0.85,,25785,15,3023
+individual_id,subject_id,identifier,,0.85,,178,2,41
+participant,subject_id,identifier,,0.85,,1770,5,203
+individual_name,subject_id,identifier,,0.85,,489,3,455
+patientid,subject_id,identifier,,0.85,,452,6,217
+patient_code,subject_id,identifier,,0.85,,450,2,318
+person_id,subject_id,identifier,,0.85,,278,1,278
+patient_number,subject_id,identifier,,0.85,,238,2,170
+personid,subject_id,identifier,,0.85,,218,2,42
+hostid,subject_id,identifier,,0.85,,70,1,35
+hmfpatientid,subject_id,identifier,,0.85,,98,1,52
+seq_patient_id,subject_id,identifier,,0.85,,39,1,39
+patient_name,subject_id,identifier,,0.85,,121,3,32
+family_subject_id,subject_id,identifier,,0.85,,3738,1,820
+cohort_subject_id,subject_id,identifier,,0.85,,450,1,32
+host_assigned_donor_subject_id,subject_id,identifier,,0.85,,182,1,4
+anonymized_name,subject_id,identifier,,0.5,often a sample code rather than subject,5957,15,5884
+donor,subject_id,identifier,,0.5,often a sample code rather than subject,421,5,43
+imu_individual,subject_id,identifier,,0.5,often a sample code rather than subject,39,1,5
+subject_type,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",1858,3,5
+participant_type,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",703,3,8
+subject_is_affected,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",841,7,2
+subject_timepoint,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",650,1,650
+subject_visit_code,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",432,1,12
+donor_group,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",310,2,8
+subject_cohort,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",273,1,3
+subject_information,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",241,1,241
+donor_or_recipient,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",216,1,2
+patient_pub,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",212,1,14
+first_patient_metadata_line,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",210,1,152
+host_subject_assigned_to_maintenance_arm,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",182,1,2
+host_subject_assigned_to_antibiotics_arm,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",182,1,2
+participant_sample_number,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",143,1,76
+patient_status,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",57,1,2
+patient_group,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",38,1,2
+patient_timepoint,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",48,1,48
+person,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",81,2,3
+test_person,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",18,1,3
+type_individual,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",25,1,13
+donor_patient,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",115,1,1
+sample_order_in_patient,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",100,1,4
+patient_sample_number,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",9,1,5
+subject_treatment,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",64,1,64
+familyid_personinfo_sampleinfo,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",57,1,57
+personvisit,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",35,1,3
+donor_disease_status,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",28,1,3
+donor_age,subject_id,SKIP,,0.0,"group/type/composite, not an identifier",14,1,11
+timepoint,timepoint_label,label,,0.85,,7081,56,441
+time_point,timepoint_label,label,,0.85,,3037,19,127
+visit,timepoint_label,label,,0.85,,3145,17,114
+study_day,timepoint_label,label,,0.85,,4044,13,1964
+day,timepoint_label,label,,0.85,,1895,18,79
+day_of_study,timepoint_label,label,,0.85,,1084,3,25
+tp,timepoint_label,label,,0.85,,940,2,17
+sample_timepoints,timepoint_label,label,,0.85,,898,1,6
+sample_timepoint,timepoint_label,label,,0.85,,496,2,12
+study_timepoint,timepoint_label,label,,0.85,,652,3,32
+timepoints,timepoint_label,label,,0.85,,479,1,4
+sample_collection_timepoint,timepoint_label,label,,0.85,,452,2,9
+subject_visit_code,timepoint_label,label,,0.85,,432,1,12
+study_week,timepoint_label,label,,0.85,,371,2,7
+study_visit,timepoint_label,label,,0.85,,348,1,4
+timepoint_type,timepoint_label,label,,0.85,,341,1,7
+host_timepoint,timepoint_label,label,,0.85,,335,1,3
+day_timepoint,timepoint_label,label,,0.85,,333,1,6
+time_point_month,timepoint_label,label,,0.85,,325,1,13
+visit_description,timepoint_label,label,,0.85,,273,1,21
+visit_name,timepoint_label,label,,0.85,,265,1,5
+week_of_intervention,timepoint_label,label,,0.85,,258,1,3
+collection_timepoint_weeks,timepoint_label,label,,0.85,,238,1,2
+collection_day,timepoint_label,label,,0.85,,194,1,14
+month_of_collection,timepoint_label,label,,0.85,,180,1,3
+week,timepoint_label,label,,0.85,,165,2,4
+timepoint_description,timepoint_label,label,,0.85,,159,1,3
+timepoint_days,timepoint_label,label,,0.85,,94,1,70
+sample_day,timepoint_label,label,,0.85,,143,1,41
+visit_number,timepoint_label,label,,0.85,,57,1,5
+sampling_timepoint,timepoint_label,label,,0.85,,36,1,2
+sampling_point,timepoint_label,label,,0.85,,32,1,22
+timepoint_day,timepoint_label,label,,0.85,,24,1,3
+sample_timepoint_day,timepoint_label,label,,0.85,,22,1,2
+days_from_first_visit,timepoint_label,label,,0.85,,391,2,52
+sampling_day,timepoint_label,label,,0.85,,716,4,94
+phase,timepoint_label,label,,0.85,,773,3,9
+period,timepoint_label,label,,0.85,,3179,5,8
+study_phase,timepoint_label,label,,0.85,,95,1,2
+study_period,timepoint_label,label,,0.85,,90,1,2
+visit_type,timepoint_label,label,,0.85,,93,1,5
+timephase,timepoint_label,label,,0.85,,112,1,4
+time,timepoint_label,label,,0.85,,2119,15,115
+days_since_intervention,timepoint_label,label,,0.85,,547,1,124
+days_after_fmt,timepoint_label,label,,0.85,,216,1,121
+days_past_fmt,timepoint_label,label,,0.85,,199,1,73
+day_relative_to_fmt1,timepoint_label,label,,0.85,,14,1,14
+days_since_treatment_start,timepoint_label,label,,0.85,,186,1,14
+day_of_collection,timepoint_label,label,,0.85,,295,1,295
+collection_time,timepoint_label,label,,0.85,,280,2,13
+collection_timestamp,timepoint_label,SKIP,,0.0,"collection date/timestamp or clock time, not a study timepoint",15516,21,5223
+collection_date,timepoint_label,SKIP,,0.0,"collection date/timestamp or clock time, not a study timepoint",327993,1965,7803
+cog_visit_date,timepoint_label,SKIP,,0.0,"collection date/timestamp or clock time, not a study timepoint",93,1,86
+clinic_visit_date,timepoint_label,SKIP,,0.0,"collection date/timestamp or clock time, not a study timepoint",38,1,31
+sampling_time,timepoint_label,SKIP,,0.0,"collection date/timestamp or clock time, not a study timepoint",7,1,2
+collection_timezone,timepoint_label,SKIP,,0.0,"collection date/timestamp or clock time, not a study timepoint",27,1,1
+experiment_collection_date,timepoint_label,SKIP,,0.0,"collection date/timestamp or clock time, not a study timepoint",72,1,9
+subject_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,650,1,650
+patient_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,48,1,48
+submission_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,301,1,4
+timepoint_treatment_replicate,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,71,1,71
+incubation_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,84,2,31
+treatment_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,83,1,4
+publication_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,9,1,5
+type_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,25,1,7
+month,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,654,3,299
+phase_id_mep,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,630,1,2
+is_intermediate_timepoint,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,113,1,2
+timepoint_days_bin,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,113,1,22
+timephase_and_cluster,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,112,1,10
+experimental_time_period,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,72,1,4
+s_phase_sub_stage,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,6,1,5
+study_id_visit,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,4,1,4
+revisedvisitnumber,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,139,1,6
+reason_for_visit,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,57,1,4
+priorvisitreg,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,273,1,53
+personvisit,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,35,1,3
+days_since_last_abx,timepoint_label,SKIP,,0.0,composite / unclear / not a timepoint,547,1,39
+gastrointest_disord,health_condition_detail,health_text,,0.9,"LLM-triaged key (utility model), confirmed against example values",2796,32,39
+liver_disord,health_condition_detail,health_text,,0.9,"LLM-triaged key (utility model), confirmed against example values",571,10,20
+gastroinstest_disord,health_condition_detail,health_text,,0.9,"LLM-triaged key (utility model), confirmed against example values",54,2,1
+urogenit_tract_disor,health_condition_detail,health_text,,0.9,"LLM-triaged key (utility model), confirmed against example values",158,2,3
+config,health_condition_detail,health_text,,0.9,"LLM-triaged key (utility model), confirmed against example values",154,2,2
+primary_tumor,health_condition_detail,health_text,,0.9,"LLM-triaged key (utility model), confirmed against example values",133,2,21
+location_of_the_tumour,health_condition_detail,health_text,,0.9,"LLM-triaged key (utility model), confirmed against example values",112,2,16
+hypertension,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",667,3,4
+allergy,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",584,2,3
+tumour,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",576,2,3
+ibs,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",875,2,4
+colitis,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",874,2,4
+sibo,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",872,2,4
+autoimmune,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",289,2,4
+seasonal_allergy,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",95,2,2
+is_tumor,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",1406,4,2
+nafld,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",64,2,4
+hepatitis_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,1
+heart_failure_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,2
+liver_cirrhosis_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,2
+dementia_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,2
+depression_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,2
+chronic_diarrhea_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,2
+chronic_constipation_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,2
+parkinson_in_past,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",97,2,2
+cholestasis_at_time_of_enrollment,health_condition_detail,health_bool_key,,0.85,"LLM-triaged disease-specific yes/no key, confirmed against example values",34,2,2
+cdai,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,930,3,145
+scdai,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,370,2,259
+hbi,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,180,2,17
+meld,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,465,3,31
+crp,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,225,3,66
+calprotectin,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,202,4,72
+mort_90d,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,386,2,2
+death,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,1372,4,5
+icu,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,1118,2,3
+stage,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,457,4,20
+treatment_response,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,361,2,6
+response,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,577,6,22
+progression,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,329,2,3
+other,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,398,3,396
+behavior,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,167,2,20
+crohn_disease_phenotype,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,44,2,2
+nafld_grade,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,105,2,4
+partial_mayo,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,124,2,18
+rectal_bleeding,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,122,2,7
+pga,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,122,2,5
+host_genotype,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,211,5,16
+small_bowel_resection,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,503,2,4
+constipation,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,873,2,97
+diarrhea,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,867,2,42
+bowel_intestinal_surgery_in_past,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,97,2,2
+other_abdominal_surgery,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,97,2,2
+insulin,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,457,3,109
+treatment,health_condition_detail,SKIP,,0.0,LLM-triaged but rejected: score/outcome/subtype/mixed content,3837,36,183
+sid,subject_id,identifier,,0.85,"LLM-triaged, confirmed against example values",1435,3,1395
+pid,subject_id,identifier,,0.85,"LLM-triaged, confirmed against example values",773,5,482
+ptnumber,subject_id,identifier,,0.85,"LLM-triaged, confirmed against example values",722,6,185
+unique_id,subject_id,identifier,,0.85,"LLM-triaged, confirmed against example values",599,5,591
+unique_identifier,subject_id,identifier,,0.85,"LLM-triaged, confirmed against example values",331,4,331
+ind,subject_id,identifier,,0.85,"LLM-triaged, confirmed against example values",220,2,81
+lep,subject_id,identifier,,0.85,"LLM-triaged, confirmed against example values",96,2,96
+alternativename,subject_id,identifier,,0.5,LLM-triaged; may be a sample code,90,2,90
+id,subject_id,SKIP,,0.0,LLM-triaged but rejected: generic/composite/sample-level id,7009,35,6076
+identifier,subject_id,SKIP,,0.0,LLM-triaged but rejected: generic/composite/sample-level id,782,3,782
+fastaid,subject_id,SKIP,,0.0,LLM-triaged but rejected: generic/composite/sample-level id,97,2,97
+family_id,subject_id,SKIP,,0.0,LLM-triaged but rejected: generic/composite/sample-level id,402,2,91
+class,subject_id,SKIP,,0.0,LLM-triaged but rejected: generic/composite/sample-level id,169,2,169
+attribute,subject_id,SKIP,,0.0,LLM-triaged but rejected: generic/composite/sample-level id,167,4,167
+round,timepoint_label,label,,0.85,"LLM-triaged, confirmed (study round / day relative to transplant)",3154,2,4
+bmtday,timepoint_label,label,,0.85,"LLM-triaged, confirmed (study round / day relative to transplant)",722,6,40
+date_rel_hct,timepoint_label,label,,0.85,"LLM-triaged, confirmed (study round / day relative to transplant)",541,3,139
+dayrelativetonearesthct,timepoint_label,label,,0.85,"LLM-triaged, confirmed (study round / day relative to transplant)",58,3,34
+tmp,timepoint_label,SKIP,,0.0,LLM-triaged but rejected: abbreviation ambiguous,1563,12,1102
+chem_administration,antibiotic_exposure,SKIP,,0.0,LLM-triaged but rejected: mixed chemical administration text (antibiotics + PEG + steroids); left to R2/R3,2264,27,157
+yob,age_at_collection_days,SKIP,,0.0,birth year/date or z-score; not an age without a collection date,207,2,165
+birthyear,age_at_collection_days,SKIP,,0.0,birth year/date or z-score; not an age without a collection date,101,2,6
+haz,age_at_collection_days,SKIP,,0.0,birth year/date or z-score; not an age without a collection date,214,2,149
+host_life_stage,age_at_collection_days,SKIP,,0.0,birth year/date or z-score; not an age without a collection date,10820,14,3

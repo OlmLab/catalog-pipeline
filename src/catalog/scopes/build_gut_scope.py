@@ -170,7 +170,7 @@ def build(a):
     samples["in_infant_catalog"] = samples.study_accession.isin(infant_acc)
 
     # ---- determinations
-    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r2_glob), load_any(a.r4_glob)]
+    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(a.r2_glob), load_any(a.r4_glob)]
     det0 = pd.read_parquet(os.path.join(a.package, "sample_determinations.parquet"))
     det0 = det0[det0.study_accession.isin(infant_acc) & det0.field_name.isin(PACK_FIELDS + INFANT_ONLY)]
     if "release_retired" in det0.columns:
@@ -181,6 +181,13 @@ def build(a):
     cond = pd.read_parquet(a.condition_map) if a.condition_map and os.path.exists(a.condition_map) else None
     abx = pd.read_parquet(a.antibiotic_map) if a.antibiotic_map and os.path.exists(a.antibiotic_map) else None
     det = apply_condition_maps(det, cond, abx, rid, pv)
+    # 'unknown' / placeholder codes are not determinations (unknown stays unknown = no row); keep raw detail text
+    unk = det.value_normalized.astype("string").str.lower().isin(["unknown", "unknown_age", "unknown_site", "none", "nan", ""]) & (det.field_name != "health_condition_detail")
+    det = det[~unk.fillna(False)]
+    # routes allowed per field (config/packs/gut.yaml fields.<f>.routes); infant-catalog rows are exempt (their own rules applied)
+    allowed = {f: set(v.get("routes", ["R1", "R2", "R3", "R4"])) for f, v in pack["fields"].items()}
+    ok_route = [(r in allowed.get(f, {"R1", "R2", "R3", "R4"})) or (t == "infant_catalog") for f, r, t in zip(det.field_name, det.route, det.src_track)]
+    det = det[pd.Series(ok_route, index=det.index)]
     det_study = det[det.scope == "study_all"]
     det_sample = det[det.scope != "study_all"]
     det_sample = det_sample[det_sample.sample_key.isin(set(samples.sample_key))]
@@ -208,6 +215,8 @@ def build(a):
     st_stage = reg.set_index("study_accession").life_stage_primary if "life_stage_primary" in reg.columns else pd.Series(dtype=str)
     cat_age = w.age_at_collection_days.map(lambda d: age_category(d, pack))
     cat_stage = w.sample_life_stage.map(STAGE_TO_CAT)
+    r4_stage = det_study[det_study.field_name == "life_stage"].sort_values("confidence", ascending=False).drop_duplicates("study_accession").set_index("study_accession").value_normalized
+    cat_r4 = w.study_accession.map(r4_stage).map(STAGE_TO_CAT)
     cat_study = w.study_accession.map(st_stage).map(STAGE_TO_CAT)
     scope0 = wide0.set_index("sample_key").age_scope
     cat_inf = pd.Series(w.index.map(scope0), index=w.index).map(lambda v: "infant" if v in ("infant_evidenced", "study_all_infant") else ("adult" if v == "adult_flagged" else None))
@@ -215,10 +224,10 @@ def build(a):
     # infant-catalog rows: the curated age_scope is authoritative (no fall-back to the study's life stage — the catalog deliberately
     # leaves mixed-age / no-estimate samples unknown); registry rows: age → sample life stage → study life stage
     cat_curated = cat_age.fillna(cat_inf)
-    cat_registry = cat_age.fillna(cat_stage).fillna(cat_study)
+    cat_registry = cat_age.fillna(cat_stage).fillna(cat_r4).fillna(cat_study)
     w["age_category"] = cat_curated.where(is_inf, cat_registry).fillna("unknown")
     basis = pd.Series("unknown", index=w.index)
-    basis = basis.mask(~is_inf & cat_study.notna(), "study_life_stage").mask(~is_inf & cat_stage.notna(), "sample_life_stage").mask(is_inf & cat_inf.notna(), "infant_catalog_age_scope").mask(cat_age.notna(), "age_at_collection_days")
+    basis = basis.mask(~is_inf & cat_study.notna(), "study_life_stage").mask(~is_inf & cat_r4.notna(), "r4_abstract_life_stage").mask(~is_inf & cat_stage.notna(), "sample_life_stage").mask(is_inf & cat_inf.notna(), "infant_catalog_age_scope").mask(cat_age.notna(), "age_at_collection_days")
     w["age_category_basis"] = basis
     w["body_site_class"] = w.body_site_code.map(lambda c: "primary" if c == "gut_stool" else ("unknown" if (c is None or pd.isna(c) or c == "unknown_site") else "excluded"))
     w["body_site_basis"] = w.body_site_code.map(lambda c: "sample_attribute" if isinstance(c, str) and c not in ("unknown_site",) else "none")
@@ -283,7 +292,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--studies", required=True, help="gut study list (registry columns + in_infant_catalog)")
     ap.add_argument("--registry-studies"), ap.add_argument("--biosamples", required=True), ap.add_argument("--package", required=True, help="previous package dir (infant curated tables)")
-    ap.add_argument("--r1"), ap.add_argument("--r2-glob"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
+    ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"), ap.add_argument("--r2-glob"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
     ap.add_argument("--out", required=True), ap.add_argument("--summary"), ap.add_argument("--release-id", default="R2026.7"), ap.add_argument("--package-version", default="1.8.0")
     ap.add_argument("--previous-dir", help="previous package dir: gut_* tables there provide release_added / retirements")
     build(ap.parse_args(argv))

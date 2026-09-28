@@ -371,3 +371,25 @@ builds without `registry/`).
    host.llm ceiling is 2.0 M) → `registry_pairs_normalised.parquet`. `make release` then runs `registry-biosamples` (registry_biosamples.parquet +
    study roll-up / refinement) and `add_registry_tables` (papers / authors / BioProject side tables) when the inputs are in data/inputs/registry/.
    Measured budgets: config/budgets.yaml `registry_s2`; reports docs/REGISTRY_S2_PILOT.md, docs/REGISTRY_S2_REPORT.md, docs/REGISTRY_S2_PAPERS.md.
+
+## Stage 8 — curated scope gut_all (from R2026.7 / package 1.8.0; config/packs/gut.yaml)
+
+The first curated scope beyond the infant catalog: every human gut shotgun-metagenome study in the registry, all ages. Tables
+`gut_studies`, `gut_sample_metadata_wide`, `gut_sample_determinations` (same determination schema as the infant tables).
+`infant_scope` reproduces the infant catalog's catalog_scope exactly; infant rows are copied verbatim and win.
+1. Study list: `data/inputs/gut/gut_studies.parquet` = registry_studies rows matching the pack `study_rule` (+ included infant studies)
+   with linked PMIDs from registry_study_papers.
+2. Leaves (one wave, in parallel; every leaf reads config/packs/gut.yaml and infant-curation-rules):
+   * **R1** — gut attribute field map (config/packs/gut_attribute_field_map.csv: 287 keys → 7 fields, deterministic parsers of
+     src/catalog/extraction/r1_parsers.py; utility model for KEY triage only) over the harvested attributes → `gut_r1_determinations.parquet`.
+   * **Normalisation** — distinct (key, value) pairs of disease / health / antibiotic keys → `gut_health_condition_map.parquet`,
+     `gut_antibiotic_map.parquet` (rules + utility model; config/vocab/health_conditions.yaml) + their R1 expansion.
+   * **R4** — title + ENA description + Europe PMC abstracts (≤ 3 PMIDs) → cohort-wide `study_all` statements, utility model, verbatim-quote
+     check, confidence ≤ 0.5 (`r4/gut_r4_determinations_shard_*.parquet`, study summaries with design / n_subjects).
+   * **R2** — supplementary zips of open-access papers (Europe PMC), exact-accession gate, header-named columns, no model
+     (`r2/gut_r2_determinations_shard_*.parquet`, gate tables).
+3. `make release` runs `gut-build` (catalog.scopes.build_gut_scope) inside the package: precedence infant catalog > R1 > R2 > R3 > R4;
+   `unknown` codes are never rows; pack routes per field enforced; age_category from age → sample life stage → R4 life stage → study
+   life stage (basis recorded); body_site_class from the sample attribute or the study's single registry site.
+4. Not yet run for non-infant studies: R3 (full-text prose), infant-only fields, Opus group audit of R4 statements (group_audit pending),
+   Sandpiper per-sample join. Future fields inventory: data/inputs/gut/gut_future_fields_inventory.csv.
