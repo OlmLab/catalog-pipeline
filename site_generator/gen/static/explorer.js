@@ -99,7 +99,7 @@ async function run() {
   tbody.innerHTML = rows.map(row => `<tr data-key="${h(row.sample_key)}" tabindex="0" role="button" aria-label="open details for ${h(row.sample_key)}">` +
     `<td class="mono">${h(row.sample_key)}</td><td>${studyLink(row)}</td><td>${h(row.age_category)}</td><td class="num">${fmtV(row.age_at_collection_days)} ${routeBadge(row.age_at_collection_days__route, row.age_at_collection_days__confidence)}</td>` +
     `<td>${h(row.sex)}</td><td class="num">${fmtV(row.bmi)}</td><td>${h(row.country)}</td><td>${h(row.health_condition)} ${routeBadge(row.health_condition__route, row.health_condition__confidence)}</td><td>${h(row.antibiotic_exposure)}</td><td class="small">${h(row.subject_id)}</td><td class="small">${h(row.body_site_class)}</td></tr>`).join('');
-  $('count').textContent = `${total.toLocaleString()} samples in ${Number(c0.k).toLocaleString()} studies match`;
+  $('count').textContent = `${total.toLocaleString()} samples match (${Number(c0.k).toLocaleString()} studies)`;
   $('pageinfo').textContent = total ? `page ${page + 1} / ${maxPage + 1}` : '';
   $('prev').disabled = page <= 0; $('next').disabled = page >= maxPage;
   writeUrl();
