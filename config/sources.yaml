@@ -1,208 +1,239 @@
-# Sources, acknowledgements and related efforts — rendered by site_generator/gen/build_site.py as sources.html and kept as
-# docs/RELATED_RESOURCES.md. Edit here only. Every entry names what we take from the source (or could), under which terms, and
-# how it would join our tables. `ingestion` ∈ {used, candidate_high, candidate_medium, candidate_low, not_applicable}.
+# Sources, acknowledgements and incorporated external resources — rendered by site_generator/gen/build_site.py as sources.html and
+# regenerated into docs/RELATED_RESOURCES.md. Edit here only. `ingestion` ∈ {used, candidate_high, candidate_medium, candidate_low,
+# not_applicable}; `used` entries need resource_id (= evidence_source suffix external.<resource_id>) and `ingested` (what was taken).
 schema_version: 1
-updated: 2026-09-28
-
+updated: '2026-09-28'
 funding:
-  - text: "Development of Microbiome Repo is supported by a grant from Anthropic to the Olm Lab (University of Colorado Boulder) for organising human microbiome metadata."
-
-data_sources:            # what the catalog is built from
-  - name: European Nucleotide Archive (ENA) / INSDC (SRA, DDBJ)
-    url: https://www.ebi.ac.uk/ena/browser/
-    role: "Study, sample, run and BioSample records and attributes for every registry study (portal API); the archive metadata is route R1."
-    terms: "INSDC: free and unrestricted access to all records."
-  - name: NCBI BioProject and BioSample
-    url: https://www.ncbi.nlm.nih.gov/bioproject/
-    role: "BioProject records (titles, descriptions, publications, organisations) and BioSample attributes; E-utilities."
-    terms: "NCBI public-domain data policy."
-  - name: Europe PMC
-    url: https://europepmc.org/
-    role: "Paper ↔ accession links, abstracts, open-access full text (JATS) and supplementary files behind routes R2, R3 and R4; author lists."
-    terms: "Europe PMC open-access subset; individual article licences apply to reuse of text."
-  - name: Sandpiper (SingleM community profiles of public metagenomes)
-    url: https://sandpiper.qut.edu.au/
-    role: "Per-run community profiles and the count of profiled runs per study; profiles shown for the infant studies."
-    terms: "CC-BY (Woodcroft et al. 2025)."
-  - name: curatedMetagenomicData (cMD)
-    url: https://waldronlab.io/curatedMetagenomicData/
-    role: "Gold standard for the infant-field extraction evaluation (age, delivery mode, preterm status precision) and the 22 infant BioProjects used for study-level recall."
-    terms: "Artistic-2.0 (Bioconductor package); data via ExperimentHub."
-  - name: UBERON
-    url: https://obophenotype.github.io/uberon/
-    role: "Anchors of the body-site vocabulary (config/vocab/body_sites.yaml)."
-    terms: "CC-BY 3.0."
-  - name: GTDB
-    url: https://gtdb.ecogenomic.org/
-    role: "Taxonomy of the Sandpiper community panels (release stated on each panel)."
-    terms: "CC-BY-SA 4.0."
-
+- text: Development of Microbiome Repo is supported by a grant from Anthropic to the Olm Lab (University of Colorado Boulder) for organising human microbiome metadata.
+data_sources:
+- name: European Nucleotide Archive (ENA) / INSDC (SRA, DDBJ)
+  url: https://www.ebi.ac.uk/ena/browser/
+  role: Study, sample, run and BioSample records and attributes for every registry study (portal API); the archive metadata is route R1.
+  terms: 'INSDC: free and unrestricted access to all records.'
+- name: NCBI BioProject and BioSample
+  url: https://www.ncbi.nlm.nih.gov/bioproject/
+  role: BioProject records (titles, descriptions, publications, organisations) and BioSample attributes; E-utilities.
+  terms: NCBI public-domain data policy.
+- name: Europe PMC
+  url: https://europepmc.org/
+  role: Paper ↔ accession links, abstracts, open-access full text (JATS) and supplementary files behind routes R2, R3 and R4; author lists.
+  terms: Europe PMC open-access subset; individual article licences apply to reuse of text.
+- name: Sandpiper (SingleM community profiles of public metagenomes)
+  url: https://sandpiper.qut.edu.au/
+  role: Per-run community profiles and the count of profiled runs per study; profiles shown for the infant studies.
+  terms: CC-BY (Woodcroft et al. 2025).
+- name: curatedMetagenomicData (cMD)
+  url: https://waldronlab.io/curatedMetagenomicData/
+  role: Gold standard for the infant-field extraction evaluation (age, delivery mode, preterm status precision) and the 22 infant BioProjects used for study-level recall.
+  terms: Artistic-2.0 (Bioconductor package); data via ExperimentHub.
+- name: UBERON
+  url: https://obophenotype.github.io/uberon/
+  role: Anchors of the body-site vocabulary (config/vocab/body_sites.yaml).
+  terms: CC-BY 3.0.
+- name: GTDB
+  url: https://gtdb.ecogenomic.org/
+  role: Taxonomy of the Sandpiper community panels (release stated on each panel).
+  terms: CC-BY-SA 4.0.
 software:
-  - name: DuckDB-WASM
-    url: https://duckdb.org/docs/api/wasm/overview
-    role: "In-browser SQL over the parquet tables (sample and registry explorers); pinned 1.29.0 from jsDelivr."
-    terms: "MIT."
-  - name: DataTables and jQuery
-    url: https://datatables.net/
-    role: "Sortable study, cohort and scope tables."
-    terms: "MIT."
-  - name: Apache Parquet / Arrow, pandas, DuckDB, Jinja2, Python-Markdown
-    url: https://github.com/OlmLab/catalog-pipeline
-    role: "Pipeline and site generator (catalog-pipeline)."
-    terms: "Apache-2.0 / BSD / MIT (see the repository)."
-  - name: Anthropic Claude models
-    url: https://www.anthropic.com/
-    role: "Model-assisted classification (registry), key triage (R1), value normalisation, cohort-statement extraction (R3, R4) and adjudication — always with a verbatim evidence quote; roles and model ids in config/models.yaml and on every model-derived row."
-    terms: "Anthropic usage policies."
-
-related_efforts:         # other resources that curate or harmonise human microbiome metadata — what they offer, and whether we could ingest them
-  - name: curatedMetagenomicData 3 (cMD 3)
-    url: https://waldronlab.io/curatedMetagenomicData/
-    reference: "Pasolli et al. 2017 Nat Methods; cMD 3 — Nature Communications 2025"
-    scope: "human shotgun metagenomes, all body sites; manually curated per-sample metadata"
-    size: "> 22,000 samples, 94 studies, 42 countries (cMD 3)"
-    offers: "Per-sample curated age, sex, BMI, country, disease, antibiotics and study condition; MetaPhlAn/HUMAnN profiles; NCBI accessions per sample."
-    join: "sample_metadata NCBI_accession (SRR/ERR run ids, ';'-separated) → registry runs → BioSample; study_name → PMID / BioProject."
-    licence: "Artistic-2.0; metadata redistributable with attribution"
-    ingestion: candidate_high
-    assessment: "Best per-sample external source for the core fields; already our gold standard for the infant fields. Ingest as an external curated table (route R2, evidence_source external.cmd3, evidence_locator = cMD study_name/sample_id, confidence 0.8) with precedence after the study's own supplementary tables. Disease codes map to health_conditions.yaml by rule."
-  - name: GMrepo v3
-    url: https://gmrepo.humangut.info/
-    reference: "Wu et al. 2020, Dai et al. 2022, Liu et al. 2026 NAR (v3)"
-    scope: "human gut, 16S and shotgun; phenotype-centred curation"
-    size: "890 projects, 118,965 runs/samples (87,048 16S · 31,917 WGS), 302 diseases (v3)"
-    offers: "Per-run curated phenotype (MeSH disease), age, sex, BMI, country, health status; project-level markers; RESTful API and downloads."
-    join: "run accession (SRR/ERR/DRR) and project id (PRJNA…) → registry runs / studies."
-    licence: "Check the site's terms before redistribution (academic use stated)."
-    ingestion: candidate_high
-    assessment: "The 31,917 WGS runs overlap the catalog directly; disease → MeSH gives a mapping target for health_conditions.yaml. Ingest phenotype/age/sex/BMI as external.gmrepo_v3 rows (route R2, confidence 0.75) once redistribution terms are confirmed; otherwise use only as a cross-check and link out per study."
-  - name: HumanMetagenomeDB
-    url: https://webapp.ufz.de/hmgdb/
-    reference: "Kasmanas et al. 2021 NAR"
-    scope: "human metagenomes from SRA and MG-RAST, all body sites"
-    size: "69,822 metagenomes, 203 standardised attributes (v1.0)"
-    offers: "Standardised host attributes (body site, age, sex, disease, country) from archive metadata, ontology terms."
-    join: "SRA sample / run accession."
-    licence: "Check (UFZ)."
-    ingestion: candidate_medium
-    assessment: "Derived from the same archive attributes as our R1, so mostly a consistency check for the 2020 snapshot; its ontology mappings (body site, disease) can validate our vocabularies."
-  - name: MicrobeAtlas
-    url: https://microbeatlas.org/
-    reference: "Cell 2026"
-    scope: "all microbiome samples in SRA (amplicon and metagenomic), all biomes"
-    size: "2,390,937 samples, 52,950 studies"
-    offers: "Harmonised SSU-rRNA community profiles, extracted metadata keywords, environmental ontology and geographic coordinates per sample."
-    join: "SRA sample / run accession."
-    licence: "Check."
-    ingestion: candidate_medium
-    assessment: "Geography and environment annotations could fill country for samples without a geo attribute (as an inferred route with low confidence) and cross-check body-site classes; the profiles are rRNA-based and outside our scope."
-  - name: Human Microbiome Compendium (MicroBioMap)
-    url: https://microbiomap.org/
-    reference: "Abdill et al. 2023 bioRxiv"
-    scope: "human gut 16S amplicon samples from SRA"
-    size: "≈ 168,000 samples"
-    offers: "Uniformly processed 16S profiles and a harmonised sample_metadata.tsv (CC-BY)."
-    join: "SRA run / sample accession."
-    licence: "CC-BY"
-    ingestion: candidate_low
-    assessment: "Amplicon-only, so outside the shotgun scope; its harmonised metadata columns and the study list are a useful comparison for the registry's amplicon_misfiled calls."
-  - name: mBodyMap
-    url: https://mbodymap.microbiome.cloud/
-    reference: "Jin et al. 2022 NAR"
-    scope: "human microbes across body sites with health/disease associations; per-run curated phenotypes"
-    size: "tens of thousands of runs across 20+ body sites (see site)"
-    offers: "Per-run body site, phenotype and disease annotation; taxon–disease associations."
-    join: "run accession, project id."
-    licence: "Check."
-    ingestion: candidate_medium
-    assessment: "Body-site and disease annotations for non-gut sites make it a candidate when the oral, skin and vaginal scopes are curated."
-  - name: MicrobiomeDB (VEuPathDB)
-    url: https://microbiomedb.org/
-    reference: "Oliveira et al. 2018 NAR"
-    scope: "curated microbiome studies (mostly 16S, some shotgun), human and other hosts"
-    size: "dozens of studies with rich sample metadata"
-    offers: "Deeply curated per-sample metadata with ontology terms, downloadable per study."
-    join: "SRA accessions where deposited."
-    licence: "Check (VEuPathDB data-use policy)."
-    ingestion: candidate_medium
-    assessment: "Small overlap but very high metadata quality for the studies it covers; worth an accession-level join test."
-  - name: African Human Microbiome Portal (H3ABioNet)
-    url: https://microbiome.h3abionet.org/
-    reference: "Database 2024"
-    scope: "African human microbiome samples, metadata only"
-    size: "14,889 records, 70 BioProjects, 72 articles"
-    offers: "Harmonised, ontology-coded metadata (demographics, body site, disease) for African cohorts; filtered downloads."
-    join: "BioProject / BioSample accession."
-    licence: "Open access (check reuse terms)."
-    ingestion: candidate_medium
-    assessment: "Improves population coverage where archive attributes are thin; join on BioProject then BioSample."
-  - name: Meta2DB (LLNL)
-    url: https://gdo-meta2db.llnl.gov/
-    reference: "Meta2DB 2024 bioRxiv / 2026"
-    scope: "curated shotgun metagenomic feature sets with labelled health-state metadata"
-    size: "see Zenodo record 17315984"
-    offers: "Labelled sample metadata (health state) for shotgun studies; Centrifuge-based profiles."
-    join: "SRA run accession."
-    licence: "Zenodo record (check)."
-    ingestion: candidate_medium
-    assessment: "Health-state labels for shotgun samples map to health_conditions.yaml; profiles out of scope."
-  - name: BugSigDB
-    url: https://bugsigdb.org/
-    reference: "Geistlinger et al. 2023 Nat Biotechnol"
-    scope: "curated microbial signatures from published studies, all body sites"
-    size: "thousands of signatures from > 1,000 studies"
-    offers: "Study-level curation: condition, body site, sequencing type, cohort location, linked PMID/DOI (CC-BY)."
-    join: "PMID / DOI → registry_study_papers → study."
-    licence: "CC-BY 4.0"
-    ingestion: candidate_medium
-    assessment: "Study-level condition and cohort-location annotations can support R4-like cohort statements (confidence ≤ 0.5) for studies whose papers BugSigDB curated."
-  - name: MGnify (EBI Metagenomics)
-    url: https://www.ebi.ac.uk/metagenomics/
-    reference: "Richardson et al. 2023 NAR"
-    scope: "analysed public metagenomes and amplicon studies, all biomes"
-    size: "hundreds of thousands of analysed samples"
-    offers: "Biome (GOLD) classification, ENA-linked sample metadata via the API, uniform analyses."
-    join: "ENA study / sample accession (native)."
-    licence: "EMBL-EBI terms (open)."
-    ingestion: candidate_medium
-    assessment: "Biome assignments cross-check the registry's body-site classification for the studies MGnify analysed."
-  - name: HMP / iHMP data portal
-    url: https://portal.hmpdacc.org/
-    reference: "Human Microbiome Project Consortium 2012; iHMP 2019"
-    scope: "HMP1 and iHMP cohorts (multi-site, longitudinal)"
-    size: "> 30,000 files across the HMP programmes"
-    offers: "Rich subject and visit metadata for the HMP cohorts (partly controlled access)."
-    join: "SRS / SRR accessions and BioProjects of the HMP studies."
-    licence: "Open for the public tier; controlled tier via dbGaP."
-    ingestion: candidate_medium
-    assessment: "Per-visit metadata for the HMP gut samples in the catalog (thousands of samples); only the public tier can be redistributed."
-  - name: EMBERS (LLM extraction of metadata from 26,435 gut-microbiome papers)
-    url: https://www.biorxiv.org/content/10.1101/2024.10.26.620145
-    reference: "bioRxiv 2024"
-    scope: "paper-derived sample metadata for human gut studies"
-    size: "26,435 papers"
-    offers: "Automated extraction and harmonisation of sample metadata from papers — the same idea as our R3/R4 routes."
-    join: "PMID → study; sample-level join depends on the released tables."
-    licence: "Check (preprint; data release status unknown)."
-    ingestion: candidate_low
-    assessment: "Methodologically closest to our approach; ingest only if a table with accessions and verbatim evidence is released."
-  - name: PRIME
-    url: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12807763/
-    reference: "2025"
-    scope: "human 16S amplicon studies with harmonised phenotypes"
-    size: "53,449 samples, 111 studies, 93 body sites"
-    offers: "Harmonised disease, demographics, body-site and protocol metadata for amplicon studies."
-    join: "SRA accessions."
-    licence: "Check."
-    ingestion: candidate_low
-    assessment: "Amplicon-only; useful as a vocabulary reference for phenotype categories."
-  - name: gutMEGA, gutMDisorder, Disbiome, HMDAD, GutMetaNet, HGMT
-    url: https://gutmega.omicsbio.info/
-    reference: "various (2020–2025)"
-    scope: "derived quantitative or literature-curated gut microbiome resources"
-    size: "—"
-    offers: "Taxon–condition associations and processed abundances rather than per-sample archive-linked metadata."
-    join: "PMID where given."
-    licence: "various"
-    ingestion: not_applicable
-    assessment: "No per-sample metadata to ingest; listed for completeness. HGMT (tumour cohorts, 18,630 stool samples) could supply cohort-level condition labels for immunotherapy studies."
+- name: DuckDB-WASM
+  url: https://duckdb.org/docs/api/wasm/overview
+  role: In-browser SQL over the parquet tables (sample and registry explorers); pinned 1.29.0 from jsDelivr.
+  terms: MIT.
+- name: DataTables and jQuery
+  url: https://datatables.net/
+  role: Sortable study, cohort and scope tables.
+  terms: MIT.
+- name: Apache Parquet / Arrow, pandas, DuckDB, Jinja2, Python-Markdown
+  url: https://github.com/OlmLab/catalog-pipeline
+  role: Pipeline and site generator (catalog-pipeline).
+  terms: Apache-2.0 / BSD / MIT (see the repository).
+- name: Anthropic Claude models
+  url: https://www.anthropic.com/
+  role: Model-assisted classification (registry), key triage (R1), value normalisation, cohort-statement extraction (R3, R4) and adjudication — always with a verbatim evidence quote; roles and model ids
+    in config/models.yaml and on every model-derived row.
+  terms: Anthropic usage policies.
+related_efforts:
+- name: curatedMetagenomicData 3 (cMD 3)
+  url: https://waldronlab.io/curatedMetagenomicData/
+  reference: Pasolli et al. 2017 Nat Methods; cMD 3 — Nature Communications 2025
+  scope: human shotgun metagenomes, all body sites; manually curated per-sample metadata
+  size: '> 22,000 samples, 94 studies, 42 countries (cMD 3)'
+  offers: Per-sample curated age, sex, BMI, country, disease, antibiotics and study condition; MetaPhlAn/HUMAnN profiles; NCBI accessions per sample.
+  join: sample_metadata NCBI_accession (SRR/ERR run ids, ';'-separated) → registry runs → BioSample; study_name → PMID / BioProject.
+  licence: 'Artistic-2.0 (repository DESCRIPTION); source: curatedMetagenomicDataCuration commit 8059a76 (2026-09-28).'
+  ingestion: used
+  assessment: Best per-sample external source for the core fields; already our gold standard for the infant fields. Ingest as an external curated table (route R2, evidence_source external.cmd3, evidence_locator
+    = cMD study_name/sample_id, confidence 0.8) with precedence after the study's own supplementary tables. Disease codes map to health_conditions.yaml by rule.
+  resource_id: cmd
+  ingested: 141,320 R2 evidence rows per-sample values for 24,547 samples in 118 catalog studies — country 24,413, health_condition 23,576, health_condition_detail 23,089, sex 21,691, antibiotic_exposure
+    17,708, age_at_collection_days 16,757, bmi 14,086. Joined on archive accessions; each row links to the source record.
+- name: GMrepo v3
+  url: https://gmrepo.humangut.info/
+  reference: Wu et al. 2020, Dai et al. 2022, Liu et al. 2026 NAR (v3)
+  scope: human gut, 16S and shotgun; phenotype-centred curation
+  size: 890 projects, 118,965 runs/samples (87,048 16S · 31,917 WGS), 302 diseases (v3)
+  offers: Per-run curated phenotype (MeSH disease), age, sex, BMI, country, health status; project-level markers; RESTful API and downloads.
+  join: run accession (SRR/ERR/DRR) and project id (PRJNA…) → registry runs / studies.
+  licence: No licence published; the site asks for citation of Dai et al. 2022 (GMrepo v2). Live API, 2026-09-28.
+  ingestion: used
+  assessment: The 31,917 WGS runs overlap the catalog directly; disease → MeSH gives a mapping target for health_conditions.yaml. Ingest phenotype/age/sex/BMI as external.gmrepo_v3 rows (route R2, confidence
+    0.75) once redistribution terms are confirmed; otherwise use only as a cross-check and link out per study.
+  resource_id: gmrepo
+  ingested: 140,605 R2 evidence rows per-sample values for 39,805 samples in 286 catalog studies — health_condition_detail 38,059, health_condition 37,165, country 35,361, sex 15,826, age_at_collection_days
+    11,600, bmi 2,521, antibiotic_exposure 73. Joined on archive accessions; each row links to the source record. Run-level phenotypes from the live v3 API (MeSH terms mapped to the health-condition vocabulary).
+- name: HumanMetagenomeDB
+  url: https://webapp.ufz.de/hmgdb/
+  reference: Kasmanas et al. 2021 NAR
+  scope: human metagenomes from SRA and MG-RAST, all body sites
+  size: 69,822 metagenomes, 203 standardised attributes (v1.0)
+  offers: Standardised host attributes (body site, age, sex, disease, country) from archive metadata, ontology terms.
+  join: SRA sample / run accession.
+  licence: No licence statement published (© HumanMetagenomeDB & TerrestrialMetagenomeDB team). Release 1.1 (June 2020), fetched 2026-09-28.
+  ingestion: used
+  assessment: Derived from the same archive attributes as our R1, so mostly a consistency check for the 2020 snapshot; its ontology mappings (body site, disease) can validate our vocabularies.
+  resource_id: hmgdb
+  ingested: 34,330 R2 evidence rows per-sample values for 19,876 samples in 165 catalog studies — country 17,135, sex 5,942, age_at_collection_days 4,485, health_condition 2,709, health_condition_detail
+    2,708, bmi 1,199, antibiotic_exposure 152. Joined on archive accessions; each row links to the source record.
+- name: MicrobeAtlas
+  url: https://microbeatlas.org/
+  reference: Cell 2026
+  scope: all microbiome samples in SRA (amplicon and metagenomic), all biomes
+  size: 2,390,937 samples, 52,950 studies
+  offers: Harmonised SSU-rRNA community profiles, extracted metadata keywords, environmental ontology and geographic coordinates per sample.
+  join: SRA sample / run accession.
+  licence: No licence statement found on the site; citation requested. Bulk metadata 2026-01-29.
+  ingestion: used
+  assessment: Geography and environment annotations could fill country for samples without a geo attribute (as an inferred route with low confidence) and cross-check body-site classes; the profiles are
+    rRNA-based and outside our scope.
+  resource_id: microbeatlas
+  ingested: 15,074 R2 evidence rows per-sample values for 15,074 samples in 151 catalog studies — country 15,074. Joined on archive accessions; each row links to the source record. Country derived from
+    the source's parsed coordinates (reverse geocoding, confidence 0.65); 17 studies with systematic disagreement against archive attributes were excluded.
+- name: Human Microbiome Compendium (MicroBioMap)
+  url: https://microbiomap.org/
+  reference: Abdill et al. 2023 bioRxiv
+  scope: human gut 16S amplicon samples from SRA
+  size: ≈ 168,000 samples
+  offers: Uniformly processed 16S profiles and a harmonised sample_metadata.tsv (CC-BY).
+  join: SRA run / sample accession.
+  licence: CC-BY
+  ingestion: candidate_low
+  assessment: Amplicon-only, so outside the shotgun scope; its harmonised metadata columns and the study list are a useful comparison for the registry's amplicon_misfiled calls.
+- name: mBodyMap
+  url: https://mbodymap.microbiome.cloud/
+  reference: Jin et al. 2022 NAR
+  scope: human microbes across body sites with health/disease associations; per-run curated phenotypes
+  size: tens of thousands of runs across 20+ body sites (see site)
+  offers: Per-run body site, phenotype and disease annotation; taxon–disease associations.
+  join: run accession, project id.
+  licence: No licence statement; the Help page asks for citation. Download files dated 2021-09-26.
+  ingestion: used
+  assessment: Body-site and disease annotations for non-gut sites make it a candidate when the oral, skin and vaginal scopes are curated.
+  resource_id: mbodymap
+  ingested: 6,404 R2 evidence rows per-sample values for 3,070 samples in 5 catalog studies — health_condition 3,070, sex 3,062, health_condition_detail 272. Joined on archive accessions; each row links
+    to the source record.
+- name: MicrobiomeDB (VEuPathDB)
+  url: https://microbiomedb.org/
+  reference: Oliveira et al. 2018 NAR
+  scope: curated microbiome studies (mostly 16S, some shotgun), human and other hosts
+  size: dozens of studies with rich sample metadata
+  offers: Deeply curated per-sample metadata with ontology terms, downloadable per study.
+  join: SRA accessions where deposited.
+  licence: 'VEuPathDB data-use statement: data provided freely for public use, cite the resource. Build 37 (May 2024).'
+  ingestion: used
+  assessment: Small overlap but very high metadata quality for the studies it covers; worth an accession-level join test.
+  resource_id: microbiomedb
+  ingested: 18,921 R2 evidence rows per-sample values for 5,113 samples in 10 catalog studies — age_at_collection_days 5,021, sex 4,501, country 3,405, antibiotic_exposure 2,528, health_condition 1,577,
+    health_condition_detail 1,455, bmi 434. Joined on archive accessions; each row links to the source record.
+- name: African Human Microbiome Portal (H3ABioNet)
+  url: https://microbiome.h3abionet.org/
+  reference: Database 2024
+  scope: African human microbiome samples, metadata only
+  size: 14,889 records, 70 BioProjects, 72 articles
+  offers: Harmonised, ontology-coded metadata (demographics, body site, disease) for African cohorts; filtered downloads.
+  join: BioProject / BioSample accession.
+  licence: 'No formal licence; portal disclaimer: research purposes only. Export whole_data.tar.gz 2024-05-30.'
+  ingestion: used
+  assessment: Improves population coverage where archive attributes are thin; join on BioProject then BioSample.
+  resource_id: ahmp
+  ingested: 6,209 R2 evidence rows per-sample values for 2,192 samples in 15 catalog studies — country 2,192, health_condition 1,992, health_condition_detail 1,992, age_at_collection_days 33. Joined on
+    archive accessions; each row links to the source record.
+- name: Meta2DB (LLNL)
+  url: https://gdo-meta2db.llnl.gov/
+  reference: Meta2DB 2024 bioRxiv / 2026
+  scope: curated shotgun metagenomic feature sets with labelled health-state metadata
+  size: see Zenodo record 17315984
+  offers: Labelled sample metadata (health state) for shotgun studies; Centrifuge-based profiles.
+  join: SRA run accession.
+  licence: CC-BY-4.0 (Zenodo record 17315984, 2025-10-13).
+  ingestion: used
+  assessment: Health-state labels for shotgun samples map to health_conditions.yaml; profiles out of scope.
+  resource_id: meta2db
+  ingested: 51,784 R2 evidence rows per-sample values for 11,338 samples in 78 catalog studies — health_condition 10,559, country 9,809, sex 7,969, age_at_collection_days 7,059, antibiotic_exposure 5,776,
+    bmi 5,406, health_condition_detail 5,206. Joined on archive accessions; each row links to the source record.
+- name: BugSigDB
+  url: https://bugsigdb.org/
+  reference: Geistlinger et al. 2023 Nat Biotechnol
+  scope: curated microbial signatures from published studies, all body sites
+  size: thousands of signatures from > 1,000 studies
+  offers: 'Study-level curation: condition, body site, sequencing type, cohort location, linked PMID/DOI (CC-BY).'
+  join: PMID / DOI → registry_study_papers → study.
+  licence: CC-BY-4.0 (BugSigDBExports full dump 2026-09-28).
+  ingestion: used
+  assessment: Study-level condition and cohort-location annotations can support R4-like cohort statements (confidence ≤ 0.5) for studies whose papers BugSigDB curated.
+  resource_id: bugsigdb
+  ingested: 103 R2 evidence rows study-level statements (scope study_all) for 0 samples in 62 catalog studies — country 55, antibiotic_exposure 36, health_condition 6, health_condition_detail 6. Joined
+    on archive accessions; each row links to the source record.
+- name: MGnify (EBI Metagenomics)
+  url: https://www.ebi.ac.uk/metagenomics/
+  reference: Richardson et al. 2023 NAR
+  scope: analysed public metagenomes and amplicon studies, all biomes
+  size: hundreds of thousands of analysed samples
+  offers: Biome (GOLD) classification, ENA-linked sample metadata via the API, uniform analyses.
+  join: ENA study / sample accession (native).
+  licence: EMBL-EBI terms (open).
+  ingestion: candidate_low
+  assessment: 'Not ingested: MGnify exposes biome classification, not host phenotype fields; a body-site cross-check remains possible.'
+- name: HMP / iHMP data portal
+  url: https://portal.hmpdacc.org/
+  reference: Human Microbiome Project Consortium 2012; iHMP 2019
+  scope: HMP1 and iHMP cohorts (multi-site, longitudinal)
+  size: '> 30,000 files across the HMP programmes'
+  offers: Rich subject and visit metadata for the HMP cohorts (partly controlled access).
+  join: SRS / SRR accessions and BioProjects of the HMP studies.
+  licence: IBDMDB hmp2_metadata_2018-08-20.csv (public) and the archived HMP DACC HMASM-690 table (Wayback 2024-04-15); portal API retired.
+  ingestion: used
+  assessment: Per-visit metadata for the HMP gut samples in the catalog (thousands of samples); only the public tier can be redistributed.
+  resource_id: hmp_ihmp
+  ingested: 14,152 R2 evidence rows per-sample values for 2,456 samples in 3 catalog studies — health_condition 2,456, health_condition_detail 2,456, sex 2,317, antibiotic_exposure 2,317, country 2,317,
+    age_at_collection_days 2,289. Joined on archive accessions; each row links to the source record. The HMP data portal API is retired; values come from the IBDMDB public metadata file and the archived
+    HMASM-690 table.
+- name: EMBERS (LLM extraction of metadata from 26,435 gut-microbiome papers)
+  url: https://www.biorxiv.org/content/10.1101/2024.10.26.620145
+  reference: bioRxiv 2024
+  scope: paper-derived sample metadata for human gut studies
+  size: 26,435 papers
+  offers: Automated extraction and harmonisation of sample metadata from papers — the same idea as our R3/R4 routes.
+  join: PMID → study; sample-level join depends on the released tables.
+  licence: Check (preprint; data release status unknown).
+  ingestion: candidate_low
+  assessment: Methodologically closest to our approach; ingest only if a table with accessions and verbatim evidence is released.
+- name: PRIME
+  url: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12807763/
+  reference: '2025'
+  scope: human 16S amplicon studies with harmonised phenotypes
+  size: 53,449 samples, 111 studies, 93 body sites
+  offers: Harmonised disease, demographics, body-site and protocol metadata for amplicon studies.
+  join: SRA accessions.
+  licence: Check.
+  ingestion: candidate_low
+  assessment: Amplicon-only; useful as a vocabulary reference for phenotype categories.
+- name: gutMEGA, gutMDisorder, Disbiome, HMDAD, GutMetaNet, HGMT
+  url: https://gutmega.omicsbio.info/
+  reference: various (2020–2025)
+  scope: derived quantitative or literature-curated gut microbiome resources
+  size: —
+  offers: Taxon–condition associations and processed abundances rather than per-sample archive-linked metadata.
+  join: PMID where given.
+  licence: various
+  ingestion: not_applicable
+  assessment: No per-sample metadata to ingest; listed for completeness. HGMT (tumour cohorts, 18,630 stool samples) could supply cohort-level condition labels for immunotherapy studies.

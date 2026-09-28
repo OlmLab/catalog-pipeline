@@ -743,8 +743,8 @@ def main():
             cov.append(dict(field=f, label=LABELS.get(f, f), n=int(has.sum()), frac=float(has.mean()) if n_total else 0.0, routes={r: int(rc.get(r, 0)) for r in ROUTES}, infant=f in infant_fields))
         group_rows = dg[dg.scope == 'study_all'].drop_duplicates(['field_name', 'value_normalized']).sort_values(['route', 'field_name'], kind='mergesort') if len(dg) else dg
         group_stmts = [clean(x) for x in group_rows[['field_name', 'value_normalized', 'route', 'confidence', 'evidence_source', 'evidence_locator', 'evidence_quote']].head(40).to_dict('records')]
-        ev_sample = dg[dg.scope != 'study_all'].drop_duplicates(['field_name', 'route']).sort_values(['field_name', 'route'], kind='mergesort').head(24) if len(dg) else dg
-        ev_rows = [clean(x) for x in ev_sample[['sample_key', 'field_name', 'value_normalized', 'route', 'confidence', 'evidence_source', 'evidence_quote']].to_dict('records')]
+        ev_sample = dg[dg.scope != 'study_all'].assign(_src=lambda d: d.evidence_source.astype(str).str.split('.').str[:2].str.join('.')).drop_duplicates(['field_name', 'route', '_src']).sort_values(['field_name', 'route'], kind='mergesort').head(40) if len(dg) else dg
+        ev_rows = [clean(x) for x in ev_sample[['sample_key', 'field_name', 'value_normalized', 'route', 'confidence', 'evidence_source', 'evidence_locator', 'evidence_quote']].to_dict('records')]
         ages = counts_sorted(g.age_category.fillna('unknown'))
         sites = counts_sorted(g.body_site_class.fillna('unknown'))
         conds = counts_sorted(g.health_condition.dropna())[:8]

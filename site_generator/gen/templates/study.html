@@ -54,14 +54,14 @@
 <h2>Cohort-wide statements applied to this study's samples</h2>
 <p class="small">Statements from the abstract / archive description (R4, confidence ≤ 0.5) or the paper's Methods / Results (R3, two independent replicates agreed, confidence ≤ 0.7). A statement is committed only when it is true of every sequenced subject; it fills samples that have no sample-level (R1/R2) value for the field.</p>
 <table class="tbl small"><thead><tr><th>field</th><th>value</th><th>route</th><th class="num">conf.</th><th>source</th><th>quote</th></tr></thead><tbody>
-{% for g in group_stmts %}<tr><td class="mono">{{ g.field_name }}</td><td>{{ g.value_normalized }}</td><td><span class="tag {{ g.route }}">{{ g.route }}</span></td><td class="num">{{ g.confidence|num2 }}</td><td class="small mono">{{ g.evidence_source }} {{ g.evidence_locator or '' }}</td><td class="small">“{{ g.evidence_quote }}”</td></tr>{% endfor %}
+{% for g in group_stmts %}<tr><td class="mono">{{ g.field_name }}</td><td>{{ g.value_normalized }}</td><td><span class="tag {{ g.route }}">{{ g.route }}</span></td><td class="num">{{ g.confidence|num2 }}</td><td class="small mono">{{ g.evidence_source }} {% if g.evidence_locator and g.evidence_locator.startswith('http') %}<a href="{{ g.evidence_locator }}">source</a>{% else %}{{ g.evidence_locator or '' }}{% endif %}</td><td class="small">“{{ g.evidence_quote }}”</td></tr>{% endfor %}
 </tbody></table>
 {% endif %}
 
 {% if ev_rows %}
 <h2>Evidence examples (one per field × route)</h2>
 <table class="tbl small"><thead><tr><th>sample</th><th>field</th><th>value</th><th>route</th><th class="num">conf.</th><th>source</th><th>quote</th></tr></thead><tbody>
-{% for e in ev_rows %}<tr><td class="mono small">{{ e.sample_key }}</td><td class="mono">{{ e.field_name }}</td><td>{{ e.value_normalized }}</td><td><span class="tag {{ e.route }}">{{ e.route }}</span></td><td class="num">{{ e.confidence|num2 }}</td><td class="small mono">{{ e.evidence_source }}</td><td class="small">“{{ e.evidence_quote }}”</td></tr>{% endfor %}
+{% for e in ev_rows %}<tr><td class="mono small">{{ e.sample_key }}</td><td class="mono">{{ e.field_name }}</td><td>{{ e.value_normalized }}</td><td><span class="tag {{ e.route }}">{{ e.route }}</span></td><td class="num">{{ e.confidence|num2 }}</td><td class="small mono">{{ e.evidence_source }}{% if e.evidence_locator and e.evidence_locator.startswith('http') %} <a href="{{ e.evidence_locator }}">source</a>{% endif %}</td><td class="small">“{{ e.evidence_quote }}”</td></tr>{% endfor %}
 </tbody></table>
 <p class="small">All {{ n_det|fmt }} evidence rows of this study: <a href="../data/studies/{{ s.study_accession }}_determinations.csv.gz" download>{{ s.study_accession }}_determinations.csv.gz</a> ({{ dl.det_size }}).</p>
 {% endif %}

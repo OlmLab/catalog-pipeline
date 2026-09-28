@@ -138,6 +138,15 @@ releases:
     site_tag: site-v1.10.1
     label: "Sources and acknowledgements page (config/sources.yaml): data sources and terms, software and models, funding, related metadata efforts with an ingestion assessment; no data change"
 
+  - release_id: R2026.11
+    package_version: '1.11.0'
+    previous_package_version: '1.10.1'
+    previous_release_id: R2026.10
+    notes_file: RELEASE_NOTES_R2026.11.md
+    data_tag: data-v1.11.0
+    site_tag: site-v1.11.0
+    label: "external curated resources ingested as R2 evidence (curatedMetagenomicData, GMrepo v3, HumanMetagenomeDB, MicrobeAtlas, mBodyMap, MicrobiomeDB, African Human Microbiome Portal, Meta2DB, BugSigDB, HMP/iHMP): 428,902 rows linking to the source records; Sources page acknowledges them"
+
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
   release_added: release_added        # str; release id (numbered) or historical package semver
