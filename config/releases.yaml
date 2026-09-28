@@ -129,6 +129,15 @@ releases:
     site_tag: site-v1.10.0
     label: "all-age site: every section (Studies, Cohorts, Samples, Fields, Authors, Scope, Contribute) built from the catalog tables (human gut, all ages); duplicate R3/R4 cohort rows in gut_sample_determinations fixed; README re-oriented"
 
+  - release_id: R2026.10
+    package_version: '1.10.1'
+    previous_package_version: '1.10.0'
+    previous_release_id: R2026.9
+    notes_file: RELEASE_NOTES_R2026.10.md
+    data_tag: data-v1.10.1
+    site_tag: site-v1.10.1
+    label: "Sources and acknowledgements page (config/sources.yaml): data sources and terms, software and models, funding, related metadata efforts with an ingestion assessment; no data change"
+
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
   release_added: release_added        # str; release id (numbered) or historical package semver

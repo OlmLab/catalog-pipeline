@@ -292,6 +292,7 @@ def main():
     ap.add_argument('--contribute-config', default=str(HERE.parent.parent / 'config' / 'contribute.yaml'))
     ap.add_argument('--scope-config', default=str(HERE.parent.parent / 'config' / 'scope.yaml'))
     ap.add_argument('--pack-config', default=str(HERE.parent.parent / 'config' / 'packs' / 'gut.yaml'))
+    ap.add_argument('--sources-config', default=str(HERE.parent.parent / 'config' / 'sources.yaml'))
     ap.add_argument('--allow-placeholder-base-url', action='store_true', help='test builds only')
     ap.add_argument('--build-date', default=None, help='overrides VERSION.json build_date (tests only)')
     ap.add_argument('--max-rows-html', type=int, default=2000)
@@ -1041,6 +1042,16 @@ def main():
     route_field = {f: {r: int(route_by_field.get((f, r), 0)) for r in ROUTES} for f in CORE_FIELDS}
     render('methods.html', 'methods.html', '', nav='methods', reg=reg_methods, stats=stats, depth_counts=depth_counts, route_field=route_field, docs=doc_list, pack=pack,
            crumbs=[dict(label='Home', href='index.html'), dict(label='Methods')])
+
+    # ---------- sources and acknowledgements (config/sources.yaml) ----------
+    src = yaml.safe_load(Path(a.sources_config).read_text(encoding='utf-8'))
+    for k in ('funding', 'data_sources', 'software', 'related_efforts'):
+        assert k in src, f'config/sources.yaml lacks {k}'
+    _ing = {'used', 'candidate_high', 'candidate_medium', 'candidate_low', 'not_applicable'}
+    assert all(r.get('ingestion') in _ing for r in src['related_efforts']), 'sources.yaml: ingestion outside the vocabulary'
+    order = ['used', 'candidate_high', 'candidate_medium', 'candidate_low', 'not_applicable']
+    src['related_efforts'] = sorted(src['related_efforts'], key=lambda r: (order.index(r['ingestion']), r['name'].lower()))
+    render('sources.html', 'sources.html', '', nav='sources', src=src, crumbs=[dict(label='Home', href='index.html'), dict(label='Sources')])
 
     # ---------- home, search index, sitemap ----------
     cov_rows = []

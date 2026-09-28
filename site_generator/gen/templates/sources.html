@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Sources and acknowledgements — {{ site.title }}{% endblock %}
+{% block desc %}Where the data comes from, what it is built with, who funds it, and the related human-microbiome metadata efforts we could ingest.{% endblock %}
+{% block content %}
+<h1>Sources and acknowledgements</h1>
+<p class="lead">Everything on this site is derived from public archives and open literature; this page names those sources and their terms, the software and models the pipeline uses, the funding, and the other projects that curate human-microbiome metadata — with an honest assessment of what each could add to the catalog and how it would join. Last reviewed {{ src.updated }}.</p>
+{% for f in src.funding %}<p class="note">{{ f.text }}</p>{% endfor %}
+
+<h2 id="data">Data sources</h2>
+<table class="tbl small"><thead><tr><th>source</th><th>what we take from it</th><th>terms</th></tr></thead><tbody>
+{% for s in src.data_sources %}<tr><td><a href="{{ s.url }}">{{ s.name }}</a></td><td>{{ s.role }}</td><td class="small">{{ s.terms }}</td></tr>{% endfor %}
+</tbody></table>
+
+<h2 id="software">Software and models</h2>
+<table class="tbl small"><thead><tr><th>component</th><th>role</th><th>licence</th></tr></thead><tbody>
+{% for s in src.software %}<tr><td><a href="{{ s.url }}">{{ s.name }}</a></td><td>{{ s.role }}</td><td class="small">{{ s.terms }}</td></tr>{% endfor %}
+</tbody></table>
+
+<h2 id="related">Related efforts and what we could ingest</h2>
+<p class="small">Resources that curate or harmonise human microbiome metadata. <b>Ingestion</b> is our assessment: <span class="tag included">used</span> already part of the pipeline · <span class="tag">candidate_high</span> per-sample curated fields that join on archive accessions · <span class="tag">candidate_medium</span> partial overlap, cross-check or future scopes · <span class="tag">candidate_low</span> out of scope (amplicon) or not yet released · <span class="tag">not_applicable</span> derived data without per-sample metadata. Any ingested value would enter as its own evidence row (route R2, <span class="mono">evidence_source = external.&lt;resource&gt;</span>, the resource's identifier as locator) after the study's own tables in precedence, and only under terms that allow redistribution. Know one we missed? <a href="{{ site.issue_repo }}?template=catalog-finding.yml&labels=finding&title=%5Bsources%5D%20missing%20resource">Tell us</a>.</p>
+{% for r in src.related_efforts %}
+<div class="card" style="margin:.6rem 0" id="{{ r.name|replace(' ', '_')|replace('(', '')|replace(')', '') }}">
+<b><a href="{{ r.url }}">{{ r.name }}</a></b> <span class="tag {% if r.ingestion == 'used' %}included{% endif %}">{{ r.ingestion }}</span> <span class="small">{{ r.reference }}</span><br>
+<span class="small"><b>Scope:</b> {{ r.scope }} · <b>Size:</b> {{ r.size }} · <b>Licence:</b> {{ r.licence }}</span><br>
+<span class="small"><b>Offers:</b> {{ r.offers }}</span><br>
+<span class="small"><b>Join:</b> {{ r.join }}</span><br>
+<span class="small"><b>Assessment:</b> {{ r.assessment }}</span>
+</div>
+{% endfor %}
+
+<h2 id="cite">Citing and licence</h2>
+{% include "_cite.html" %}
+<p class="small">Curated tables (<span class="mono">registry_*</span>, <span class="mono">gut_*</span> and the infant extension) are released under CC-BY-4.0; archive metadata remains under INSDC terms; community profiles from Sandpiper (CC-BY). When you use values from this catalog, please also cite the primary studies — every study page lists its papers.</p>
+{% endblock %}

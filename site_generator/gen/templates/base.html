@@ -30,6 +30,7 @@
 <a href="{{ root }}downloads.html" {% if nav=='downloads' %}class="active"{% endif %}>Downloads</a>
 <a href="{{ root }}releases/index.html" {% if nav=='releases' %}class="active"{% endif %}>Releases</a>
 <a href="{{ root }}contribute/index.html" {% if nav=='contribute' %}class="active"{% endif %}>Contribute</a>
+<a href="{{ root }}sources.html" {% if nav=='sources' %}class="active"{% endif %}>Sources</a>
 </div></nav>
 <main>
 {% if crumbs %}<div class="crumbs">{% for c in crumbs %}{% if not loop.first %} › {% endif %}{% if c.href %}<a href="{{ c.href }}">{{ c.label }}</a>{% else %}{{ c.label }}{% endif %}{% endfor %}</div>{% endif %}
@@ -37,7 +38,7 @@
 </main>
 <footer>
 <div id="release-line"><b>{{ site.title }}</b> — release <a href="{{ root }}releases/index.html#rel-{{ site.release_id }}"><span class="mono">{{ site.release_id }}</span></a> · package <span class="mono">{{ site.version }}</span> · build <span class="mono">{{ site.sha8 }}</span> · built {{ site.build_date }} · data tag <span class="mono">{{ site.release_tag }}</span>{% if site.doi %} · DOI <a href="https://doi.org/{{ site.doi }}">{{ site.doi }}</a>{% else %} · DOI pending Zenodo integration{% endif %} (<a href="{{ root }}data/VERSION.json">VERSION.json</a>, <a href="{{ root }}changes/{{ site.release_id }}.html">what changed</a>, <a href="{{ root }}docs/CHANGELOG.html">changelog</a>). Curated tables (registry_*, gut_* and the infant extension) are released under <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a>; archive metadata remains under INSDC terms; community profiles from <a href="https://sandpiper.qut.edu.au/">Sandpiper</a> (Woodcroft et al. 2025, CC-BY).</div>
-<div>How to cite: <i>{{ site.citation }}</i></div>
+<div>How to cite: <i>{{ site.citation }}</i> · <a href="{{ root }}sources.html">Sources and acknowledgements</a></div>
 <div>Caveats: every value carries a route (R1 archive attribute, R2 supplementary table, R3 paper text, R4 abstract/description), a scope and a confidence tier (not a calibrated probability); R3/R4 values are cohort-wide statements applied to the study's samples — see <a href="{{ root }}fields/index.html">Fields</a> and <a href="{{ root }}methods.html#limitations">Methods › Limitations</a>. Built with an LLM-assisted pipeline; treat individual values as evidence-linked claims, not ground truth. Found an error? Every study, cohort and sample has a <b>Flag an issue</b> button that opens a prefilled GitHub issue.{% if site.has_contribute %} Know a study's missing metadata? See <a href="{{ root }}{{ site.contribute_page }}">Contribute</a>.{% endif %}</div>
 </footer>
 {% if use_datatables %}
