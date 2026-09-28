@@ -5,7 +5,7 @@ Sources, in precedence order per (sample, field):
   1. R1 archive attributes: registry_biosamples (normalised age / sex / country) + gut_r1_determinations (bmi, antibiotics, subject,
      timepoint, health_condition_detail …)
   2. R2 supplementary tables (gut_r2_determinations_shard_*.parquet)
-  3. R3 (none in v1)
+  3. R3 (full-text cohort statements, study_all; from 1.9.0)
   4. R4 abstract / study-description statements (gut_r4_determinations_shard_*.parquet, scope study_all) expanded to the study's samples
      that have no sample-level value for the field (confidence ≤ 0.5, evidence_limited_to_abstract = 1)
 health_condition codes come from gut_health_condition_map (key, value → code) applied to health_condition_detail rows; antibiotic codes
@@ -176,7 +176,7 @@ def build(a):
     samples["in_infant_catalog"] = samples.study_accession.isin(infant_acc)
 
     # ---- determinations
-    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(a.r2_glob), load_any(a.r4_glob)]
+    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(a.r2_glob), load_any(a.r3_glob), load_any(a.r4_glob)]
     det0 = pd.read_parquet(os.path.join(a.package, "sample_determinations.parquet"))
     det0 = det0[det0.study_accession.isin(infant_acc) & det0.field_name.isin(PACK_FIELDS + INFANT_ONLY)]
     if "release_retired" in det0.columns:
@@ -221,8 +221,10 @@ def build(a):
     st_stage = reg.set_index("study_accession").life_stage_primary if "life_stage_primary" in reg.columns else pd.Series(dtype=str)
     cat_age = w.age_at_collection_days.map(lambda d: age_category(d, pack))
     cat_stage = w.sample_life_stage.map(STAGE_TO_CAT)
-    r4_stage = det_study[det_study.field_name == "life_stage"].sort_values("confidence", ascending=False).drop_duplicates("study_accession").set_index("study_accession").value_normalized
+    ls_rows = det_study[det_study.field_name == "life_stage"].assign(_rank=lambda d: d.route.map(ROUTE_RANK).fillna(9)).sort_values(["_rank", "confidence"], ascending=[True, False]).drop_duplicates("study_accession").set_index("study_accession")
+    r4_stage = ls_rows.value_normalized  # best group-level life stage per study (R3 full text beats R4 abstract)
     cat_r4 = w.study_accession.map(r4_stage).map(STAGE_TO_CAT)
+    grp_basis = w.study_accession.map(ls_rows.route.map({"R3": "r3_fulltext_life_stage"}).fillna("r4_abstract_life_stage"))
     cat_study = w.study_accession.map(st_stage).map(STAGE_TO_CAT)
     scope0 = wide0.set_index("sample_key").age_scope
     cat_inf = pd.Series(w.index.map(scope0), index=w.index).map(lambda v: "infant" if v in ("infant_evidenced", "study_all_infant") else ("adult" if v == "adult_flagged" else None))
@@ -233,7 +235,7 @@ def build(a):
     cat_registry = cat_age.fillna(cat_stage).fillna(cat_r4).fillna(cat_study)
     w["age_category"] = cat_curated.where(is_inf, cat_registry).fillna("unknown")
     basis = pd.Series("unknown", index=w.index)
-    basis = basis.mask(~is_inf & cat_study.notna(), "study_life_stage").mask(~is_inf & cat_r4.notna(), "r4_abstract_life_stage").mask(~is_inf & cat_stage.notna(), "sample_life_stage").mask(is_inf & cat_inf.notna(), "infant_catalog_age_scope").mask(cat_age.notna(), "age_at_collection_days")
+    basis = basis.mask(~is_inf & cat_study.notna(), "study_life_stage").mask(~is_inf & cat_r4.notna(), grp_basis).mask(~is_inf & cat_stage.notna(), "sample_life_stage").mask(is_inf & cat_inf.notna(), "infant_catalog_age_scope").mask(cat_age.notna(), "age_at_collection_days")
     w["age_category_basis"] = basis
     w["body_site_class"] = w.body_site_code.map(lambda c: "primary" if c == "gut_stool" else ("unknown" if (c is None or pd.isna(c) or c == "unknown_site") else "excluded"))
     w["body_site_basis"] = w.body_site_code.map(lambda c: "sample_attribute" if isinstance(c, str) and c not in ("unknown_site",) else "none")
@@ -298,7 +300,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--studies", required=True, help="gut study list (registry columns + in_infant_catalog)")
     ap.add_argument("--registry-studies"), ap.add_argument("--biosamples", required=True), ap.add_argument("--package", required=True, help="previous package dir (infant curated tables)")
-    ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"), ap.add_argument("--r2-glob"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
+    ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"), ap.add_argument("--r2-glob"), ap.add_argument("--r3-glob", help="R3 full-text study_all determinations (glob)"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
     ap.add_argument("--out", required=True), ap.add_argument("--summary"), ap.add_argument("--release-id", default="R2026.7"), ap.add_argument("--package-version", default="1.8.0")
     ap.add_argument("--previous-dir", help="previous package dir: gut_* tables there provide release_added / retirements")
     build(ap.parse_args(argv))
