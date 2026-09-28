@@ -111,6 +111,15 @@ releases:
     site_tag: site-v1.8.0
     label: "curated scope gut_all — every human gut shotgun metagenome, all ages: gut_sample_determinations / gut_sample_metadata_wide / gut_studies (R1 + R2 + R4 for the non-infant studies; the infant catalog is the infant_scope filter); site renamed Microbiome Repo"
 
+  - release_id: R2026.8
+    package_version: '1.9.0'
+    previous_package_version: '1.8.0'
+    previous_release_id: R2026.7
+    notes_file: RELEASE_NOTES_R2026.8.md
+    data_tag: data-v1.9.0
+    site_tag: site-v1.9.0
+    label: "gut_all route R3 — cohort-wide statements from open-access full text (Methods / Results) for the non-infant gut studies: two-replicate Sonnet-class extraction, verbatim-quote check, confidence ≤ 0.7; precedence R1 > R2 > R3 > R4"
+
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
   release_added: release_added        # str; release id (numbered) or historical package semver
