@@ -12,7 +12,7 @@
 </div>
 <h2>Membership rule</h2>
 <table class="tbl compact"><tbody>
-{% if c.listed %}<tr><td>Studies</td><td class="mono small">{% for s in c.listed %}<a href="../studies/{{ s }}.html">{{ s }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>{% endif %}
+{% if c.listed %}<tr><td>Studies</td><td class="mono small">{% for s in c.listed_links %}{% if s.linked %}<a href="../studies/{{ s.acc }}.html">{{ s.acc }}</a>{% else %}{{ s.acc }} <span class="small">(not in this release)</span>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>{% endif %}
 {% for k, v in c.filters.items() %}<tr><td class="mono">{{ k }}</td><td class="mono small">{% if v is mapping %}{% for kk, vv in v.items() %}{{ kk }} {{ vv }} {% endfor %}{% else %}{{ v|join(' | ') }}{% endif %}</td></tr>{% endfor %}
 {% if not c.listed and not c.filters %}<tr><td colspan="2" class="small">No rule recorded.</td></tr>{% endif %}
 </tbody></table>

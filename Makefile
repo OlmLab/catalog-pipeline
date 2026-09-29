@@ -277,8 +277,9 @@ GUT_STUDIES  ?= $(GUT_DIR)/gut_studies.parquet
 GUT_R1       ?= $(GUT_DIR)/gut_r1_determinations.parquet
 GUT_R1_EXTRA ?= $(GUT_DIR)/gut_condition_abx_determinations.parquet
 GUT_R2_GLOB  ?= $(GUT_DIR)/r2/gut_r2_determinations_shard_*.parquet
-GUT_R3_GLOB  ?= $(GUT_DIR)/r3*/gut_r3*_determinations_merged.parquet   # r3/ (R2026.8 cohort statements) + r3b/ (R2026.12 lifestyle / location / collection_date)
-GUT_R4_GLOB  ?= $(GUT_DIR)/r4*/gut_r4*_determinations_shard_*.parquet   # r4/ (R2026.7) + r4b/shards (R2026.12)
+# r3/ (R2026.8 cohort statements) + r3b/ (R2026.12 lifestyle / location / collection_date); r4/ (R2026.7) + r4b/shards (R2026.12). No trailing comments: Make keeps the blanks.
+GUT_R3_GLOB  ?= $(GUT_DIR)/r3*/gut_r3*_determinations_merged.parquet
+GUT_R4_GLOB  ?= $(GUT_DIR)/r4*/gut_r4*_determinations_shard_*.parquet
 GUT_COND_MAP ?= $(GUT_DIR)/gut_health_condition_map.parquet
 GUT_ABX_MAP  ?= $(GUT_DIR)/gut_antibiotic_map.parquet
 # 1.12.0 (R2026.12): route R1 for the new pack fields (collection_date, location_*, latitude/longitude, lifestyle) — output of gut-newfields-r1
@@ -286,8 +287,10 @@ GUT_R1_NEWFIELDS ?= $(GUT_DIR)/gut_r1_newfields_determinations.parquet
 # harvested BioSample attribute rows of the catalog studies (artifact; bootstrap materialises it) — input of gut-newfields-r1
 GUT_ATTRIBUTES   ?= $(GUT_DIR)/gut_biosample_attributes.parquet
 GUT_OUT      ?= $(BUILD)/gut
-GUT_SANDPIPER_DIR ?= $(GUT_DIR)/sandpiper   # whole-catalog Sandpiper tables (leaf outputs; filter_gut.py + build_gut_tables.py regenerate them from the bulk snapshot)
-ATLAS_DATA   ?= $(GUT_DIR)/atlas          # precomputed Atlas payload (taxa.json, matrix_*.bin, observations.json, obs/) — pages/atlas.py precompute + scripts/atlas_observations.py
+# whole-catalog Sandpiper tables (leaf outputs; filter_gut.py + build_gut_tables.py regenerate them from the bulk snapshot)
+GUT_SANDPIPER_DIR ?= $(GUT_DIR)/sandpiper
+# precomputed Atlas payload (taxa.json, matrix_*.bin, observations.json, obs/) — pages/atlas.py precompute + scripts/atlas_observations.py
+ATLAS_DATA   ?= $(GUT_DIR)/atlas
 
 gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations / gut_runs from registry_biosamples + registry_runs + R1/R2/R3/R4 leaf outputs + the infant tables
 	mkdir -p $(GUT_OUT) $(BUILD)/gut

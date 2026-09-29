@@ -704,6 +704,10 @@ def main():
     for name, title in PUBLIC_REPORT_DOCS:
         if rep and (rep / name).exists() and name not in [d[0] for d in docs]:
             docs.append((name, (rep / name).read_text(encoding='utf-8'), title))
+    for name, title in [('COLLECTIONS.md', 'Collections: how membership rules work and how to propose one'), ('GUT_SANDPIPER_REPORT.md', 'Sandpiper profiles for the whole catalog (report)')]:
+        cand = [q for q in ((pkg / name), (HERE.parent.parent / 'docs' / name)) if q.exists()]
+        if cand and name not in [d[0] for d in docs]:
+            docs.append((name, cand[0].read_text(encoding='utf-8'), title))
     doc_list = []
     for name, text, title in docs:
         (out / 'docs' / name).write_text(text, encoding='utf-8')

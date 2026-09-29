@@ -80,13 +80,15 @@ def build(cfg_path, render, wide: pd.DataFrame, studies: pd.DataFrame, out_dir, 
             rows.append(dict(acc=acc, n=int(n), title=(r.study_title if r is not None else '') or '', first_public=str(r.first_public_min)[:4] if r is not None and pd.notna(r.first_public_min) else ''))
         listed = [str(s) for s in (c.get('studies') or [])]
         missing = [s for s in listed if s not in set(per_study.index)]
+        in_catalog = set(st.index)
+        listed_links = [dict(acc=s, linked=s in in_catalog) for s in listed]
         def facet(col, labels=None, top=6):
             if col not in sub.columns or not len(sub):
                 return []
             vc = sub[col].value_counts().head(top)
             return [dict(v=str(k), label=(labels or {}).get(str(k), ''), n=int(v)) for k, v in vc.items()]
         d = dict(id=c['id'], title=c.get('title') or c['id'], kind=c.get('kind') or 'other', kind_label=KIND_LABELS.get(c.get('kind') or 'other', 'Other'),
-                 blurb=c.get('blurb') or '', notes=c.get('notes') or '', refs=c.get('references') or [], filters=c.get('filters') or {}, listed=listed,
+                 blurb=c.get('blurb') or '', notes=c.get('notes') or '', refs=c.get('references') or [], filters=c.get('filters') or {}, listed=listed, listed_links=listed_links,
                  n_samples=int(m.sum()), n_studies=int(per_study.shape[0]), rows=rows, missing=missing, build_notes=notes,
                  age=facet('age_category'), country=facet('country'), condition=facet('health_condition', hc_labels), lifestyle=facet('lifestyle', ls_labels),
                  explorer=f"../samples/index.html?collection={c['id']}")

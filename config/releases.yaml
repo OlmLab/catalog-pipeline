@@ -147,6 +147,15 @@ releases:
     site_tag: site-v1.11.0
     label: "external curated resources ingested as R2 evidence (curatedMetagenomicData, GMrepo v3, HumanMetagenomeDB, MicrobeAtlas, mBodyMap, MicrobiomeDB, African Human Microbiome Portal, Meta2DB, BugSigDB, HMP/iHMP): 428,902 rows linking to the source records; Sources page acknowledges them"
 
+  - release_id: R2026.12
+    package_version: '1.12.0'
+    previous_package_version: '1.11.0'
+    previous_release_id: R2026.11
+    notes_file: RELEASE_NOTES_R2026.12.md
+    data_tag: data-v1.12.0
+    site_tag: site-v1.12.0
+    label: "owner site review: new key fields collection_date, detailed_location (site / locality / region), latitude / longitude, lifestyle (routes R1 archive attributes, R3b full text, R4b abstracts); core fields = age, sex, country, health condition, subject; gut_runs table + study sequencing summaries; Sandpiper community profiles for the whole catalog (339,626 samples) with a genus-level PCA; site restructure (About, Collections, Atlas with taxon maps / PCA / observations, merged Downloads & releases, simple issue form)"
+
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
   release_added: release_added        # str; release id (numbered) or historical package semver
