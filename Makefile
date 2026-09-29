@@ -205,6 +205,7 @@ release:         ## stage 5 (R2026.n) — unpack → findings → assemble → b
 	@if [ -f "$(REGISTRY_UNIVERSE)" ] && [ -f "$(REGISTRY_ATTRIBUTES)" ] && [ -f "$(REGISTRY_NORM)" ]; then $(MAKE) registry-biosamples REGISTRY_OUT=$(PKG_OUT); else echo "no registry sample tier inputs (REGISTRY_ATTRIBUTES / REGISTRY_NORM) — registry_biosamples not built"; fi
 	@if [ -f "$(GUT_STUDIES)" ] && [ -f "$(PKG_OUT)/registry_biosamples.parquet" ]; then $(MAKE) gut-build GUT_OUT=$(PKG_OUT); else echo "no gut scope inputs ($(GUT_STUDIES)) — gut_* tables not built"; fi
 	@if [ -f "$(REGISTRY_UNIVERSE)" ] && [ -n "$(wildcard $(REGISTRY_EXTRA))" ]; then $(PY) -m catalog.registry.add_registry_tables --package $(PKG_OUT) --release-id $(RELEASE_ID) --package-version $(VERSION) --previous-dir $(PKG_SRC) $(wildcard $(REGISTRY_EXTRA)); else echo "no extra registry tables ($(REGISTRY_EXTRA))"; fi
+	@if [ -d "$(GUT_SANDPIPER_DIR)" ]; then cp $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_summary.parquet $(GUT_SANDPIPER_DIR)/gut_sandpiper_pca_scores.parquet $(GUT_SANDPIPER_DIR)/gut_sandpiper_pca_loadings.parquet $(GUT_SANDPIPER_DIR)/gut_sandpiper_pca_variance.csv $(GUT_SANDPIPER_DIR)/gut_sandpiper_study_coverage.csv $(PKG_OUT)/ && cp $(GUT_SANDPIPER_DIR)/GUT_SANDPIPER_REPORT.md $(PKG_OUT)/; else echo "no gut Sandpiper tables ($(GUT_SANDPIPER_DIR))"; fi
 	$(MAKE) package-docs
 	# VERSION.json must carry the NEW version before the notes are generated (release_notes reads it for the header);
 	# the second make_version run re-hashes the package with RELEASE_NOTES included, the third checks (R1-11)
@@ -285,6 +286,7 @@ GUT_R1_NEWFIELDS ?= $(GUT_DIR)/gut_r1_newfields_determinations.parquet
 # harvested BioSample attribute rows of the catalog studies (artifact; bootstrap materialises it) — input of gut-newfields-r1
 GUT_ATTRIBUTES   ?= $(GUT_DIR)/gut_biosample_attributes.parquet
 GUT_OUT      ?= $(BUILD)/gut
+GUT_SANDPIPER_DIR ?= $(GUT_DIR)/sandpiper   # whole-catalog Sandpiper tables (leaf outputs; filter_gut.py + build_gut_tables.py regenerate them from the bulk snapshot)
 ATLAS_DATA   ?= $(GUT_DIR)/atlas          # precomputed Atlas payload (taxa.json, matrix_*.bin, observations.json, obs/) — pages/atlas.py precompute + scripts/atlas_observations.py
 
 gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations / gut_runs from registry_biosamples + registry_runs + R1/R2/R3/R4 leaf outputs + the infant tables

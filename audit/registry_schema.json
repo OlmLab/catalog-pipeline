@@ -1952,6 +1952,526 @@
      "description": "gut_sample_metadata_wide.sample_key of the run's sample (run accession for run-unit samples; null when the BioSample is not a catalog sample, e.g. pooled runs)"
     }
    ]
+  },
+  "gut_sandpiper_sample_summary.parquet": {
+   "key": [
+    "sample_key"
+   ],
+   "one_row_per": "catalog sample with >= 1 run in the Sandpiper 2.0.0 snapshot (339,626 samples / 2,084 studies) — added R2026.12",
+   "bitemporal": "none: derived from the Sandpiper 2.0.0 snapshot (Zenodo 20419175, GTDB R232), rebuilt in full each release (data/inputs/gut/sandpiper/build_gut_tables.py)",
+   "columns": [
+    {
+     "name": "sample_key",
+     "type": "str",
+     "description": "catalog sample key (gut_sample_metadata_wide)"
+    },
+    {
+     "name": "study_accession",
+     "type": "str",
+     "description": "BioProject"
+    },
+    {
+     "name": "n_runs_profiled",
+     "type": "int64",
+     "description": "runs of the sample with a Sandpiper profile"
+    },
+    {
+     "name": "n_runs_total",
+     "type": "int64",
+     "description": "runs of the sample in gut_runs"
+    },
+    {
+     "name": "qc_partial",
+     "type": "bool",
+     "description": "1 = some runs of the sample are unprofiled"
+    },
+    {
+     "name": "root_coverage_sum",
+     "type": "float64",
+     "description": "summed SingleM root coverage over the profiled runs (depth proxy)"
+    },
+    {
+     "name": "richness_genus",
+     "type": "int64",
+     "description": "genera with relative abundance >= 0.001"
+    },
+    {
+     "name": "shannon_genus",
+     "type": "float64",
+     "description": "Shannon index over genus relative abundances (natural log)"
+    },
+    {
+     "name": "shannon_genus_assigned",
+     "type": "float64",
+     "description": "Shannon over genus-assigned coverage only (unassigned remainder excluded)"
+    },
+    {
+     "name": "top_genus",
+     "type": "str",
+     "description": "most abundant GTDB genus"
+    },
+    {
+     "name": "top_genus_relabund",
+     "type": "float64",
+     "description": "its relative abundance (0-1)"
+    },
+    {
+     "name": "unassigned_genus_relabund",
+     "type": "float64",
+     "description": "share of root coverage not resolved to a genus"
+    },
+    {
+     "name": "unassigned_species_relabund",
+     "type": "float64",
+     "description": "share of root coverage not resolved to a species"
+    },
+    {
+     "name": "spf",
+     "type": "float64",
+     "description": "Sandpiper single-copy-marker profile fraction (per_acc_summary)"
+    },
+    {
+     "name": "known_species_fraction",
+     "type": "float64",
+     "description": "fraction of coverage in known species (per_acc_summary)"
+    },
+    {
+     "name": "qc_flags",
+     "type": "str",
+     "description": "';'-joined QC flags (qc_low_depth, qc_low_complexity, qc_non_metagenome, qc_partial, ...) — flagged, never dropped"
+    },
+    {
+     "name": "qc_any_flag",
+     "type": "bool",
+     "description": "1 = at least one QC flag set"
+    },
+    {
+     "name": "qc_low_depth",
+     "type": "bool",
+     "description": "root coverage below the depth threshold"
+    },
+    {
+     "name": "qc_low_complexity",
+     "type": "bool",
+     "description": "Sandpiper low_complexity flag"
+    },
+    {
+     "name": "qc_readfraction_warning",
+     "type": "bool",
+     "description": "Sandpiper read-fraction warning"
+    },
+    {
+     "name": "qc_non_metagenome",
+     "type": "bool",
+     "description": "organism prediction not a metagenome (loose rule)"
+    },
+    {
+     "name": "qc_non_metagenome_strict",
+     "type": "bool",
+     "description": "organism prediction not a metagenome (strict rule)"
+    },
+    {
+     "name": "qc_synthetic",
+     "type": "bool",
+     "description": "Sandpiper synthetic-sample flag"
+    },
+    {
+     "name": "qc_rna",
+     "type": "bool",
+     "description": "RNA / non-DNA library flag"
+    },
+    {
+     "name": "qc_predicted_ecological",
+     "type": "bool",
+     "description": "Sandpiper host_or_not prediction = ecological"
+    },
+    {
+     "name": "qc_no_genus_assigned",
+     "type": "bool",
+     "description": "no coverage resolved to any genus"
+    },
+    {
+     "name": "organism_labels",
+     "type": "str",
+     "description": "';'-joined Sandpiper organism labels of the runs"
+    },
+    {
+     "name": "runs_profiled",
+     "type": "str",
+     "description": "';'-joined profiled run accessions"
+    },
+    {
+     "name": "sandpiper_url",
+     "type": "str",
+     "description": "Sandpiper page of the first profiled run"
+    },
+    {
+     "name": "age_category",
+     "type": "str",
+     "description": "catalog age category (copied from the wide table)"
+    },
+    {
+     "name": "body_site_class",
+     "type": "str",
+     "description": "catalog body-site class"
+    },
+    {
+     "name": "infant_scope",
+     "type": "bool",
+     "description": "infant-extension filter flag"
+    },
+    {
+     "name": "taxonomy_db",
+     "type": "str",
+     "description": "taxonomy database (GTDB)"
+    },
+    {
+     "name": "taxonomy_version",
+     "type": "str",
+     "description": "GTDB release (R232)"
+    },
+    {
+     "name": "sandpiper_version",
+     "type": "str",
+     "description": "Sandpiper version (2.0.0)"
+    },
+    {
+     "name": "zenodo_record",
+     "type": "str",
+     "description": "Zenodo record of the bulk snapshot (20419175)"
+    }
+   ]
+  },
+  "gut_sandpiper_pca_scores.parquet": {
+   "key": [
+    "sample_key"
+   ],
+   "one_row_per": "scored sample of the genus-level CLR-PCA (335,956 samples x 383 genera; root coverage >= 2) — added R2026.12",
+   "bitemporal": "none: derived from the Sandpiper 2.0.0 snapshot (Zenodo 20419175, GTDB R232), rebuilt in full each release (data/inputs/gut/sandpiper/build_gut_tables.py)",
+   "columns": [
+    {
+     "name": "sample_key",
+     "type": "str",
+     "description": "catalog sample key"
+    },
+    {
+     "name": "pc1",
+     "type": "float32",
+     "description": "PCA score, component 1 (16.3 % variance)"
+    },
+    {
+     "name": "pc2",
+     "type": "float32",
+     "description": "component 2 (6.5 %)"
+    },
+    {
+     "name": "pc3",
+     "type": "float32",
+     "description": "component 3 (3.8 %)"
+    },
+    {
+     "name": "pc4",
+     "type": "float32",
+     "description": "component 4 (3.2 %)"
+    },
+    {
+     "name": "pc5",
+     "type": "float32",
+     "description": "component 5 (2.3 %)"
+    },
+    {
+     "name": "study_accession",
+     "type": "str",
+     "description": "BioProject"
+    },
+    {
+     "name": "root_coverage_sum",
+     "type": "float64",
+     "description": "summed root coverage (depth proxy)"
+    },
+    {
+     "name": "taxonomy_db",
+     "type": "str",
+     "description": "taxonomy database (GTDB)"
+    },
+    {
+     "name": "taxonomy_version",
+     "type": "str",
+     "description": "GTDB release (R232)"
+    },
+    {
+     "name": "sandpiper_version",
+     "type": "str",
+     "description": "Sandpiper version (2.0.0)"
+    },
+    {
+     "name": "zenodo_record",
+     "type": "str",
+     "description": "Zenodo record of the bulk snapshot (20419175)"
+    },
+    {
+     "name": "pca_method",
+     "type": "str",
+     "description": "CLR on 383 genera (prevalence >= 1 %), multiplicative pseudocount, randomized SVD"
+    }
+   ]
+  },
+  "gut_sandpiper_pca_loadings.parquet": {
+   "key": [
+    "genus"
+   ],
+   "one_row_per": "genus x component loading of the CLR-PCA — added R2026.12",
+   "bitemporal": "none: derived from the Sandpiper 2.0.0 snapshot (Zenodo 20419175, GTDB R232), rebuilt in full each release (data/inputs/gut/sandpiper/build_gut_tables.py)",
+   "columns": [
+    {
+     "name": "genus",
+     "type": "str",
+     "description": "GTDB R232 genus"
+    },
+    {
+     "name": "pc1",
+     "type": "float64",
+     "description": "loading"
+    },
+    {
+     "name": "pc2",
+     "type": "float64",
+     "description": "loading"
+    },
+    {
+     "name": "pc3",
+     "type": "float64",
+     "description": "loading"
+    },
+    {
+     "name": "pc4",
+     "type": "float64",
+     "description": "loading"
+    },
+    {
+     "name": "pc5",
+     "type": "float64",
+     "description": "loading"
+    },
+    {
+     "name": "prevalence_ge_0p1pct",
+     "type": "float64",
+     "description": "share of samples where the genus is >= 0.1 % relative abundance"
+    },
+    {
+     "name": "mean_relabund",
+     "type": "float64",
+     "description": "mean relative abundance over scored samples"
+    },
+    {
+     "name": "clr_mean",
+     "type": "float64",
+     "description": "mean CLR value"
+    },
+    {
+     "name": "taxonomy_db",
+     "type": "str",
+     "description": "taxonomy database (GTDB)"
+    },
+    {
+     "name": "taxonomy_version",
+     "type": "str",
+     "description": "GTDB release (R232)"
+    },
+    {
+     "name": "sandpiper_version",
+     "type": "str",
+     "description": "Sandpiper version (2.0.0)"
+    }
+   ]
+  },
+  "gut_sandpiper_pca_variance.csv": {
+   "key": [
+    "pc"
+   ],
+   "one_row_per": "PCA component: explained variance ratio — added R2026.12",
+   "bitemporal": "none: derived from the Sandpiper 2.0.0 snapshot (Zenodo 20419175, GTDB R232), rebuilt in full each release (data/inputs/gut/sandpiper/build_gut_tables.py)",
+   "columns": [
+    {
+     "name": "pc",
+     "type": "str",
+     "description": "component index"
+    },
+    {
+     "name": "explained_variance_ratio",
+     "type": "float64",
+     "description": "share of CLR variance"
+    },
+    {
+     "name": "singular_value",
+     "type": "float64",
+     "description": "singular value"
+    },
+    {
+     "name": "cumulative",
+     "type": "float64",
+     "description": "cumulative explained variance ratio"
+    },
+    {
+     "name": "n_samples",
+     "type": "int64",
+     "description": "samples in the PCA"
+    },
+    {
+     "name": "n_genera",
+     "type": "int64",
+     "description": "genera in the PCA"
+    },
+    {
+     "name": "root_coverage_min",
+     "type": "int64",
+     "description": "minimum root coverage for inclusion"
+    },
+    {
+     "name": "prevalence_min",
+     "type": "float64",
+     "description": "minimum genus prevalence for inclusion"
+    },
+    {
+     "name": "prevalence_detection",
+     "type": "float64",
+     "description": "relative-abundance threshold used for prevalence"
+    },
+    {
+     "name": "pseudocount",
+     "type": "float64",
+     "description": "multiplicative pseudocount before CLR"
+    },
+    {
+     "name": "total_clr_variance",
+     "type": "float64",
+     "description": "total variance of the CLR matrix"
+    }
+   ]
+  },
+  "gut_sandpiper_study_coverage.csv": {
+   "key": [
+    "study_accession"
+   ],
+   "one_row_per": "catalog study: Sandpiper join coverage — added R2026.12",
+   "bitemporal": "none: derived from the Sandpiper 2.0.0 snapshot (Zenodo 20419175, GTDB R232), rebuilt in full each release (data/inputs/gut/sandpiper/build_gut_tables.py)",
+   "columns": [
+    {
+     "name": "study_accession",
+     "type": "str",
+     "description": "BioProject"
+    },
+    {
+     "name": "study_title",
+     "type": "str",
+     "description": "study title"
+    },
+    {
+     "name": "n_runs",
+     "type": "int64",
+     "description": "runs in gut_runs"
+    },
+    {
+     "name": "n_runs_profiled",
+     "type": "int64",
+     "description": "runs with a profile"
+    },
+    {
+     "name": "n_samples",
+     "type": "int64",
+     "description": "samples"
+    },
+    {
+     "name": "n_infant_scope",
+     "type": "int64",
+     "description": "infant-scope samples"
+    },
+    {
+     "name": "n_samples_profiled",
+     "type": "int64",
+     "description": "samples with >= 1 profiled run"
+    },
+    {
+     "name": "n_samples_partial",
+     "type": "int64",
+     "description": "samples with unprofiled runs"
+    },
+    {
+     "name": "n_low_depth",
+     "type": "int64",
+     "description": "samples flagged low depth"
+    },
+    {
+     "name": "n_low_complexity",
+     "type": "int64",
+     "description": "samples flagged low complexity"
+    },
+    {
+     "name": "n_any_flag",
+     "type": "int64",
+     "description": "samples with any QC flag"
+    },
+    {
+     "name": "root_coverage_median",
+     "type": "float64",
+     "description": "median root coverage"
+    },
+    {
+     "name": "richness_genus_median",
+     "type": "float64",
+     "description": "median genus richness"
+    },
+    {
+     "name": "shannon_genus_median",
+     "type": "float64",
+     "description": "median Shannon"
+    },
+    {
+     "name": "frac_runs_profiled",
+     "type": "float64",
+     "description": "profiled / total runs"
+    },
+    {
+     "name": "frac_samples_profiled",
+     "type": "float64",
+     "description": "profiled / total samples"
+    },
+    {
+     "name": "coverage_class",
+     "type": "str",
+     "description": "full | partial | none"
+    },
+    {
+     "name": "top_genus_mode",
+     "type": "str",
+     "description": "most frequent top genus"
+    },
+    {
+     "name": "prefix",
+     "type": "str",
+     "description": "accession prefix (SRR/ERR/DRR)"
+    },
+    {
+     "name": "sandpiper_version",
+     "type": "str",
+     "description": "Sandpiper version (2.0.0)"
+    },
+    {
+     "name": "taxonomy_db",
+     "type": "str",
+     "description": "taxonomy database (GTDB)"
+    },
+    {
+     "name": "taxonomy_version",
+     "type": "str",
+     "description": "GTDB release (R232)"
+    },
+    {
+     "name": "zenodo_record",
+     "type": "int64",
+     "description": "Zenodo record of the bulk snapshot (20419175)"
+    }
+   ]
   }
  }
 }
