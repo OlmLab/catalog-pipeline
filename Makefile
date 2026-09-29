@@ -231,7 +231,7 @@ site:            ## stage 6 — build the static site from the package (determin
 	@test -n "$(BASE_URL)" && test "$(BASE_URL)" != "$(PLACEHOLDER_URL)" || { echo "config/site.yaml base_url is the placeholder ($(PLACEHOLDER_URL))"; exit 1; }
 	$(MAKE) check-reports
 	$(PY) site_generator/gen/build_site.py --package $(PKG_OUT) --out $(SITE_OUT) \
-	  --package-zip $(PKG_ZIP_OUT) --reports $(REPORTS) \
+	  --package-zip $(PKG_ZIP_OUT) --reports $(REPORTS) --atlas-data $(ATLAS_DATA) \
 	  --base-url $(BASE_URL) --build-date $$($(PY) -c "import json;print(json.load(open('$(PKG_OUT)/VERSION.json'))['build_date'])")
 	cp $(PKG_OUT)/VERSION.json $(SITE_OUT)/data/VERSION.json
 
@@ -285,6 +285,7 @@ GUT_R1_NEWFIELDS ?= $(GUT_DIR)/gut_r1_newfields_determinations.parquet
 # harvested BioSample attribute rows of the catalog studies (artifact; bootstrap materialises it) — input of gut-newfields-r1
 GUT_ATTRIBUTES   ?= $(GUT_DIR)/gut_biosample_attributes.parquet
 GUT_OUT      ?= $(BUILD)/gut
+ATLAS_DATA   ?= $(GUT_DIR)/atlas          # precomputed Atlas payload (taxa.json, matrix_*.bin, observations.json, obs/) — pages/atlas.py precompute + scripts/atlas_observations.py
 
 gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations / gut_runs from registry_biosamples + registry_runs + R1/R2/R3/R4 leaf outputs + the infant tables
 	mkdir -p $(GUT_OUT) $(BUILD)/gut

@@ -1,0 +1,164 @@
+"""R2026.12 atlas: precompute the payload from a synthetic 300-sample input and build atlas/index.html + atlas/observations.html.
+
+Runs without the real package or network: synthetic Sandpiper long tables, a synthetic wide table and a two-card
+observations.json (with 1x1 PNG figures) are generated in tmp_path.
+"""
+import json
+import struct
+import sys
+import zlib
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+REPO = Path(__file__).resolve().parents[1]
+GEN = REPO / 'site_generator' / 'gen'
+sys.path.insert(0, str(GEN))
+from pages import atlas  # noqa: E402
+
+GENERA = [('g__Bifidobacterium', 'Root; d__Bacteria; p__Actinomycetota; c__Actinomycetes; o__Actinomycetales; f__Bifidobacteriaceae; g__Bifidobacterium'),
+          ('g__Bacteroides', 'Root; d__Bacteria; p__Bacteroidota; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Bacteroides'),
+          ('g__Prevotella', 'Root; d__Bacteria; p__Bacteroidota; c__Bacteroidia; o__Bacteroidales; f__Bacteroidaceae; g__Prevotella'),
+          ('g__Escherichia', 'Root; d__Bacteria; p__Pseudomonadota; c__Gammaproteobacteria; o__Enterobacterales; f__Enterobacteriaceae; g__Escherichia'),
+          ('g__Faecalibacterium', 'Root; d__Bacteria; p__Bacillota_A; c__Clostridia; o__Oscillospirales; f__Ruminococcaceae; g__Faecalibacterium')]
+COUNTRIES = ['US', 'GB', 'BD', 'CN', 'HK', 'NE']
+AGES = ['neonate', 'infant', 'child', 'adult', 'elderly', 'unknown']
+
+
+def synthetic(n=300, seed=0):
+    rng = np.random.default_rng(seed)
+    keys = [f'SAMEA{i:07d}' for i in range(n)]
+    study = [f'PRJEB{1000 + i % 10}' for i in range(n)]
+    country = [COUNTRIES[i % 10 % len(COUNTRIES)] if i % 17 else None for i in range(n)]   # ~6 % missing country
+    age = [AGES[(i // 10) % len(AGES)] for i in range(n)]
+    rows, srows = [], []
+    for i, k in enumerate(keys):
+        w = rng.dirichlet(np.ones(len(GENERA)) * 0.5) * 0.9
+        for (g, lin), ra in zip(GENERA, w):
+            if ra > 2e-5:
+                rows.append(dict(sample_key=k, genus=g, lineage=lin, relabund=float(ra), coverage=float(ra * 100)))
+                if ra > 1e-3:
+                    srows.append(dict(sample_key=k, species=g.replace('g__', 's__') + ' sp1', lineage=lin + '; ' + g.replace('g__', 's__') + ' sp1', relabund=float(ra)))
+        rows.append(dict(sample_key=k, genus='unassigned_at_genus', lineage='unassigned_at_genus', relabund=0.1, coverage=10.0))
+    genus_long = pd.DataFrame(rows); species_long = pd.DataFrame(srows)
+    summary = pd.DataFrame(dict(sample_key=keys, study_accession=study, body_site_class=['primary'] * (n - 5) + ['excluded'] * 5,
+                                qc_non_metagenome=[False] * n, qc_synthetic=[False] * n, qc_rna=[False] * n, qc_predicted_ecological=[False] * n,
+                                qc_low_depth=[i % 50 == 0 for i in range(n)], qc_no_genus_assigned=[False] * n,
+                                richness_genus=rng.integers(3, 6, n), root_coverage_sum=rng.uniform(50, 3000, n), age_category=age))
+    wide = pd.DataFrame(dict(sample_key=keys, country=country, study_accession=study))
+    studies = pd.DataFrame(dict(study_accession=sorted(set(study)), study_title=[f'Study {i}' for i in range(10)], n_samples=[30] * 10))
+    return genus_long, species_long, summary, wide, studies
+
+
+def png1x1():
+    raw = b'\x00\x00\x00\x00\x00'
+    def chunk(t, d): return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+
+
+@pytest.fixture(scope='module')
+def built(tmp_path_factory):
+    tmp = tmp_path_factory.mktemp('atlas')
+    genus_long, species_long, summary, wide, studies = synthetic()
+    data_dir = tmp / 'payload'
+    meta = atlas.precompute(genus_long, species_long, summary, wide, data_dir, n_species=3)
+    obs_dir = data_dir / 'obs'; obs_dir.mkdir()
+    cards = []
+    for cid in ('a_test_card', 'i_exploratory_card'):
+        (obs_dir / f'{cid}.png').write_bytes(png1x1()); pd.DataFrame(dict(x=[1, 2])).to_csv(obs_dir / f'{cid}.csv', index=False)
+        cards.append(dict(id=cid, title=cid.replace('_', ' '), figure=f'{cid}.png', csv=f'{cid}.csv', description='desc', definition='def', confounder='conf',
+                          n_samples=100, n_studies=3, numbers={}, tag='exploratory' if cid.startswith('i_') else None))
+    (data_dir / 'observations.json').write_text(json.dumps(dict(meta=dict(n_samples=meta['n_samples']), cards=cards)))
+    env = Environment(loader=FileSystemLoader(GEN / 'templates'), autoescape=select_autoescape(['html']))
+    env.filters.update(fmt=lambda v: v, pct=lambda v: v, pct1=lambda v: v, num2=lambda v: v, numint=lambda v: f'{int(v):,}')
+    sri = json.loads((GEN / 'static' / 'vendor' / 'SRI.json').read_text())
+    env.globals.update(site=dict(title='T', short_title='T', tagline='', version='1.12.0-test', release_tag='data-v1.12.0', build_date='2026-10-01', sha8='deadbeef', base_url='https://example.org/',
+                                 issue_repo='OlmLab/infant-gut-catalog', release_id='R2026.12', previous_release_id='R2026.11', release_date='2026-10-01', doi='', data_release_url=None,
+                                 zenodo_badge='', zenodo_latest='', data_repo_id='0', releases_page='releases/index.html', changes_page='changes/index.html', description='', citation='',
+                                 sri=sri, has_contribute=True, contribute_page='contribute/index.html', has_registry=True, registry_page='registry/index.html', data_repo='OlmLab/x'))
+    out = tmp / 'site'; out.mkdir(); written = []
+
+    def render(tpl, path, root, nav=None, crumbs=None, **ctx):
+        (out / path).parent.mkdir(parents=True, exist_ok=True)
+        (out / path).write_text(env.get_template(tpl).render(root=root, nav=nav, crumbs=crumbs, page_path=path, **ctx), encoding='utf-8'); written.append(path)
+    pages = atlas.build(env, render, dict(atlas_data_dir=data_dir, stats={}, gut_studies=studies), out)
+    return dict(out=out, meta=meta, pages=pages, written=written, summary=summary, wide=wide, genus_long=genus_long)
+
+
+def test_precompute_payload_shape(built):
+    out, meta = built['out'], built['meta']
+    d = out / 'data' / 'atlas'
+    assert {'taxa.json', 'countries.json', 'studies.json', 'country_hdi.csv', 'observations.json'} <= {p.name for p in d.iterdir()}
+    for r in atlas.RANKS:
+        assert (d / f'matrix_{r}.bin').exists()
+    tj = json.loads((d / 'taxa.json').read_text())
+    # 300 - 5 excluded body site - 6 low depth (i % 50 == 0 → 6 hits) = 289
+    assert meta['n_samples'] == 289 and tj['meta']['n_samples'] == 289
+    assert meta['ranks_n']['genus'] == 5 and meta['ranks_n']['phylum'] == 4 and meta['ranks_n']['species'] == 3
+    assert meta['n_taxa'] == len(tj['taxa']) == sum(meta['ranks_n'].values())
+    assert set(meta['ranks_n']) == set(atlas.RANKS) and 'format' in tj['meta'] and 'hdi_source' in tj['meta']
+    countries = json.loads((d / 'countries.json').read_text())
+    assert [c['iso2'] for c in countries] == sorted(COUNTRIES)
+    hk = next(c for c in countries if c['iso2'] == 'HK'); assert hk['ll'] and hk['in_map'] is False
+    us = next(c for c in countries if c['iso2'] == 'US'); assert us['num'] == '840' and us['hdi'] == 0.93 and us['band'] == 'high'
+    ne = next(c for c in countries if c['iso2'] == 'NE'); assert ne['band'] == 'low'
+    studies = json.loads((d / 'studies.json').read_text())
+    assert len(studies) == 10 and all(len(s['ages']) == len(atlas.AGE_CATS) for s in studies) and studies[0]['title'] == 'Study 0'
+    assert sum(s['n'] for s in studies) == 289
+
+
+def test_binary_matrix_roundtrip(built):
+    """Decode matrix_genus.bin and check one taxon against a direct pandas computation."""
+    out, S = built['out'], built['summary']
+    d = out / 'data' / 'atlas'
+    tj = json.loads((d / 'taxa.json').read_text()); genus_taxa = [t for t in tj['taxa'] if t['rank'] == 'genus']
+    countries = json.loads((d / 'countries.json').read_text())
+    u = np.fromfile(d / 'matrix_genus.bin', dtype='<u4'); p = 0; decoded = []
+    for _ in genus_taxa:
+        nC, nS = int(u[p]), int(u[p + 1]); p += 2
+        c = u[p:p + nC * 3].reshape(-1, 3); p += nC * 3
+        s = u[p:p + nS * 3].reshape(-1, 3); p += nS * 3
+        decoded.append((c, s))
+    assert p == len(u), 'stream fully consumed'
+    keep = atlas.analysis_samples(S).merge(built['wide'][['sample_key', 'country']], on='sample_key')
+    gl = built['genus_long']; gl = gl[gl.sample_key.isin(keep.sample_key)]
+    i = [t['name'] for t in genus_taxa].index('g__Prevotella')
+    c, s = decoded[i]
+    for cidx, n_present, mean_e6 in c:
+        iso = countries[cidx]['iso2']; ks = keep.loc[keep.country == iso, 'sample_key']
+        x = gl[(gl.genus == 'g__Prevotella') & gl.sample_key.isin(ks)]
+        assert n_present == int((x.relabund >= atlas.PRESENCE).sum())
+        assert abs(mean_e6 / 1e6 - x.relabund.sum() / len(ks)) < 2e-6
+    assert (c[:, 1] > 0).all() and len(s) == 10  # every study carries Prevotella in the synthetic data
+    t = genus_taxa[i]; assert t['n'] == sum(int(x[1]) for x in s) and t['parent'] == 'f__Bacteroidaceae'
+
+
+def test_pages_render(built):
+    out = built['out']
+    assert built['pages'] == ['atlas/index.html', 'atlas/observations.html'] == built['written']
+    a = (out / 'atlas' / 'index.html').read_text()
+    assert 'id="map"' in a and 'static/atlas.js' in a and 'd3@7.9.0' in a and 'topojson-client@3.1.0' in a and 'integrity="sha384-' in a
+    assert 'About this view' in a and 'master confounder' in a and 'Repeated measures' in a and '100 Mbp' in a
+    assert '289' in a and 'class="active"' in a and 'atlas/index.html' in a  # nav link present + active
+    o = (out / 'atlas' / 'observations.html').read_text()
+    assert o.count('<section class="obs"') == 2 and 'a test card' in o and 'exploratory' in o
+    assert '../data/atlas/obs/a_test_card.png' in o and '../data/atlas/obs/a_test_card.csv' in o
+    assert (out / 'data' / 'atlas' / 'obs' / 'a_test_card.png').exists()
+    assert (GEN / 'static' / 'vendor' / 'countries-110m.json').exists() and 'countries-110m.json' in json.loads((GEN / 'static' / 'vendor' / 'SRI.json').read_text())
+
+
+def test_build_without_observations(tmp_path):
+    genus_long, species_long, summary, wide, _ = synthetic(n=60, seed=1)
+    data_dir = tmp_path / 'payload'; atlas.precompute(genus_long, species_long, summary, wide, data_dir, n_species=2)
+    env = Environment(loader=FileSystemLoader(GEN / 'templates'), autoescape=select_autoescape(['html']))
+    env.filters.update(fmt=lambda v: v, pct=lambda v: v, pct1=lambda v: v, num2=lambda v: v, numint=lambda v: f'{int(v):,}')
+    env.globals.update(site=dict(title='T', short_title='T', version='x', release_tag='x', build_date='x', sha8='x', base_url='', issue_repo='', release_id='x', release_date='x', doi='',
+                                 sri={}, has_contribute=False, has_registry=False, citation='', description=''))
+    out = tmp_path / 'site'; out.mkdir()
+    def render(tpl, path, root, **ctx):
+        (out / path).parent.mkdir(parents=True, exist_ok=True); (out / path).write_text(env.get_template(tpl).render(root=root, page_path=path, **ctx))
+    atlas.build(env, render, dict(atlas_data_dir=data_dir), out)
+    assert 'No observation cards' in (out / 'atlas' / 'observations.html').read_text()

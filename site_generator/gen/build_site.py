@@ -429,6 +429,7 @@ def main():
     ap.add_argument('--pack-config', default=str(HERE.parent.parent / 'config' / 'packs' / 'gut.yaml'))
     ap.add_argument('--sources-config', default=str(HERE.parent.parent / 'config' / 'sources.yaml'))
     ap.add_argument('--collections-config', default=str(HERE.parent.parent / 'config' / 'collections.yaml'), help='optional (another track); searched from the home page when present')
+    ap.add_argument('--atlas-data', default=None, help='precomputed Atlas payload directory (taxa.json, matrix_*.bin, observations.json, obs/); optional')
     ap.add_argument('--allow-placeholder-base-url', action='store_true', help='test builds only')
     ap.add_argument('--build-date', default=None, help='overrides VERSION.json build_date (tests only)')
     ap.add_argument('--max-rows-html', type=int, default=2000)
@@ -962,7 +963,12 @@ def main():
     from pages import collections as _collections, pca as _pca
     coll_stats = _collections.build(a.collections_config, render, cw, cs, out, hc_labels=hc_labels, ls_labels=ls_labels)
     print(f'[{time.time()-t0:.0f}s] collections: {coll_stats}', file=sys.stderr)
-    if (pkg / 'gut_sandpiper_pca_scores.parquet').exists():
+    from pages import atlas as _atlas
+    atlas_dir = Path(a.atlas_data) if a.atlas_data else None
+    if atlas_dir and (atlas_dir / 'taxa.json').exists():   # precomputed taxon-map payload + observation cards (data/inputs/gut/atlas; make atlas-precompute)
+        _atlas.build(env, render, dict(atlas_data_dir=atlas_dir, stats=stats, gut_studies=cs), out)
+        print(f'[{time.time()-t0:.0f}s] atlas/index + observations from {atlas_dir}', file=sys.stderr)
+    if (pkg / 'gut_sandpiper_pca_scores.parquet').exists():   # after the atlas copy (atlas.build replaces data/atlas/)
         pca_stats = _pca.build(env, render, dict(wide=cw, studies=cs, pkg=pkg), out)
         print(f'[{time.time()-t0:.0f}s] atlas/pca: {pca_stats.get("n_points") if isinstance(pca_stats, dict) else pca_stats}', file=sys.stderr)
 

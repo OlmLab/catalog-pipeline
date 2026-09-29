@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Atlas — where taxa are carried · {{ site.title }}{% endblock %}
+{% block desc %}Interactive world map of genus and species carriage across {{ meta.n_samples | numint }} human gut metagenomes from {{ meta.n_studies | numint }} studies and {{ meta.n_countries }} countries.{% endblock %}
+{% block head %}
+<style>
+.atlas{display:grid;grid-template-columns:300px 1fr 320px;gap:1rem;align-items:start}
+@media (max-width:1100px){.atlas{grid-template-columns:1fr}}
+.atlas .side{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:.7rem;font-size:.88rem;position:sticky;top:56px;max-height:calc(100vh - 64px);overflow:auto}
+.atlas .side label{display:block;margin:.5rem 0 .15rem;color:var(--muted);font-size:.8rem}
+.atlas .side select,.atlas .side input{width:100%;padding:.35rem .45rem;border:1px solid var(--cu-light-gray);border-radius:5px;font-size:.9rem}
+#taxon-hits{list-style:none;margin:.3rem 0 0;padding:0;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:5px;background:#fff}
+#taxon-hits li{padding:.25rem .45rem;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:.5rem}
+#taxon-hits li:hover,#taxon-hits li.sel{background:var(--cu-pale-gold)}
+#taxon-hits li .r{color:var(--muted);font-size:.75rem;white-space:nowrap}
+#map-wrap{position:relative;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#map{width:100%;height:auto;display:block;touch-action:none}
+#map .country{stroke:#fff;stroke-width:.4px;cursor:pointer}
+#map .country:hover{stroke:#000;stroke-width:1px}
+#map .country.sel{stroke:#000;stroke-width:1.4px}
+#map .graticule{fill:none;stroke:#eee;stroke-width:.5px}
+#map .sphere{fill:#f7f7f5;stroke:#ddd}
+#legend{position:absolute;left:.6rem;bottom:.6rem;background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;padding:.35rem .5rem;font-size:.75rem}
+#tip{position:absolute;pointer-events:none;background:#000;color:#fff;font-size:.78rem;padding:.3rem .5rem;border-radius:4px;display:none;max-width:260px}
+.toggles{display:flex;flex-wrap:wrap;gap:.35rem;margin:.4rem 0}
+.toggles .btn.xs{padding:.15rem .5rem}
+.toggles .btn.xs.on{background:var(--cu-black);color:var(--cu-gold);border-color:var(--cu-black)}
+#taxon-head h2{margin:.2rem 0 .3rem;border:0;padding:0}
+#dossier table{font-size:.8rem}
+#dossier .agebar{display:flex;height:9px;border-radius:3px;overflow:hidden;background:var(--line);margin:.2rem 0}
+#dossier .agebar span{display:block;height:100%}
+.about{font-size:.88rem;background:var(--cu-pale-gold);border:1px solid var(--cu-gold);border-radius:8px;padding:.7rem .9rem;margin-top:1rem}
+.about summary{cursor:pointer;font-weight:600}
+details.crumb summary{cursor:pointer;color:var(--muted);font-size:.8rem}
+.mini{font-size:.78rem;color:var(--muted)}
+</style>
+{% endblock %}
+{% block content %}
+<h1>Atlas — where taxa are carried</h1>
+{% set sub="map" %}{% include "_atlas_nav.html" %}
+<p class="lead">Pick a taxon and the map recolours every country by how often it is detected in that country's gut metagenomes. Data: Sandpiper 2.0.0 community profiles ({{ meta.taxonomy }}) for <b>{{ meta.n_samples | numint }}</b> catalog samples in <b>{{ meta.n_studies | numint }}</b> studies and <b>{{ meta.n_countries }}</b> countries; the whole atlas payload is {{ payload_mb }} MB and loads once per rank.
+See also the <a href="observations.html">{{ n_obs }} data-driven observations</a> built on the same tables.</p>
+
+<div class="atlas">
+<div class="side">
+  <label for="taxon-q">Search a taxon</label>
+  <input id="taxon-q" type="search" placeholder="Bifidobacterium, Prevotella copri, Bacillota …" autocomplete="off">
+  <label for="rank-sel">Browse by rank</label>
+  <select id="rank-sel">{% for r in meta.ranks %}<option value="{{ r }}" {% if r=='genus' %}selected{% endif %}>{{ r }} ({{ meta.ranks_n[r] | numint }})</option>{% endfor %}</select>
+  <div class="mini" id="rank-note">Species: the {{ meta.ranks_n['species'] }} most prevalent species (detection ≥ 0.1 %).</div>
+  <ul id="taxon-hits"></ul>
+  <label>Colour by</label>
+  <div class="toggles" id="metric-toggle"><button class="btn xs on" data-v="prev">prevalence</button><button class="btn xs" data-v="mean">mean rel. abundance</button></div>
+  <label>Colour scale</label>
+  <div class="toggles" id="scale-toggle"><button class="btn xs on" data-v="rel">relative (0 – max)</button><button class="btn xs" data-v="fix">fixed (0 – 100 %)</button></div>
+  <label>Projection</label>
+  <div class="toggles" id="proj-toggle"><button class="btn xs on" data-v="flat">flat map</button><button class="btn xs" data-v="globe">globe (drag)</button></div>
+  <div class="mini">Countries with fewer than {{ meta.min_country_samples }} samples are grey. Prevalence = share of a country's samples with relative abundance ≥ {{ '%.0e' % meta.presence_threshold }} (genus and above) or ≥ {{ '%.0e' % meta.species_threshold }} (species).</div>
+</div>
+
+<div>
+  <div id="map-wrap"><svg id="map" viewBox="0 0 960 500" preserveAspectRatio="xMidYMid meet"></svg><div id="legend"></div><div id="tip"></div></div>
+  <div id="taxon-head"></div>
+  <div id="country-table"></div>
+</div>
+
+<div class="side" id="dossier"><b>Study dossier</b><div class="mini">Click a country to list its studies, then a study for its dossier (n samples, prevalence, mean abundance, life stages, link to the study page).</div></div>
+</div>
+
+<details class="about" id="about" open>
+<summary>About this view — read before interpreting a map</summary>
+<ul>
+<li><b>Study is the master confounder.</b> Most studies sample one country and one life stage with one protocol; a country's colour is the mixture of its few studies (click a country to see them). Compare countries only when the study list looks comparable, and prefer the per-study dossiers.</li>
+<li><b>Repeated measures.</b> Longitudinal cohorts contribute many samples per subject; n samples overstates the number of people.</li>
+<li><b>Depth.</b> Detection at ≥ 1e-4 depends on sequencing depth; shallow studies under-detect rare taxa (see the depth card on the observations page).</li>
+<li><b>Which runs are profiled.</b> Sandpiper profiles Illumina runs ≥ 100 Mbp public before its snapshot; runs failing its QC (non-metagenome, synthetic, RNA, predicted non-gut, root coverage &lt; 2) and samples whose body site is not primary gut were excluded ({{ meta.sample_filter }}).</li>
+<li><b>Taxonomy.</b> {{ meta.taxonomy }}: names follow GTDB, so <i>Prevotella copri</i> is <i>Prevotella</i>, <i>Bacteroides vulgatus</i> is <i>Phocaeicola vulgatus</i>, and suffixed genera (Blautia_A) are GTDB placeholders.</li>
+<li><b>Hong Kong and Singapore</b> are drawn as dots (the 110 m base map merges them into larger polygons). Country is missing for {{ ((meta.n_samples - meta.n_samples_with_country) / meta.n_samples * 100) | round(1) }} % of samples.</li>
+<li><b>Payload.</b> <code>data/atlas/taxa.json</code> (index), <code>countries.json</code>, <code>studies.json</code>, <code>matrix_&lt;rank&gt;.bin</code> — format documented in <code>taxa.json → meta.format</code>; HDI values in <code>country_hdi.csv</code> ({{ meta.hdi_source }}).</li>
+</ul>
+</details>
+{% endblock %}
+{% block scripts %}
+<script>window.ATLAS_ROOT='{{ root }}';</script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" integrity="sha384-Ukv1p/xTma6P4/2bY5KzWBw+ydSpXmhCMtyciIQVDJ1RmOxtCYNMF1uXT9T63H67" crossorigin="anonymous"></script>
+<script src="{{ root }}static/atlas.js"></script>
+{% endblock %}
