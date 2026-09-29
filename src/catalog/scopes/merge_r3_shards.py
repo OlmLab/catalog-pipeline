@@ -6,7 +6,8 @@ Rule applied here (recorded in parse_note): keep the disease code over `interven
 confidence, then the first-listed code; the alternative code/detail is appended to parse_note as `alt=<code>`.
 Also builds the side tables (unreplicated, subgroups, study summary) as single files for the package docs / future R3 work.
 
-usage: python -m catalog.scopes.merge_r3_shards --in-dir data/inputs/gut/r3/shards --out-dir data/inputs/gut/r3
+usage: python -m catalog.scopes.merge_r3_shards --in-dir data/inputs/gut/r3/shards --out-dir data/inputs/gut/r3 [--prefix gut_r3]
+(--prefix gut_r3b merges the R3b new-field shards — lifestyle / location_* / collection_date — into gut_r3b_*; --prefix gut_r4b the R4b shards.)
 """
 import argparse
 import glob
@@ -18,14 +19,14 @@ import pandas as pd
 KINDS = ("determinations", "unreplicated", "subgroups", "study_summary")
 
 
-def load_kind(in_dir: str, kind: str) -> pd.DataFrame:
-    fs = sorted(glob.glob(os.path.join(in_dir, f"gut_r3_{kind}_*shard_*.parquet")))
+def load_kind(in_dir: str, kind: str, prefix: str = "gut_r3") -> pd.DataFrame:
+    fs = sorted(glob.glob(os.path.join(in_dir, f"{prefix}_{kind}_*shard_*.parquet")))
     if not fs:
         return pd.DataFrame()
     parts = []
     for f in fs:
         d = pd.read_parquet(f)
-        d["r3_shard"] = os.path.basename(f).split("gut_r3_" + kind + "_")[1].replace(".parquet", "")
+        d["r3_shard"] = os.path.basename(f).split(prefix + "_" + kind + "_")[1].replace(".parquet", "")
         parts.append(d)
     return pd.concat(parts, ignore_index=True)
 
@@ -63,23 +64,25 @@ def resolve_duplicates(det: pd.DataFrame) -> pd.DataFrame:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--in-dir", required=True), ap.add_argument("--out-dir", required=True)
+    ap.add_argument("--in-dir", required=True), ap.add_argument("--out-dir", required=True), ap.add_argument("--prefix", default="gut_r3")
     a = ap.parse_args()
     os.makedirs(a.out_dir, exist_ok=True)
-    det = load_kind(a.in_dir, "determinations")
+    det = load_kind(a.in_dir, "determinations", a.prefix)
+    if not len(det):
+        raise SystemExit(f"no {a.prefix}_determinations_*shard_*.parquet in {a.in_dir}")
     det, n_dropped = resolve_duplicates(det)
-    det.drop(columns=["r3_shard"]).to_parquet(os.path.join(a.out_dir, "gut_r3_determinations_merged.parquet"), index=False)
+    det.drop(columns=["r3_shard"]).to_parquet(os.path.join(a.out_dir, f"{a.prefix}_determinations_merged.parquet"), index=False)
     summary = {"n_determinations": int(len(det)), "n_studies": int(det.study_accession.nunique()), "n_duplicates_resolved": int(n_dropped),
                "per_field": det.field_name.value_counts().to_dict(), "n_shards": int(det.r3_shard.nunique())}
     for kind in KINDS[1:]:
-        d = load_kind(a.in_dir, kind)
+        d = load_kind(a.in_dir, kind, a.prefix)
         if len(d):
             for c in d.columns:  # leaves differ in side-table typing; strings are the common denominator
                 if d[c].dtype == object or str(d[c].dtype) in ("bool", "boolean"):
                     d[c] = d[c].map(lambda v: None if v is None or (isinstance(v, float) and pd.isna(v)) else str(v))
-            d.to_parquet(os.path.join(a.out_dir, f"gut_r3_{kind}_all.parquet"), index=False)
+            d.to_parquet(os.path.join(a.out_dir, f"{a.prefix}_{kind}_all.parquet"), index=False)
             summary[f"n_{kind}"] = int(len(d))
-    json.dump(summary, open(os.path.join(a.out_dir, "gut_r3_merge_summary.json"), "w"), indent=1)
+    json.dump(summary, open(os.path.join(a.out_dir, f"{a.prefix}_merge_summary.json"), "w"), indent=1)
     print(json.dumps(summary))
 
 

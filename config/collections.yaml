@@ -1,0 +1,603 @@
+schema_version: 1
+package_version_validated: 1.11.0
+generated: '2026-09-29'
+note: 'Curated, named sets of catalog studies/samples with pre-entered explorer filters. Semantics: `studies` restricts
+  to the listed accessions; `filters` restrict samples (list = any-of, {min,max} = inclusive range); when both are
+  present the filters apply within the listed studies. Propose changes by PR (docs/COLLECTIONS.md).'
+collections:
+- id: hmp1-healthy-adults
+  title: HMP1 healthy adult reference (Human Microbiome Project, WGS)
+  kind: benchmark
+  blurb: The NIH Human Microbiome Project phase 1 shotgun metagenomes of clinically healthy US adults (Houston and
+    St Louis), the most reused healthy-adult reference set; the BioProject spans all HMP body sites, so restrict
+    to gut samples with body_site_class.
+  studies:
+  - PRJNA48479
+  - PRJNA275349
+  filters:
+    body_site_class:
+    - primary
+  references:
+  - label: Human Microbiome Project Consortium 2012, Nature
+    url: https://doi.org/10.1038/nature11234
+  - label: Lloyd-Price et al. 2017, Nature (expanded HMP1-II)
+    url: https://doi.org/10.1038/nature23889
+  notes: PRJNA275349 is the HMP phase III WGS deposit (JCVI). Both BioProjects contain oral, skin and vaginal samples;
+    the body_site_class filter keeps the gut ones.
+- id: hmp2-ibdmdb
+  title: HMP2 / IBDMDB longitudinal IBD multi-omics cohort
+  kind: benchmark
+  blurb: 'The Integrative HMP inflammatory bowel disease cohort (IBDMDB): 132 subjects with Crohn''s disease, ulcerative
+    colitis or no IBD, followed for one year with stool metagenomes, metatranscriptomes and biopsies at five US
+    centres.'
+  studies:
+  - PRJNA398089
+  - PRJNA389280
+  references:
+  - label: Lloyd-Price et al. 2019, Nature
+    url: https://doi.org/10.1038/s41586-019-1237-9
+  - label: Schirmer et al. 2018, Nature Microbiology (metatranscriptomes)
+    url: https://doi.org/10.1038/s41564-017-0089-z
+  - label: IBDMDB data portal
+    url: https://ibdmdb.org/
+- id: metahit
+  title: MetaHIT European gut metagenome cohorts
+  kind: benchmark
+  blurb: 'The MetaHIT consortium deposits underlying the first gut gene catalogue and the metagenomic-species work:
+    Danish and Spanish adults (Qin 2010), Danish obese/lean adults (Le Chatelier 2013, Nielsen 2014) and the integrated
+    gene catalogue samples (Li 2014).'
+  studies:
+  - PRJEB2054
+  - PRJEB4336
+  - PRJEB1220
+  - PRJEB5224
+  references:
+  - label: Qin et al. 2010, Nature
+    url: https://doi.org/10.1038/nature08821
+  - label: Le Chatelier et al. 2013, Nature
+    url: https://doi.org/10.1038/nature12506
+  - label: Nielsen et al. 2014, Nature Biotechnology
+    url: https://doi.org/10.1038/nbt.2939
+  - label: Li et al. 2014, Nature Biotechnology (IGC)
+    url: https://doi.org/10.1038/nbt.2942
+  notes: Single-subject MetaHIT BioProjects (PRJNA33049 … 'Human Gut Subject MH6 Metagenome', 1 sample each) exist
+    in the catalog but are not listed here.
+- id: healthy-adult-reference
+  title: Curated healthy adult gut samples (all studies)
+  kind: benchmark
+  blurb: Every gut sample in the curated catalog whose source states the subject is healthy or a control and whose
+    age at collection falls in the adult band (18–65 y). The catalog's own counterpart of the curatedMetagenomicData
+    healthy-adult set; membership is evidence-backed per sample.
+  filters:
+    health_condition:
+    - healthy_control
+    age_category:
+    - adult
+    body_site_class:
+    - primary
+  references:
+  - label: Pasolli et al. 2017, Nature Methods (curatedMetagenomicData)
+    url: https://doi.org/10.1038/nmeth.4468
+  notes: 'Not the cMD study list: the set is defined by the catalog''s per-sample health_condition and age_category
+    determinations, so it grows with every release.'
+- id: protocol-benchmarks-mock-controls
+  title: Protocol benchmarks with mock-community controls
+  kind: benchmark
+  blurb: Human stool studies that sequenced a defined mock community (ZymoBIOMICS or in-house standards) alongside
+    real samples to compare DNA extraction kits, library protocols or 16S versus shotgun profiling — useful as positive
+    controls and for bias estimation.
+  studies:
+  - PRJEB38036
+  - PRJEB75510
+  - PRJNA648321
+  - PRJNA911046
+  - PRJNA725047
+  references:
+  - label: Multicenter evaluation of gut microbiome profiling (PRJNA911046)
+    url: https://doi.org/10.1038/s41598-023-46062-7
+  - label: DNA extraction kits for long-read shotgun metagenomics (PRJEB75510)
+    url: https://doi.org/10.1038/s41598-024-80660-3
+  notes: Selected by the word 'mock' in the ENA study description; the mock-community runs themselves are not human
+    samples and may be classified body_site_class excluded/unknown.
+- id: american-gut-shotgun
+  title: American Gut Project shotgun subset
+  kind: population
+  blurb: Shotgun metagenomes from the crowd-sourced American Gut Project (US, UK and Australia self-collected stool
+    with extensive diet and lifestyle questionnaires); the largest single citizen-science deposit in the catalog.
+  studies:
+  - PRJEB11419
+  references:
+  - label: McDonald et al. 2018, mSystems
+    url: https://doi.org/10.1128/mSystems.00031-18
+- id: predict-diet-cohorts
+  title: PREDICT personalised-nutrition cohorts (UK/US)
+  kind: population
+  blurb: ZOE PREDICT 1, 2 and 3 deep-phenotyped adults (TwinsUK and volunteers in the UK and US) with habitual-diet
+    records and postprandial metabolic responses; PREDICT 3 adds more than 20,000 stool metagenomes.
+  studies:
+  - PRJEB39223
+  - PRJEB75460
+  - PRJEB75463
+  - PRJEB75464
+  references:
+  - label: Asnicar et al. 2021, Nature Medicine (PREDICT 1)
+    url: https://doi.org/10.1038/s41591-020-01183-8
+  notes: PREDICT 2/3 BioProjects were located by study title in the package; no primary PREDICT 3 paper is linked
+    in registry_study_papers yet.
+- id: hadza-hunter-gatherers
+  title: Hadza hunter-gatherers (Tanzania)
+  kind: population
+  blurb: 'All shotgun deposits from the Hadza of Tanzania, the reference hunter-gatherer population: Rampelli 2015,
+    the seasonal-cycling cohort (Smits 2017) and the deep-sequenced adults and infants of Carter 2023 / Olm 2022
+    (with Nepali comparison groups in the same BioProject).'
+  studies:
+  - PRJNA278393
+  - PRJNA392180
+  - PRJEB49206
+  filters:
+    lifestyle:
+    - hunter_gatherer
+  references:
+  - label: Rampelli et al. 2015, Current Biology
+    url: https://doi.org/10.1016/j.cub.2015.04.055
+  - label: Smits et al. 2017, Science
+    url: https://doi.org/10.1126/science.aan4834
+  - label: Carter et al. 2023, Cell
+    url: https://doi.org/10.1016/j.cell.2023.05.046
+  - label: Olm et al. 2022, Science
+    url: https://doi.org/10.1126/science.abj2972
+  notes: lifestyle is a 1.12.0 field; until it is populated the explicit study list defines the collection. PRJEB49206
+    also holds Nepali Chepang/Raji/Raute/Tharu samples.
+- id: olm-2022-lifestyle-infants
+  title: Olm 2022 Hadza infant cohort (lifestyle spectrum)
+  kind: lifestyle
+  blurb: Infant stool metagenomes from the Hadza deposited with Olm et al. 2022 (Science), the non-industrialized
+    anchor of the infant lifestyle-spectrum comparison; restricted to the neonate/infant age bands of BioProject
+    PRJEB49206.
+  studies:
+  - PRJEB49206
+  filters:
+    age_category:
+    - neonate
+    - infant
+  references:
+  - label: Olm et al. 2022, Science
+    url: https://doi.org/10.1126/science.abj2972
+  - label: bioRxiv preprint (data statement)
+    url: https://doi.org/10.1101/2022.03.30.486467
+  notes: The paper's global lifestyle comparison used public 16S data (not in this shotgun catalog); its shotgun
+    comparators are industrialized infant cohorts already present as separate studies (use age_category=infant with
+    country filters).
+- id: amazonian-amerindian
+  title: Amazonian and Amerindian communities
+  kind: population
+  blurb: 'Indigenous South American communities with traditional subsistence: Matses hunter-gatherers and Tunapuco
+    highland agriculturalists (Peru), Yanomami and Yekwana villages (Venezuela, Brazil) and the Wayampi of French
+    Guiana — the low-industrialization reference for Prevotella/Treponema-rich microbiomes.'
+  studies:
+  - PRJNA268964
+  - PRJEB55648
+  - PRJNA245336
+  - PRJNA527208
+  - PRJEB101387
+  - PRJNA418044
+  filters:
+    lifestyle:
+    - hunter_gatherer
+    - traditional_agriculturalist
+    - indigenous_community
+  references:
+  - label: Obregon-Tito et al. 2015, Nature Communications (Matses/Tunapuco)
+    url: https://doi.org/10.1038/ncomms7505
+  - label: Clemente et al. 2015, Science Advances (Yanomami)
+    url: https://doi.org/10.1126/sciadv.1500183
+  - label: Wayampi resistome (PRJEB101387)
+    url: https://doi.org/10.1186/s40168-026-02345-5
+  notes: PRJNA418044 is a fecal virome of uncontacted Amerindian children (shotgun, but virus-enriched). lifestyle
+    filter becomes effective in 1.12.0.
+- id: industrialization-gradients
+  title: Industrialised vs non-industrialised comparisons
+  kind: lifestyle
+  blurb: 'Cohorts designed around an urbanisation or industrialisation contrast: Cameroon and African rural–urban
+    gradients, Ghanaian and Malagasy villages (Pasolli 2019), isolated Honduran villages, Fijian villages, Orang
+    Asli, the Baiga tribe and Irish Travellers.'
+  studies:
+  - PRJEB30834
+  - PRJNA686265
+  - PRJNA529124
+  - PRJNA485056
+  - PRJNA999635
+  - PRJNA1356541
+  - PRJNA217052
+  - PRJNA797994
+  - PRJEB36820
+  - PRJNA1470913
+  filters:
+    lifestyle:
+    - rural_non_industrialized
+    - traditional_agriculturalist
+    - indigenous_community
+    - transitional_or_migrant
+    - urban_industrialized
+  references:
+  - label: Pasolli et al. 2019, Cell (non-Westernized cohorts)
+    url: https://doi.org/10.1016/j.cell.2019.01.001
+  - label: Brito et al. 2016, Nature (Fiji COMP)
+    url: https://doi.org/10.1038/nature18927
+  - label: Rural and urban African populations (PRJNA686265)
+    url: https://doi.org/10.1038/s41467-021-25213-2
+  - label: Rural Honduras villages (PRJNA999635)
+    url: https://doi.org/10.1016/j.celrep.2024.114442
+  notes: Pasolli 2019 Ethiopian and Tanzanian cohorts were not found under their own BioProjects in the 1.11.0 catalog.
+    Tsimane (Bolivia) and Hutterite shotgun deposits were searched for and not found (see COLLECTIONS_REPORT.md).
+- id: highland-and-plateau
+  title: High-altitude and plateau populations
+  kind: lifestyle
+  blurb: 'Residents of high-altitude environments: Tibetan and Yi populations of the Qinghai–Tibet plateau, Papua
+    New Guinea highlanders and a mountaineering-expedition cohort.'
+  studies:
+  - PRJNA381333
+  - PRJNA818062
+  - PRJNA509999
+  - PRJNA492714
+  - PRJDB16036
+  - PRJEB84244
+  filters:
+    lifestyle:
+    - extreme_environment
+    - pastoralist
+  references:
+  - label: Qinghai–Tibet plateau gut microbial biomarkers (PRJNA381333)
+    url: https://doi.org/10.1080/19490976.2024.2350151
+  - label: High-altitude mountaineering (PRJEB84244)
+    url: https://doi.org/10.1038/s41598-025-22848-9
+- id: athletes
+  title: Athletes and elite sport
+  kind: lifestyle
+  blurb: 'Cohorts defined by sport: professional and elite cyclists, Irish and Chinese elite athletes, marathon
+    runners, recreational athletes stratified by fitness, and sport-nutrition trials.'
+  studies:
+  - PRJNA305507
+  - PRJNA472785
+  - PRJNA909977
+  - PRJEB32794
+  - PRJNA1186265
+  - PRJEB46398
+  - PRJNA1115089
+  - PRJNA1484585
+  - PRJEB109268
+  - PRJNA1461949
+  filters:
+    lifestyle:
+    - athlete
+  references:
+  - label: Petersen et al. 2017, Microbiome (competitive cyclists)
+    url: https://doi.org/10.1186/s40168-017-0320-4
+  - label: Scheiman et al. 2019, Nature Medicine (marathon runners)
+    url: https://doi.org/10.1038/s41591-019-0485-4
+- id: vegetarian-vegan
+  title: Vegan and vegetarian diet cohorts
+  kind: lifestyle
+  blurb: Cohorts recruited by habitual diet — vegans, vegetarians and omnivore comparison groups — including the
+    Stanford identical-twin vegan trial and Central European vegan/omnivore cohorts.
+  studies:
+  - PRJNA1194741
+  - PRJNA721545
+  - PRJEB18693
+  - PRJNA1203651
+  filters:
+    lifestyle:
+    - vegetarian_or_vegan
+  references:
+  - label: Vegan diet signature, European cohorts (PRJNA1194741/PRJNA721545)
+    url: https://doi.org/10.1080/19490976.2025.2593050
+  - label: Vegan, vegetarian and omnivore Westerners (PRJEB18693)
+    url: https://doi.org/10.3389/fmicb.2018.00317
+- id: twins-and-families
+  title: Twin and family cohorts
+  kind: design
+  blurb: 'Twin-pair and family designs that separate host genetics from shared environment: TwinsUK shotgun deposits,
+    Turnbaugh 2009 obese/lean twins, Korean and Chinese twins, Malawian twins discordant for malnutrition, and twin
+    viromes.'
+  studies:
+  - PRJEB32731
+  - PRJEB98467
+  - PRJEB9576
+  - PRJEB9584
+  - PRJNA32089
+  - PRJEB1690
+  - PRJNA284162
+  - PRJEB12669
+  - PRJEB9818
+  - PRJEB29491
+  - PRJEB47532
+  - PRJNA1203651
+  references:
+  - label: Xie et al. 2016, Cell Systems (250 adult twins)
+    url: https://doi.org/10.1016/j.cels.2016.10.004
+  - label: Visconti et al. 2019, Nature Communications (TwinsUK)
+    url: https://doi.org/10.1038/s41467-019-12476-z
+  - label: Turnbaugh et al. 2009, Nature
+    url: https://doi.org/10.1038/nature07540
+  - label: Reyes et al. 2015, PNAS (Malawian twins)
+    url: https://doi.org/10.1073/pnas.1514285112
+  notes: PRJEB9818 and PRJEB29491 are virome-enriched shotgun libraries.
+- id: dense-longitudinal-subjects
+  title: Densely sampled subjects (≥ 5 gut samples per subject)
+  kind: design
+  blurb: Every subject in the catalog with at least five gut samples linked to the same subject_id — the time-series
+    slice for strain tracking, stability and perturbation-recovery analyses. Dominated by infant birth cohorts (TEDDY,
+    DIABIMMUNE), IBDMDB and adult time-series studies.
+  filters:
+    min_samples_per_subject:
+      min: 5
+    body_site_class:
+    - primary
+  references:
+  - label: Poyet et al. 2019, Nature Medicine (BIO-ML)
+    url: https://doi.org/10.1038/s41591-019-0559-3
+  notes: Requires subject_id; studies without subject linkage are invisible to this filter even when longitudinal.
+- id: adult-time-series-cohorts
+  title: Adult time-series reference cohorts
+  kind: design
+  blurb: 'Healthy-adult cohorts sampled repeatedly over months to years: the Broad/OpenBiome BIO-ML donors, dense
+    FMT-donor series, the Gothenburg longitudinal non-disease cohort, HPFS men sampled twice six months apart and
+    the ciprofloxacin time-series volunteers.'
+  studies:
+  - PRJNA544527
+  - PRJNA448876
+  - PRJEB38984
+  - PRJNA354235
+  - PRJNA974858
+  references:
+  - label: Poyet et al. 2019, Nature Medicine
+    url: https://doi.org/10.1038/s41591-019-0559-3
+  - label: Mehta et al. 2018, Nature Microbiology (HPFS)
+    url: https://doi.org/10.1038/s41564-017-0096-0
+  - label: Ciprofloxacin time series (PRJNA974858)
+    url: https://doi.org/10.1038/s41586-025-08781-x
+- id: fmt-trials
+  title: Faecal microbiota transplantation trials
+  kind: design
+  blurb: Randomised and single-arm FMT trials with shotgun follow-up across indications — ulcerative colitis, IBS,
+    obesity, Parkinson's disease, hypertension, cirrhosis, diabetic neuropathy, immunotherapy resistance in melanoma
+    and lung cancer, and CPE decolonisation — plus FMT donor series.
+  studies:
+  - PRJNA637785
+  - PRJEB68317
+  - PRJNA1450848
+  - PRJEB72385
+  - PRJEB61882
+  - PRJNA871036
+  - PRJEB94043
+  - PRJNA737472
+  - PRJEB58035
+  - PRJNA1289847
+  - PRJNA672867
+  - PRJEB53551
+  - PRJEB66493
+  - PRJEB47061
+  - PRJEB65418
+  - PRJEB102130
+  - PRJEB26357
+  - PRJNA491657
+  - PRJNA448876
+  references:
+  - label: Leong et al. 2020, JAMA Network Open (Gut Bugs)
+    url: https://doi.org/10.1001/jamanetworkopen.2020.30415
+  - label: Davar et al. 2021, Science (FMT + anti-PD-1)
+    url: https://doi.org/10.1126/science.abf3363
+  - label: FMT for hypertension (PRJEB72385)
+    url: https://doi.org/10.1186/s40168-025-02118-6
+  notes: Selected from study titles containing FMT / faecal microbiota transplantation; metatranscriptome and biopsy
+    companions (PRJEB26472–26474) were left out.
+- id: antibiotic-intervention-cohorts
+  title: Antibiotic intervention and recovery cohorts
+  kind: design
+  blurb: 'Studies in which antibiotics were administered by design or documented as the exposure of interest, with
+    before/after shotgun sampling: healthy-volunteer courses (cefprozil, ciprofloxacin, beta-lactams), probiotic-after-antibiotic
+    trials, travellers''-diarrhoea regimens, mass azithromycin distribution and preterm-infant exposure.'
+  studies:
+  - PRJEB8094
+  - PRJNA974858
+  - PRJNA1025016
+  - PRJEB105465
+  - PRJNA922086
+  - PRJNA1074135
+  - PRJNA450709
+  - PRJEB27325
+  - PRJNA945408
+  - PRJNA1106565
+  - PRJNA1364313
+  - PRJNA917819
+  - PRJNA993161
+  - PRJNA807448
+  - PRJNA1337442
+  references:
+  - label: Raymond et al. 2016, ISME J (cefprozil)
+    url: https://doi.org/10.1038/ismej.2015.148
+  - label: Suez et al. 2018, Cell (probiotics after antibiotics)
+    url: https://doi.org/10.1016/j.cell.2018.08.047
+  - label: Commensal AMR and microbiome resilience (PRJNA1025016)
+    url: https://doi.org/10.1126/scitranslmed.adi9711
+- id: antibiotic-exposed-samples
+  title: Samples with documented antibiotic exposure
+  kind: design
+  blurb: All gut samples whose source records antibiotics at or shortly before collection (antibiotic_exposure =
+    yes), across every study — the cross-study exposure set for resistome and recovery analyses.
+  filters:
+    antibiotic_exposure:
+    - 'yes'
+    body_site_class:
+    - primary
+  references: []
+  notes: Absence of an antibiotic attribute is unknown, not 'no'; compare against antibiotic_exposure = no rather
+    than the whole catalog.
+- id: crc-meta-analysis-cohorts
+  title: Colorectal cancer meta-analysis cohorts (Wirbel / Thomas 2019)
+  kind: disease
+  blurb: 'The eight case–control shotgun cohorts pooled by Wirbel et al. and Thomas et al. (Nature Medicine 2019):
+    France, Austria, Germany, China, USA, two Italian cohorts and Japan — the standard benchmark for cross-cohort
+    CRC classifiers.'
+  studies:
+  - PRJEB6070
+  - PRJEB7774
+  - PRJEB27928
+  - PRJEB10878
+  - PRJEB12449
+  - PRJNA447983
+  - PRJDB4176
+  - PRJNA389927
+  references:
+  - label: Wirbel et al. 2019, Nature Medicine
+    url: https://doi.org/10.1038/s41591-019-0406-6
+  - label: Thomas et al. 2019, Nature Medicine
+    url: https://doi.org/10.1038/s41591-019-0405-7
+  - label: Zeller et al. 2014, Mol Syst Biol
+    url: https://doi.org/10.15252/msb.20145645
+  - label: Feng et al. 2015, Nature Communications
+    url: https://doi.org/10.1038/ncomms7528
+  - label: Yu et al. 2017, Gut
+    url: https://doi.org/10.1136/gutjnl-2015-309800
+  - label: Yachida et al. 2019, Nature Medicine
+    url: https://doi.org/10.1038/s41591-019-0458-7
+  notes: Hannigan 2018 (PRJNA389927) is the US cohort used by Thomas et al.; Vogtmann 2016 (PRJEB12449) the US cohort
+    used by Wirbel et al.
+- id: colorectal-cancer-samples
+  title: All colorectal cancer and adenoma samples
+  kind: disease
+  blurb: Every gut sample in the catalog whose evidence assigns colorectal cancer or colorectal adenoma/polyp as
+    the health condition, whatever the study — for extending the CRC benchmark beyond the 2019 meta-analysis cohorts.
+  filters:
+    health_condition:
+    - colorectal_cancer
+    - colorectal_adenoma
+    body_site_class:
+    - primary
+  references: []
+- id: t2d-reference-cohorts
+  title: Type 2 diabetes reference cohorts (Qin 2012, Karlsson 2013)
+  kind: disease
+  blurb: The two founding T2D metagenome-wide association cohorts — Chinese adults (Qin 2012) and 70-year-old European
+    women with normal, impaired and diabetic glucose control (Karlsson 2013) — plus the large Gothenburg pre-diabetes/T2D
+    cohort.
+  studies:
+  - PRJNA422434
+  - PRJEB1786
+  - PRJEB100670
+  references:
+  - label: Qin et al. 2012, Nature
+    url: https://doi.org/10.1038/nature11450
+  - label: Karlsson et al. 2013, Nature
+    url: https://doi.org/10.1038/nature12198
+- id: type2-diabetes-samples
+  title: All type 2 diabetes / prediabetes samples
+  kind: disease
+  blurb: Every gut sample assigned type 2 diabetes or prediabetes by the curated health_condition, across all studies.
+  filters:
+    health_condition:
+    - type2_diabetes
+    body_site_class:
+    - primary
+  references: []
+- id: ibd-reference-cohorts
+  title: IBD reference cohorts
+  kind: disease
+  blurb: 'Landmark inflammatory bowel disease shotgun cohorts: HMP2/IBDMDB, the PRISM cohort (Franzosa 2019), the
+    Broad longitudinal IBD stool study (Hall 2017) and the disease-adapted-lineage cohort of 2024.'
+  studies:
+  - PRJNA398089
+  - PRJNA389280
+  - PRJNA400072
+  - PRJNA385949
+  - PRJNA993675
+  references:
+  - label: Lloyd-Price et al. 2019, Nature
+    url: https://doi.org/10.1038/s41586-019-1237-9
+  - label: Franzosa et al. 2019, Nature Microbiology
+    url: https://doi.org/10.1038/s41564-018-0306-4
+  - label: Hall et al. 2017, Genome Medicine
+    url: https://doi.org/10.1186/s13073-017-0490-5
+  - label: Disease-adapted lineages in IBD (PRJNA993675)
+    url: https://doi.org/10.1016/j.chom.2024.05.022
+- id: ibd-samples
+  title: All IBD samples (Crohn's, ulcerative colitis, unspecified)
+  kind: disease
+  blurb: Every gut sample whose curated health_condition is Crohn's disease, ulcerative colitis or IBD unspecified,
+    across all studies.
+  filters:
+    health_condition:
+    - crohns_disease
+    - ulcerative_colitis
+    - ibd_unspecified
+    body_site_class:
+    - primary
+  references: []
+- id: liver-cirrhosis-cohorts
+  title: Liver cirrhosis cohorts
+  kind: disease
+  blurb: 'Shotgun cohorts of liver cirrhosis: the Chinese case–control cohort of Qin 2014 (the cirrhosis MWAS),
+    the MICROB-PREDICT decompensated-cirrhosis deposit and the PROFIT FMT-in-cirrhosis trial. Pair with the liver_disease
+    health-condition filter for all liver-disease samples.'
+  studies:
+  - PRJEB6337
+  - PRJEB89898
+  - PRJEB61882
+  references:
+  - label: Qin et al. 2014, Nature
+    url: https://doi.org/10.1038/nature13568
+- id: liver-disease-samples
+  title: All liver disease samples
+  kind: disease
+  blurb: Every gut sample whose curated health_condition is liver disease (cirrhosis, hepatitis, hepatocellular
+    carcinoma, hepatic encephalopathy), across all studies.
+  filters:
+    health_condition:
+    - liver_disease
+    body_site_class:
+    - primary
+  references: []
+- id: neonates-first-28-days
+  title: Neonates (first 28 days of life)
+  kind: age
+  blurb: Every gut sample collected in the first 28 days of life (age_category = neonate), across term and preterm
+    birth cohorts and NICU studies; the earliest colonisation window.
+  filters:
+    age_category:
+    - neonate
+    body_site_class:
+    - primary
+  references: []
+- id: centenarians-extreme-longevity
+  title: Centenarians and extreme longevity
+  kind: age
+  blurb: 'Cohorts recruited for exceptional age: Japanese centenarians (Sato 2021), Sardinian semi-supercentenarians
+    (Rampelli 2020), Chinese longevity areas (Guangxi and Sichuan cohorts), longevous families and the Greek Blue
+    Zone cohort.'
+  studies:
+  - PRJNA675598
+  - PRJNA553191
+  - PRJNA624763
+  - PRJNA542578
+  - PRJNA613947
+  - PRJNA1306521
+  filters:
+    age_category:
+    - elderly
+  references:
+  - label: Sato et al. 2021, Nature
+    url: https://doi.org/10.1038/s41586-021-03832-5
+  - label: Rampelli et al. 2020, mSystems
+    url: https://doi.org/10.1128/mSystems.00124-20
+  notes: The explorer has no numeric age filter; age_category = elderly (≥ 65 y) within these studies removes the
+    younger family controls. A ≥ 90 y cut needs age_at_collection_days in a notebook.
+- id: elderly-samples
+  title: Older adults (≥ 65 y)
+  kind: age
+  blurb: Every gut sample from subjects in the elderly age band (≥ 65 y at collection), across all studies.
+  filters:
+    age_category:
+    - elderly
+    body_site_class:
+    - primary
+  references: []

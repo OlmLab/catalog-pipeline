@@ -1,0 +1,16 @@
+/* Atlas › PCA page (atlas/pca.html, static/pca.js) */
+.pca-wrap{display:grid;grid-template-columns:300px 1fr;gap:1rem}
+@media (max-width:900px){.pca-wrap{grid-template-columns:1fr}.pca-controls{position:static;max-height:none}}
+.pca-canvas-wrap{position:relative;width:100%;height:640px;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;touch-action:none}
+.pca-canvas-wrap canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+#pca-overlay{pointer-events:none}
+.pca-tip{position:absolute;pointer-events:auto;background:#fff;border:1px solid var(--cu-dark-gray);border-radius:6px;padding:.4rem .6rem;font-size:.82rem;max-width:340px;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:5;line-height:1.35}
+.pca-tip .k{color:var(--muted)}
+.pca-legend{font-size:.82rem;max-height:300px;overflow:auto}
+.pca-legend .li{display:flex;align-items:center;gap:.4rem;padding:.1rem .2rem;cursor:pointer;border-radius:4px}
+.pca-legend .li:hover{background:var(--cu-pale-gold)}
+.pca-legend .li.dim{opacity:.4}
+.pca-legend .sw{width:12px;height:12px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.15)}
+.pca-legend .n{margin-left:auto;color:var(--muted)}
+.pca-loadings{margin-top:.6rem;font-size:.9rem}
+#pca-selection a{margin-left:.4rem}
