@@ -50,8 +50,13 @@ jobs:
           import glob, os, sqlite3, pandas as pd, json
           V = json.load(open("package/VERSION.json"))["package_version"]
           con = sqlite3.connect(f"infant_catalog_v{V}.sqlite")
+          # 1.12.0: the two largest fact tables (gut_sample_determinations 3.1 M rows, gut_runs 0.7 M rows) push the SQLite past the
+          # 2 GiB release-asset limit (data-v1.12.0 upload failed twice); they stay parquet-only, everything else is loaded.
+          SKIP = {"gut_sample_determinations", "gut_runs"}
           for f in sorted(glob.glob("package/*.parquet")):
               t = os.path.basename(f)[:-8]
+              if t in SKIP:
+                  print("skip (parquet only)", t); continue
               pd.read_parquet(f).to_sql(t, con, if_exists="replace", index=False)
               print("table", t)
           for f in sorted(glob.glob("package/*.csv")):
@@ -61,6 +66,8 @@ jobs:
           con.commit(); con.close()
           EOF
           ls -la *.zip *.sqlite
+          # never hand softprops a file above the 2 GiB asset limit — drop the SQLite instead of failing the release
+          find . -maxdepth 1 -name "*.sqlite" -size +1900M -print -delete
           sha256sum *.zip *.sqlite > SHA256SUMS.txt
       - name: Attach assets to the GitHub Release
         uses: softprops/action-gh-release@v2
