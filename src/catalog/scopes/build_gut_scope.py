@@ -25,7 +25,10 @@ import yaml
 DET_COLS = ["sample_key", "field_name", "study_accession", "field_value", "value_normalized", "confidence", "evidence_source", "evidence_locator",
             "evidence_quote", "evidence_limited_to_abstract", "determined_by", "route", "scope", "parse_note", "group_audit", "src_track",
             "release_added", "release_retired", "package_added"]
-PACK_FIELDS = ["age_at_collection_days", "sex", "bmi", "country", "health_condition", "health_condition_detail", "antibiotic_exposure", "subject_id", "timepoint_label"]
+# Field lists come from config/packs/gut.yaml (pack_fields(); 1.12.0) — the module-level names are kept for callers/tests and are
+# refreshed from the pack when build() runs.
+PACK_FIELDS = ["age_at_collection_days", "sex", "bmi", "country", "health_condition", "health_condition_detail", "antibiotic_exposure", "subject_id", "timepoint_label",
+               "collection_date", "location_region", "location_locality", "location_site", "latitude", "longitude", "lifestyle", "lifestyle_detail"]
 INFANT_ONLY = ["delivery_mode", "feeding_mode", "preterm_status", "gestational_age_weeks", "birth_weight_grams", "maternal_antibiotics", "probiotic_exposure", "hmo_supplementation", "nec_status"]
 ROUTE_RANK = {"R1": 1, "R2": 2, "R3": 3, "R4": 4}
 SRC = "gut_all_v1"
@@ -34,6 +37,63 @@ STAGE_TO_CAT = {"neonate": "neonate", "infant": "infant", "child": "child", "ado
 
 def _load_pack(cfg_dir):
     return yaml.safe_load(open(os.path.join(cfg_dir, "packs", "gut.yaml"), encoding="utf-8"))
+
+
+def pack_fields(pack: dict) -> dict:
+    """Field tiers from the pack: fields (determined per sample, in pack order), infant_only (derived_fields with infant_only: true),
+    compose (derived_fields with `compose`), year_of (derived_fields with `from`), core, key, vocab (field → vocab yaml path)."""
+    fields = list(pack["fields"].keys())
+    derived = pack.get("derived_fields") or {}
+    infant_only = [f for f, s in derived.items() if isinstance(s, dict) and s.get("infant_only")]
+    compose = {f: s for f, s in derived.items() if isinstance(s, dict) and s.get("compose")}
+    year_of = {f: s["from"] for f, s in derived.items() if isinstance(s, dict) and s.get("from")}
+    vocab = {f: s["vocab"] for f, s in pack["fields"].items() if isinstance(s, dict) and s.get("type") == "vocab" and s.get("vocab")}
+    return dict(fields=fields, infant_only=infant_only, compose=compose, year_of=year_of, core=list(pack.get("core_fields") or []),
+                key=list(pack.get("key_fields") or []), vocab=vocab)
+
+
+def compose_detailed_location(parts) -> str | None:
+    """'site, locality, region' with empty parts dropped (the derived detailed_location column)."""
+    vals = [str(p).strip() for p in parts if not pd.isna(p) and str(p).strip() not in ("", "None", "nan", "<NA>")]
+    return ", ".join(vals) if vals else None
+
+
+def collection_year(value) -> float | None:
+    """Leading YYYY of an ISO partial collection_date (start of an interval) as a number, else None."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    m = pd.Series([str(value)]).str.extract(r"^(\d{4})")[0].iloc[0]
+    return float(m) if isinstance(m, str) else None
+
+
+def load_vocab_codes(cfg_dir: str, rel_path: str) -> set:
+    p = rel_path if os.path.isabs(rel_path) else os.path.join(cfg_dir, *rel_path.replace("config/", "", 1).split("/"))
+    return set((yaml.safe_load(open(p, encoding="utf-8")).get("codes") or {}).keys())
+
+
+def validate_vocab_fields(det: pd.DataFrame, pf: dict, cfg_dir: str) -> tuple[pd.DataFrame, dict]:
+    """Rows of vocab-typed fields (health_condition, lifestyle) whose normalised value is not a code of the field's vocabulary are dropped;
+    the count per field is returned (infant-catalog rows are exempt: their legacy codes are in the vocab as legacy_infant)."""
+    dropped = {}
+    keep = pd.Series(True, index=det.index)
+    for f, vp in pf["vocab"].items():
+        codes = load_vocab_codes(cfg_dir, vp)
+        m = (det.field_name == f) & (det.src_track != "infant_catalog") & ~det.value_normalized.astype("string").isin(codes).fillna(False)
+        dropped[f] = int(m.sum())
+        keep &= ~m
+    return det[keep], dropped
+
+
+def sequencing_summary(gut_runs: pd.DataFrame) -> pd.DataFrame:
+    """Study-level sequencing columns from gut_runs: n_runs_total, gbp_per_run_mean / median, instrument_models_top (JSON counts, top 5),
+    library_layouts (JSON counts), sandpiper_profiled_share."""
+    g = gut_runs.assign(_gbp=pd.to_numeric(gut_runs.base_count, errors="coerce") / 1e9).groupby("study_accession")
+    out = pd.DataFrame({"n_runs_total": g.size(),
+                        "gbp_per_run_mean": g._gbp.mean().round(3), "gbp_per_run_median": g._gbp.median().round(3),
+                        "instrument_models_top": g.instrument_model.apply(lambda s: json.dumps(s.dropna().value_counts().head(5).to_dict())),
+                        "library_layouts": g.library_layout.apply(lambda s: json.dumps(s.dropna().value_counts().to_dict())),
+                        "sandpiper_profiled_share": g.sandpiper_profiled.apply(lambda s: round(float(s.astype(bool).mean()), 4) if len(s) else None)})
+    return out
 
 
 def _q12(v):
@@ -152,8 +212,11 @@ def expand_study_all(det_sample: pd.DataFrame, det_study: pd.DataFrame, samples:
 
 
 def build(a):
+    global PACK_FIELDS, INFANT_ONLY
     cfg_dir = os.environ.get("CATALOG_CONFIG_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "..", "config"))
     pack = _load_pack(cfg_dir)
+    pf = pack_fields(pack)
+    PACK_FIELDS, INFANT_ONLY = pf["fields"], pf["infant_only"]
     rid, pv = a.release_id, a.package_version
     studies = pd.read_parquet(a.studies)
     reg = pd.read_parquet(a.registry_studies) if a.registry_studies else studies
@@ -180,7 +243,7 @@ def build(a):
     samples["in_infant_catalog"] = samples.study_accession.isin(infant_acc)
 
     # ---- determinations
-    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(a.r2_glob), load_any(a.r3_glob), load_any(a.r4_glob)]
+    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(getattr(a, "r1_newfields", None)), load_any(a.r2_glob), load_any(a.r3_glob), load_any(a.r4_glob)]
     det0 = pd.read_parquet(os.path.join(a.package, "sample_determinations.parquet"))
     det0 = det0[det0.study_accession.isin(infant_acc) & det0.field_name.isin(PACK_FIELDS + INFANT_ONLY)]
     if "release_retired" in det0.columns:
@@ -194,6 +257,8 @@ def build(a):
     # 'unknown' / placeholder codes are not determinations (unknown stays unknown = no row); keep raw detail text
     unk = det.value_normalized.astype("string").str.lower().isin(["unknown", "unknown_age", "unknown_site", "none", "nan", ""]) & (det.field_name != "health_condition_detail")
     det = det[~unk.fillna(False)]
+    # vocabulary validation (health_condition, lifestyle …): codes outside config/vocab/<field>.yaml are dropped and counted
+    det, vocab_dropped = validate_vocab_fields(det, pf, cfg_dir)
     # routes allowed per field (config/packs/gut.yaml fields.<f>.routes); infant-catalog rows are exempt (their own rules applied)
     allowed = {f: set(v.get("routes", ["R1", "R2", "R3", "R4"])) for f, v in pack["fields"].items()}
     ok_route = [(r in allowed.get(f, {"R1", "R2", "R3", "R4"})) or (t == "infant_catalog") for f, r, t in zip(det.field_name, det.route, det.src_track)]
@@ -221,7 +286,15 @@ def build(a):
             w[f + "__confidence"] = conf[f] if f in conf.columns else None
             w[f + "__route"] = route[f] if f in route.columns else None
     w["age_at_collection_days"] = pd.to_numeric(w["age_at_collection_days"], errors="coerce")
-    w["bmi"] = pd.to_numeric(w["bmi"], errors="coerce")
+    for f in ("bmi", "latitude", "longitude"):
+        if f in w.columns:
+            w[f] = pd.to_numeric(w[f], errors="coerce")
+    # derived columns (config/packs/gut.yaml derived_fields): detailed_location = compose parts; collection_year = leading YYYY
+    for f, spec in pf["compose"].items():
+        cols = [c for c in spec["compose"] if c in w.columns]
+        w[f] = [compose_detailed_location(vals) for vals in zip(*[w[c] for c in cols])] if cols else None
+    for f, src in pf["year_of"].items():
+        w[f] = w[src].map(collection_year) if src in w.columns else None
     st_stage = reg.set_index("study_accession").life_stage_primary if "life_stage_primary" in reg.columns else pd.Series(dtype=str)
     cat_age = w.age_at_collection_days.map(lambda d: age_category(d, pack))
     cat_stage = w.sample_life_stage.map(STAGE_TO_CAT)
@@ -255,7 +328,9 @@ def build(a):
     # infant_scope == the infant catalog's catalog_scope rule exactly (age_scope infant_evidenced/study_all_infant AND body site primary/unknown)
     inf_scope0 = pd.Series(w.index.map(scope0), index=w.index).isin(["infant_evidenced", "study_all_infant"])
     w["infant_scope"] = is_inf & inf_scope0 & w.body_site_class.isin(["primary", "unknown"])
-    w["n_fields_with_value"] = w[PACK_FIELDS].notna().sum(axis=1)
+    # n_fields_with_value counts the CORE + KEY fields (owner tiers, 2026-09-29); detailed_location counts through its derived column
+    tier_cols = [f for f in pf["core"] + pf["key"] if f in w.columns]
+    w["n_fields_with_value"] = w[tier_cols].notna().sum(axis=1)
     w["release_added"], w["release_retired"], w["package_added"] = rid, None, pv
     w = w.reset_index()
 
@@ -268,6 +343,14 @@ def build(a):
     gs["health_conditions"] = g.health_condition.apply(lambda s: json.dumps(s.dropna().value_counts().head(6).to_dict()))
     gs["curated_depth"] = det_all.groupby("study_accession").route.apply(lambda s: ";".join(sorted(set(s))))
     gs["curated_source"] = ["infant_catalog" if x in infant_acc else SRC for x in gs.index]
+    # ---- runs (gut_runs.parquet, 1.12.0) + study sequencing summary
+    gut_runs = None
+    if getattr(a, "registry_runs", None) and os.path.exists(a.registry_runs):
+        from catalog.scopes.newfields_r1 import build_gut_runs
+        sp = pd.read_parquet(a.registry_sandpiper) if getattr(a, "registry_sandpiper", None) and os.path.exists(a.registry_sandpiper) else None
+        gut_runs = build_gut_runs(pd.read_parquet(a.registry_runs), sp, gut_acc, w)
+        gs = gs.join(sequencing_summary(gut_runs), how="left")
+        gs["n_runs_total"] = gs.n_runs_total.fillna(0).astype(int)
     gs["n_samples_curated"] = gs.n_samples_curated.fillna(0).astype(int)
     gs["release_added"], gs["release_retired"], gs["package_added"] = rid, None, pv
     gs = gs.reset_index()
@@ -277,6 +360,7 @@ def build(a):
     if a.previous_dir:
         from catalog.registry.build_registry import carry_release_columns
         for name, key, df_ref in ((pack["tables"]["determinations"], ["sample_key", "field_name"], "det"), (pack["tables"]["samples_wide"], ["sample_key"], "w"), (pack["tables"]["studies"], ["study_accession"], "gs")):
+            # gut_runs is a pure archive projection (no release columns): rebuilt in full each release
             prev_p = os.path.join(a.previous_dir, name)
             if os.path.exists(prev_p):
                 prev = pd.read_parquet(prev_p)
@@ -286,6 +370,9 @@ def build(a):
                     w = carry_release_columns(w, prev, key, rid)
                 else:
                     gs = carry_release_columns(gs, prev, key, rid)
+    if gut_runs is not None:
+        gs["n_runs_total"] = pd.to_numeric(gs.n_runs_total, errors="coerce").fillna(0).astype(int)
+        gut_runs.to_parquet(os.path.join(a.out, pack["tables"].get("runs", "gut_runs.parquet")), index=False)
     det_all.to_parquet(os.path.join(a.out, pack["tables"]["determinations"]), index=False)
     w.to_parquet(os.path.join(a.out, pack["tables"]["samples_wide"]), index=False)
     gs.to_parquet(os.path.join(a.out, pack["tables"]["studies"]), index=False)
@@ -293,7 +380,10 @@ def build(a):
     summary = dict(n_studies=int(len(gs)), n_samples=int(len(w)), n_determinations=int(len(det_all)), n_conflicts=int(len(conflicts)),
                    by_source=w.curated_source.value_counts().to_dict(), age_category=w.age_category.value_counts().to_dict(),
                    coverage={f: round(float(w[f].notna().mean()), 4) for f in PACK_FIELDS}, routes=det_all.route.value_counts().to_dict(),
-                   n_infant_scope=int(w.infant_scope.sum()), health_condition=w.health_condition.value_counts().head(12).to_dict())
+                   n_infant_scope=int(w.infant_scope.sum()), health_condition=w.health_condition.value_counts().head(12).to_dict(),
+                   vocab_dropped=vocab_dropped, n_runs=int(len(gut_runs)) if gut_runs is not None else None,
+                   lifestyle=w.lifestyle.value_counts().to_dict() if "lifestyle" in w.columns else {},
+                   collection_year=({int(k): int(v) for k, v in w.collection_year.dropna().astype(int).value_counts().sort_index().items()} if "collection_year" in w.columns else {}))
     if a.summary:
         json.dump(summary, open(a.summary, "w"), indent=1)
     print(json.dumps(summary))
@@ -304,7 +394,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--studies", required=True, help="gut study list (registry columns + in_infant_catalog)")
     ap.add_argument("--registry-studies"), ap.add_argument("--biosamples", required=True), ap.add_argument("--package", required=True, help="previous package dir (infant curated tables)")
-    ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"), ap.add_argument("--r2-glob"), ap.add_argument("--r3-glob", help="R3 full-text study_all determinations (glob)"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
+    ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"),
+    ap.add_argument("--r1-newfields", help="R1 determinations of the 1.12.0 fields (collection_date, location_*, latitude/longitude, lifestyle) from catalog.scopes.newfields_r1"),
+    ap.add_argument("--registry-runs", help="registry_runs.parquet → gut_runs.parquet + study sequencing summary columns"), ap.add_argument("--registry-sandpiper", help="registry_runs_sandpiper.parquet (sandpiper_profiled per run)"), ap.add_argument("--r2-glob"), ap.add_argument("--r3-glob", help="R3 full-text study_all determinations (glob)"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
     ap.add_argument("--out", required=True), ap.add_argument("--summary"), ap.add_argument("--release-id", default="R2026.7"), ap.add_argument("--package-version", default="1.8.0")
     ap.add_argument("--previous-dir", help="previous package dir: gut_* tables there provide release_added / retirements")
     build(ap.parse_args(argv))

@@ -397,3 +397,30 @@ The first curated scope beyond the infant catalog: every human gut shotgun-metag
    life stage (basis recorded); body_site_class from the sample attribute or the study's single registry site.
 4. Not yet run for non-infant studies: R3 (full-text prose), infant-only fields, Opus group audit of R4 statements (group_audit pending),
    Sandpiper per-sample join. Future fields inventory: data/inputs/gut/gut_future_fields_inventory.csv.
+5. **New fields (R2026.12 / 1.12.0; owner site review 2026-09-29)** — `collection_date`, `location_region` / `location_locality` /
+   `location_site` (+ derived `detailed_location`), `latitude` / `longitude`, `lifestyle` / `lifestyle_detail` (+ derived
+   `collection_year`). The scope builder takes every field list from `config/packs/gut.yaml` (`fields`, `core_fields`, `key_fields`,
+   `derived_fields`) — adding a field = one line in the pack + a leaf that emits determination rows for it; the wide table, the
+   `cov_<field>` study columns and `n_fields_with_value` (= core + key fields with a value) follow. Vocabulary-typed fields
+   (`health_condition`, `lifestyle`) are validated against their `config/vocab/*.yaml` codes (drops counted in the summary).
+   * Route R1 leaf: `make gut-newfields-r1` (`catalog.scopes.newfields_r1`; input `GUT_ATTRIBUTES` = the harvested BioSample attribute
+     rows of the catalog studies, ≈ 1.8 M rows). Deterministic parsers for dates (YYYY / YYYY-MM / YYYY-MM-DD / DD-Mon-YYYY / Mon-YYYY /
+     M/D/YYYY when unambiguous or settled by the study's other values / ISO datetimes / intervals; placeholders, years < 1990 or after the
+     run's `first_public` year, impossible dates rejected) and coordinates (`lat_lon`, `latitude_and_longitude`, latitude+longitude key
+     pairs; DMS; (0,0), out-of-range and swapped pairs rejected — the country check uses the offline GeoNames cities1000 table of
+     `reverse_geocoder`, not Natural Earth). Place strings are normalised on DISTINCT values only by the utility model in batches of 40 and
+     every output token is validated against the raw string (substring / documented US-state, Chinese-province, Canadian/Australian
+     abbreviation / declared exonym) — the reviewable map is `data/inputs/gut/gut_location_map.parquet` (+ `gut_location_exonym_map.json`);
+     lifestyle codes come from lifestyle-stating keys only (`urban`, `rural_urban_status`, `community_type`, exact vegan/vegetarian diet
+     values, `tribe` / `population` / `community` with utility-model confirmation; never ethnicity/race) → `gut_lifestyle_map.parquet`.
+     Optional `REVERSE_GEOCODE=1` fills `location_region` (never a locality) from ≥ 2-decimal coordinates at confidence 0.6 with
+     `parse_note` "reverse-geocoded from lat_lon (GeoNames cities1000)"; centroid-like points (shared by ≥ 3 studies, > 3 km from any
+     GeoNames place) and points > 10 km from any place are skipped. Outputs: `gut_r1_newfields_determinations.parquet`,
+     `gut_r1_newfields_rejects.parquet`, `gut_r1_newfields_conflicts.parquet`, `gut_r1_newfields_summary.json`. Re-runs reuse the maps
+     (`GUT_LOCATION_MAP=… GUT_LIFESTYLE_MAP=…`, 0 tokens). Measured 2026-09-29: 34 utility calls, ≈ 0.26 M tokens.
+   * `gut-build` now also writes **`gut_runs.parquet`** (one row per run of a catalog study from `registry_runs` + `registry_runs_sandpiper`,
+     with the catalog `sample_key`; run-unit samples keyed by run accession) and the study sequencing summary columns on `gut_studies`
+     (`n_runs_total`, `gbp_per_run_mean` / `_median`, `instrument_models_top`, `library_layouts`, `sandpiper_profiled_share`).
+     Inputs: `REGISTRY_RUNS`, `REGISTRY_SANDPIPER`, `GUT_R1_NEWFIELDS`. The table is documented from audit/registry_schema.json
+     (package-docs) and counted in the release notes.
+   * Tests: tests/test_newfields_r1.py (parsers ≥ 40 cases each, place validator, lifestyle rules, gut_runs, wide derivations).

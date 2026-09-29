@@ -40,7 +40,7 @@ EXTERNAL   ?= $(HOME)/catalog/external
 export SANDPIPER_ZENODO_RECORD := $(ZENODO_RECORD)
 export SANDPIPER_VERSION
 
-.PHONY: gut-build registry-fixture registry-classify-det registry-build registry-biosamples help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
+.PHONY: gut-build gut-newfields-r1 registry-fixture registry-classify-det registry-build registry-biosamples help gapfill apply-gapfill ingest-contributions apply-verdicts bootstrap bootstrap-kernel lock check-credential unpack inputs-json sync-skills test resweep triage extract findings rewide package package-assemble bitemporal worklist package-docs release-notes release check-reports plot-coverage site verify publish-branch install-workflows ingest-issues sandpiper-refresh sandpiper-delta authors clean
 
 help:            ## list targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -276,17 +276,28 @@ GUT_STUDIES  ?= $(GUT_DIR)/gut_studies.parquet
 GUT_R1       ?= $(GUT_DIR)/gut_r1_determinations.parquet
 GUT_R1_EXTRA ?= $(GUT_DIR)/gut_condition_abx_determinations.parquet
 GUT_R2_GLOB  ?= $(GUT_DIR)/r2/gut_r2_determinations_shard_*.parquet
-GUT_R3_GLOB  ?= $(GUT_DIR)/r3/gut_r3_determinations_merged.parquet
-GUT_R4_GLOB  ?= $(GUT_DIR)/r4/gut_r4_determinations_shard_*.parquet
+GUT_R3_GLOB  ?= $(GUT_DIR)/r3*/gut_r3*_determinations_merged.parquet   # r3/ (R2026.8 cohort statements) + r3b/ (R2026.12 lifestyle / location / collection_date)
+GUT_R4_GLOB  ?= $(GUT_DIR)/r4*/gut_r4*_determinations_shard_*.parquet   # r4/ (R2026.7) + r4b/shards (R2026.12)
 GUT_COND_MAP ?= $(GUT_DIR)/gut_health_condition_map.parquet
 GUT_ABX_MAP  ?= $(GUT_DIR)/gut_antibiotic_map.parquet
+# 1.12.0 (R2026.12): route R1 for the new pack fields (collection_date, location_*, latitude/longitude, lifestyle) — output of gut-newfields-r1
+GUT_R1_NEWFIELDS ?= $(GUT_DIR)/gut_r1_newfields_determinations.parquet
+# harvested BioSample attribute rows of the catalog studies (artifact; bootstrap materialises it) — input of gut-newfields-r1
+GUT_ATTRIBUTES   ?= $(GUT_DIR)/gut_biosample_attributes.parquet
 GUT_OUT      ?= $(BUILD)/gut
 
-gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations from registry_biosamples + R1/R2/R3/R4 leaf outputs + the infant tables
+gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations / gut_runs from registry_biosamples + registry_runs + R1/R2/R3/R4 leaf outputs + the infant tables
 	mkdir -p $(GUT_OUT) $(BUILD)/gut
 	$(PY) -m catalog.scopes.build_gut_scope --studies $(GUT_STUDIES) --registry-studies $(PKG_OUT)/registry_studies.parquet --biosamples $(PKG_OUT)/registry_biosamples.parquet \
-	  --package $(PKG_OUT) --r1 $(GUT_R1) --r1-extra "$(GUT_R1_EXTRA)" --r2-glob "$(GUT_R2_GLOB)" --r3-glob "$(GUT_R3_GLOB)" --r4-glob "$(GUT_R4_GLOB)" --condition-map $(GUT_COND_MAP) --antibiotic-map $(GUT_ABX_MAP) \
+	  --package $(PKG_OUT) --r1 $(GUT_R1) --r1-extra "$(GUT_R1_EXTRA)" --r1-newfields "$(GUT_R1_NEWFIELDS)" --r2-glob "$(GUT_R2_GLOB)" --r3-glob "$(GUT_R3_GLOB)" --r4-glob "$(GUT_R4_GLOB)" --condition-map $(GUT_COND_MAP) --antibiotic-map $(GUT_ABX_MAP) \
+	  --registry-runs $(REGISTRY_RUNS) --registry-sandpiper $(REGISTRY_SANDPIPER) \
 	  --out $(GUT_OUT) --summary $(BUILD)/gut/gut_scope_summary.json --release-id $(RELEASE_ID) --package-version $(VERSION) --previous-dir $(PKG_SRC)
+
+gut-newfields-r1: ## stage 8 leaf (Claude session for the utility-model steps; ≈ 0.3 M tokens) — R1 rows for collection_date / location_* / latitude+longitude / lifestyle from the BioSample attributes → $(GUT_R1_NEWFIELDS) + gut_location_map / gut_lifestyle_map / rejects / conflicts
+	@test -f "$(GUT_ATTRIBUTES)" || { echo "attribute rows missing: $(GUT_ATTRIBUTES) (artifact gut_biosample_attributes; bootstrap.py)"; exit 1; }
+	$(PY) -m catalog.scopes.newfields_r1 --attributes $(GUT_ATTRIBUTES) --wide $(PKG_SRC)/gut_sample_metadata_wide.parquet --gut-studies $(GUT_STUDIES) \
+	  --registry-runs $(REGISTRY_RUNS) --registry-sandpiper $(REGISTRY_SANDPIPER) --out-dir $(GUT_DIR) --release-id $(RELEASE_ID) --package-version $(VERSION) \
+	  $(if $(GUT_LOCATION_MAP),--location-map $(GUT_LOCATION_MAP),) $(if $(GUT_LIFESTYLE_MAP),--lifestyle-map $(GUT_LIFESTYLE_MAP),) $(if $(NO_LLM),--no-llm,) $(if $(REVERSE_GEOCODE),--reverse-geocode,)
 	@rm -f $(GUT_OUT)/gut_sample_determinations_conflicts.parquet 2>/dev/null; true
 
 # REGISTRY_UNIVERSE: enumeration track output (frozen columns: audit/registry_schema.json)

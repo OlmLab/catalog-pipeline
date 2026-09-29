@@ -1496,6 +1496,136 @@
      "description": "Route of the committed timepoint_label value"
     },
     {
+     "name": "collection_date",
+     "type": "string",
+     "description": "ISO 8601 partial date or interval of sample collection (R2026.12): YYYY, YYYY-MM, YYYY-MM-DD or start/end"
+    },
+    {
+     "name": "collection_date__confidence",
+     "type": "float",
+     "description": "Confidence of the collection_date value"
+    },
+    {
+     "name": "collection_date__route",
+     "type": "string",
+     "description": "Route of the collection_date value (R1–R4)"
+    },
+    {
+     "name": "location_region",
+     "type": "string",
+     "description": "First-level administrative region below the country (English exonym) — R2026.12"
+    },
+    {
+     "name": "location_region__confidence",
+     "type": "float",
+     "description": "Confidence of the location_region value"
+    },
+    {
+     "name": "location_region__route",
+     "type": "string",
+     "description": "Route of the location_region value (R1–R4)"
+    },
+    {
+     "name": "location_locality",
+     "type": "string",
+     "description": "City / town / village of recruitment (English exonym) — R2026.12"
+    },
+    {
+     "name": "location_locality__confidence",
+     "type": "float",
+     "description": "Confidence of the location_locality value"
+    },
+    {
+     "name": "location_locality__route",
+     "type": "string",
+     "description": "Route of the location_locality value (R1–R4)"
+    },
+    {
+     "name": "location_site",
+     "type": "string",
+     "description": "Named recruitment site (hospital, clinic, cohort station, community) as written by the source — R2026.12"
+    },
+    {
+     "name": "location_site__confidence",
+     "type": "float",
+     "description": "Confidence of the location_site value"
+    },
+    {
+     "name": "location_site__route",
+     "type": "string",
+     "description": "Route of the location_site value (R1–R4)"
+    },
+    {
+     "name": "latitude",
+     "type": "float",
+     "description": "Decimal degrees, 4 decimals, from lat_lon-style attributes — R2026.12"
+    },
+    {
+     "name": "latitude__confidence",
+     "type": "float",
+     "description": "Confidence of the latitude value"
+    },
+    {
+     "name": "latitude__route",
+     "type": "string",
+     "description": "Route of the latitude value (R1–R4)"
+    },
+    {
+     "name": "longitude",
+     "type": "float",
+     "description": "Decimal degrees, 4 decimals, same source row as latitude — R2026.12"
+    },
+    {
+     "name": "longitude__confidence",
+     "type": "float",
+     "description": "Confidence of the longitude value"
+    },
+    {
+     "name": "longitude__route",
+     "type": "string",
+     "description": "Route of the longitude value (R1–R4)"
+    },
+    {
+     "name": "lifestyle",
+     "type": "string",
+     "description": "config/vocab/lifestyle.yaml code, only when the source states it — R2026.12"
+    },
+    {
+     "name": "lifestyle__confidence",
+     "type": "float",
+     "description": "Confidence of the lifestyle value"
+    },
+    {
+     "name": "lifestyle__route",
+     "type": "string",
+     "description": "Route of the lifestyle value (R1–R4)"
+    },
+    {
+     "name": "lifestyle_detail",
+     "type": "string",
+     "description": "Named population or the source's own words for the lifestyle — R2026.12"
+    },
+    {
+     "name": "lifestyle_detail__confidence",
+     "type": "float",
+     "description": "Confidence of the lifestyle_detail value"
+    },
+    {
+     "name": "lifestyle_detail__route",
+     "type": "string",
+     "description": "Route of the lifestyle_detail value (R1–R4)"
+    },
+    {
+     "name": "detailed_location",
+     "type": "string",
+     "description": "Derived: 'site, locality, region' with empty parts dropped (not a determination; its parts are) — R2026.12"
+    },
+    {
+     "name": "collection_year",
+     "type": "float",
+     "description": "Derived: leading YYYY of collection_date (start of an interval) — R2026.12"
+    },
+    {
      "name": "delivery_mode",
      "type": "string",
      "description": "Infant-catalog field (only on infant rows)"
@@ -1686,6 +1816,36 @@
      "description": "infant_catalog | gut_all_v1"
     },
     {
+     "name": "n_runs_total",
+     "type": "int",
+     "description": "Runs of the study in gut_runs — R2026.12"
+    },
+    {
+     "name": "gbp_per_run_mean",
+     "type": "float",
+     "description": "Mean Gbp per run (base_count / 1e9) — R2026.12"
+    },
+    {
+     "name": "gbp_per_run_median",
+     "type": "float",
+     "description": "Median Gbp per run — R2026.12"
+    },
+    {
+     "name": "instrument_models_top",
+     "type": "string",
+     "description": "JSON dict instrument_model → runs (top 5) — R2026.12"
+    },
+    {
+     "name": "library_layouts",
+     "type": "string",
+     "description": "JSON dict library_layout → runs — R2026.12"
+    },
+    {
+     "name": "sandpiper_profiled_share",
+     "type": "float",
+     "description": "Share of the study's runs profiled by Sandpiper — R2026.12"
+    },
+    {
      "name": "release_added",
      "type": "string",
      "description": "Release id"
@@ -1703,6 +1863,95 @@
    ],
    "bitemporal": "release columns written by catalog.scopes.build_gut_scope",
    "columns_note": "gut_studies carries every registry_studies column; the list above names only the scope-specific additions"
+  },
+  "gut_runs.parquet": {
+   "key": [
+    "run_accession"
+   ],
+   "one_row_per": "sequencing run of a gut_all catalog study (registry_runs ∩ gut_studies) with the catalog sample_key — added R2026.12 / 1.12.0",
+   "bitemporal": "none: pure projection of registry_runs + registry_runs_sandpiper, rebuilt in full each release (catalog.scopes.build_gut_scope / newfields_r1.build_gut_runs)",
+   "columns": [
+    {
+     "name": "run_accession",
+     "type": "string",
+     "description": "ENA/SRA run accession (SRR/ERR/DRR)"
+    },
+    {
+     "name": "study_accession",
+     "type": "string",
+     "description": "BioProject of the run (a gut_studies row)"
+    },
+    {
+     "name": "sample_accession",
+     "type": "string",
+     "description": "BioSample accession(s) of the run (';'-joined when the run pools several)"
+    },
+    {
+     "name": "secondary_sample_accession",
+     "type": "string",
+     "description": "SRS/ERS secondary sample accession(s)"
+    },
+    {
+     "name": "experiment_accession",
+     "type": "string",
+     "description": "SRX/ERX experiment accession"
+    },
+    {
+     "name": "library_name",
+     "type": "string",
+     "description": "Submitter library name"
+    },
+    {
+     "name": "library_strategy",
+     "type": "string",
+     "description": "ENA library_strategy (WGS / WXS / OTHER …)"
+    },
+    {
+     "name": "library_source",
+     "type": "string",
+     "description": "ENA library_source (METAGENOMIC …)"
+    },
+    {
+     "name": "library_layout",
+     "type": "string",
+     "description": "SINGLE | PAIRED"
+    },
+    {
+     "name": "instrument_platform",
+     "type": "string",
+     "description": "ENA instrument_platform"
+    },
+    {
+     "name": "instrument_model",
+     "type": "string",
+     "description": "ENA instrument_model"
+    },
+    {
+     "name": "read_count",
+     "type": "string",
+     "description": "ENA read_count (as delivered by the portal)"
+    },
+    {
+     "name": "base_count",
+     "type": "string",
+     "description": "ENA base_count (as delivered by the portal)"
+    },
+    {
+     "name": "first_public",
+     "type": "string",
+     "description": "ENA first_public date (YYYY-MM-DD); its year bounds collection_date (R1 parser)"
+    },
+    {
+     "name": "sandpiper_profiled",
+     "type": "bool",
+     "description": "Run present in the Sandpiper snapshot (registry_runs_sandpiper)"
+    },
+    {
+     "name": "sample_key",
+     "type": "string",
+     "description": "gut_sample_metadata_wide.sample_key of the run's sample (run accession for run-unit samples; null when the BioSample is not a catalog sample, e.g. pooled runs)"
+    }
+   ]
   }
  }
 }

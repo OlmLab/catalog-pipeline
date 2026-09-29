@@ -106,18 +106,31 @@ def build(prev: str, new: str, cfg: dict | None = None, cycle_log: str | None = 
         return set(pd.read_parquet(p, columns=[k])[k].astype(str)) if os.path.exists(p) else set()
 
     # ---- catalog (gut_*, all ages) and registry — first when the tables exist (1.8.0+)
+    # coverage rows: the pack's core + key fields (config/packs/gut.yaml; 1.12.0) — a field absent from the previous package counts 0 there
     CORE = ["age_at_collection_days", "sex", "bmi", "country", "health_condition", "antibiotic_exposure", "subject_id", "timepoint_label"]
+    try:
+        _pack = yaml.safe_load(open(os.path.join(os.environ.get("CATALOG_CONFIG_DIR", os.path.join(os.path.dirname(__file__), "..", "..", "..", "config")), "packs", "gut.yaml"), encoding="utf-8"))
+        CORE = list(dict.fromkeys(list(_pack.get("core_fields") or []) + list(_pack.get("key_fields") or []) + CORE))
+    except Exception:  # noqa: BLE001 — fall back to the historical list when the pack is unavailable
+        pass
     gp, gn = os.path.join(prev, "gut_sample_metadata_wide.parquet"), os.path.join(new, "gut_sample_metadata_wide.parquet")
     if os.path.exists(gn):
         gsp, gsn = keys(prev, "gut_studies.parquet", "study_accession"), keys(new, "gut_studies.parquet", "study_accession")
-        gwp = pd.read_parquet(gp, columns=["sample_key"] + CORE) if os.path.exists(gp) else pd.DataFrame(columns=["sample_key"] + CORE)
+        new_cols = set(pq.ParquetFile(gn).schema.names)
+        CORE = [f for f in CORE if f in new_cols]
+        prev_cols = set(pq.ParquetFile(gp).schema.names) if os.path.exists(gp) else set()
+        gwp = pd.read_parquet(gp, columns=["sample_key"] + [f for f in CORE if f in prev_cols]).reindex(columns=["sample_key"] + CORE) if os.path.exists(gp) else pd.DataFrame(columns=["sample_key"] + CORE)
         gwn = pd.read_parquet(gn, columns=["sample_key"] + CORE)
+        grp, grn = os.path.join(prev, "gut_runs.parquet"), os.path.join(new, "gut_runs.parquet")
+        n_runs_prev = pq.ParquetFile(grp).metadata.num_rows if os.path.exists(grp) else 0
+        n_runs_new = pq.ParquetFile(grn).metadata.num_rows if os.path.exists(grn) else 0
         ndp = pq.ParquetFile(os.path.join(prev, "gut_sample_determinations.parquet")).metadata.num_rows if os.path.exists(os.path.join(prev, "gut_sample_determinations.parquet")) else 0
         ndn = pq.ParquetFile(os.path.join(new, "gut_sample_determinations.parquet")).metadata.num_rows
         L += ["## Catalog (human gut, all ages: `gut_*` tables)", "",
               _md_table([["catalog studies", _fmt(len(gsp)), _fmt(len(gsn)), _fmt(len(gsn - gsp)), _fmt(len(gsp - gsn))],
                          ["catalog samples", _fmt(len(gwp)), _fmt(len(gwn)), _fmt(len(set(gwn.sample_key) - set(gwp.sample_key))), _fmt(len(set(gwp.sample_key) - set(gwn.sample_key)))],
-                         ["sample × field values (current)", _fmt(ndp), _fmt(ndn), f"{ndn - ndp:+,}", ""]],
+                         ["sample × field values (current)", _fmt(ndp), _fmt(ndn), f"{ndn - ndp:+,}", ""],
+                         ["catalog runs (`gut_runs`)", _fmt(n_runs_prev), _fmt(n_runs_new), f"{n_runs_new - n_runs_prev:+,}", ""]],
                         ["entity", pv_prev, pv_new, "added", "removed"]), ""]
         rows = []
         for f in CORE:

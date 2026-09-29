@@ -56,9 +56,10 @@ def resolve_duplicates(det: pd.DataFrame) -> pd.DataFrame:
             keep_detail_idx.append(g.sort_values("confidence", ascending=False).index[0])
     others = det[~det.field_name.isin(["health_condition", "health_condition_detail"])].sort_values(["confidence", "_order"], ascending=[False, True]).drop_duplicates(["study_accession", "field_name"])
     out = pd.concat([keep_hc, det.loc[keep_detail_idx], others]).sort_values("_order")
-    note_add = out.study_accession.map(alt)
+    note_add = out.study_accession.map(alt).astype(object)
     has = note_add.notna() & (out.field_name == "health_condition")
-    out.loc[has, "parse_note"] = out.loc[has, "parse_note"].fillna("").astype(str).str.rstrip("; ").where(lambda s: s == "", lambda s: s + "; ") + note_add[has]
+    if has.any():
+        out.loc[has, "parse_note"] = out.loc[has, "parse_note"].fillna("").astype(str).str.rstrip("; ").where(lambda s: s == "", lambda s: s + "; ") + note_add[has].astype(str)
     return out.drop(columns=["_rank", "_order"]), len(det) - len(out)
 
 
