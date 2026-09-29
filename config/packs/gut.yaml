@@ -27,6 +27,21 @@ fields:                    # field_name → vocabulary / type; routes R1 (archiv
   antibiotic_exposure: {type: enum, values: ["yes", "no", unknown], routes: [R1, R2, R3, R4], note: "yes = antibiotics at or shortly before sampling per the source's own window"}
   subject_id: {type: text, routes: [R1, R2]}
   timepoint_label: {type: text, routes: [R1, R2]}
+  # added 2026-09-29 (owner request): collection date, detailed location, lifestyle — release R2026.12 / package 1.12.0
+  collection_date: {type: iso8601_partial, routes: [R1, R2, R3, R4], note: "as specific as the source gives it: YYYY, YYYY-MM, YYYY-MM-DD, or an ISO interval YYYY[-MM[-DD]]/YYYY[-MM[-DD]] for a stated sampling period; never a placeholder (missing / not collected / restricted access stay unknown); dates before 1990 or after the run's first_public year are rejected"}
+  location_region: {type: text, max_len: 80, routes: [R1, R2, R3, R4], note: "first-level administrative region below the country (state, province, prefecture, canton, county for the UK/Ireland); English exonym, no country name"}
+  location_locality: {type: text, max_len: 80, routes: [R1, R2, R3, R4], note: "city, town, village or district where subjects were recruited (not where the lab is); English exonym"}
+  location_site: {type: text, max_len: 120, routes: [R1, R2, R3, R4], note: "named recruitment site: hospital, clinic, university health centre, school, cohort field station, tribe/community name; the source's own name"}
+  latitude: {type: float, range: [-90, 90], routes: [R1, R2], note: "decimal degrees from lat_lon / geographic location (latitude) attributes; 4-decimal rounding"}
+  longitude: {type: float, range: [-180, 180], routes: [R1, R2], note: "decimal degrees; same source row as latitude"}
+  lifestyle: {type: vocab, vocab: config/vocab/lifestyle.yaml, routes: [R1, R2, R3, R4], detail_field: lifestyle_detail, note: "only when the source states it; never inferred from country"}
+  lifestyle_detail: {type: text, max_len: 120, routes: [R1, R2, R3, R4], note: "named population or the source's own words (Hadza, Hutterite colony, elite rugby players)"}
+# Field tiers for the site and the contribute worklist (owner decision 2026-09-29): five CORE fields, then the KEY fields.
+core_fields: [age_at_collection_days, sex, country, health_condition, subject_id]
+key_fields: [detailed_location, lifestyle, collection_date, antibiotic_exposure, bmi, timepoint_label]
+derived_fields:
+  detailed_location: {compose: [location_site, location_locality, location_region], sep: ", ", note: "most specific place below the country: 'site, locality, region' with empty parts dropped; not a determination itself — its parts are"}
+  collection_year: {from: collection_date, note: "leading YYYY of collection_date (start of an interval)"}
   # infant-only fields carried verbatim from the curated infant tables (never minted for non-infant samples):
   delivery_mode: {type: enum, infant_only: true}
   feeding_mode: {type: enum, infant_only: true}
