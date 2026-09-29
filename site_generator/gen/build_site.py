@@ -97,7 +97,9 @@ FILE_DESC = {
 }
 OFFSITE = [dict(name='registry_runs_v{v}.parquet', desc='Registry run tier: one row per sequencing run of every registry study (≈ 2 M rows, ≈ 80 MB) — GitHub Release asset data-v{v}.'),
            dict(name='infant_catalog_v{v}.sqlite', desc='All package tables as one SQLite database — Release asset.'),
-           dict(name='sandpiper_profiles.parquet', desc='Full sample × rank × taxon Sandpiper profiles of the infant studies (≈100 MB) — Release asset.')]
+           dict(name='sandpiper_profiles.parquet', desc='Full sample × rank × taxon Sandpiper profiles of the infant studies (≈100 MB) — Release asset.'),
+           dict(name='gut_sandpiper_sample_genus_v{v}_part*.parquet', desc='Genus-level Sandpiper relative abundances for every profiled catalog sample (long table: sample_key, genus, relabund, coverage; ≈ 185 MB in < 90 MB parts, concatenate the parts) — Release asset.'),
+           dict(name='gut_sandpiper_sample_species_v{v}_part*.parquet', desc='Species-level Sandpiper relative abundances (relabund ≥ 0.001; ≈ 200 MB in parts) — Release asset.')]
 TAXON_PALETTE = ['#CFB87C', '#565A5C', '#A88B4A', '#8C8F91', '#7A6A3C', '#3C3C3C', '#8A7A48', '#7F7060', '#6E6A5E', '#8F7418', '#6F6D62', '#6B6F73', '#7D7461', '#4A4A4A', '#75604A', '#5F6366']
 UNASSIGNED_COLOR = '#D9D9D9'
 ISSUE_REPO = 'https://github.com/OlmLab/infant-gut-catalog/issues/new'   # default; main() replaces both from config/site.yaml github.issues

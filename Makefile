@@ -265,6 +265,7 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	cd $(DATA_CLONE) && git fetch -q origin && git checkout -q -B release/$(VERSION) origin/main
 	(rsync -a --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ || [ $$? -eq 23 ]) && mkdir -p $(DATA_CLONE)/audit && (rsync -a audit/ $(DATA_CLONE)/audit/ || [ $$? -eq 23 ])
 	@n=$$(rsync -rcn --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ 2>&1 | grep -v '^rsync(' | grep -vc '^$$' || true); test "$$n" = "0" || { echo "data clone package/ differs from build in $$n paths"; exit 1; }
+	@if [ -f "$(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_genus.parquet" ]; then mkdir -p $(DATA_CLONE)/assets && rm -f $(DATA_CLONE)/assets/gut_sandpiper_sample_*_v*; for t in genus species; do $(PY) scripts/split_parquet.py $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_$$t.parquet $(DATA_CLONE)/assets/gut_sandpiper_sample_$${t}_v$(VERSION) --max-mb 90; done; echo "Sandpiper long tables staged as release assets"; fi
 	@if [ -f "$(REGISTRY_RUNS)" ]; then mkdir -p $(DATA_CLONE)/assets && cp $(REGISTRY_RUNS) $(DATA_CLONE)/assets/registry_runs_v$(VERSION).parquet && (cd $(DATA_CLONE)/assets && shasum -a 256 registry_runs_v$(VERSION).parquet > registry_runs_v$(VERSION).parquet.sha256) && rm -f $$(ls $(DATA_CLONE)/assets/registry_runs_v*.parquet* | grep -v v$(VERSION)); echo "registry_runs asset staged"; fi
 	cd $(DATA_CLONE) && git add -A && git commit -q -m "data package $(VERSION) ($(BUILD_DATE))" && git tag -f data-v$(VERSION)
 	@echo "push with the credential helper (docs/SECURITY.md):"
