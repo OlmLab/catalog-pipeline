@@ -29,7 +29,8 @@ def make_env():
     env = Environment(loader=FileSystemLoader(GEN / 'templates'), autoescape=select_autoescape(['html']))
     env.filters.update(fmt=_fmt, numint=_fmt, pct=lambda v: f'{100 * v:.0f} %', pct1=lambda v: f'{100 * v:.1f} %', num2=lambda v: f'{v:.2f}')
     env.globals.update(site=dict(title='Test Catalog', short_title='Test', description='d', release_tag='t', release_id='R0', version='0.0.0', build_date='2026-01-01',
-                                 base_url='https://example.org/', sha8='deadbeef', doi='', has_contribute=False, contribute_page='', issue_repo='', sri={}))
+                                 base_url='https://example.org/', sha8='deadbeef', doi='', has_contribute=False, contribute_page='', issue_repo='', sri={}, nav=[('home','Home','index.html'),('atlas','Atlas','atlas/index.html')], citation='c', issue_template='', issue_label='',
+                                 about=dict(lab_name='Lab', lab_url='https://example.org/lab', funder_name='Funder', funder_url='https://example.org/f')))
     return env
 
 

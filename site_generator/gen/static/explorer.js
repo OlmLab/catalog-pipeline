@@ -49,6 +49,7 @@ async function init() {
     }
     window.__gutReady = true;
     $('boot').style.display = 'none'; $('exp').style.display = '';
+    await loadCollection(new URLSearchParams(location.search).get('collection'));   // ?collection=<id>: pre-entered filters from data/collections.json
     const k = new URLSearchParams(location.search).get('sample');   // read BEFORE run(): writeUrl() would drop the param while the panel is still closed
     readUrl();
     if (k && !$('f-q').value.trim()) $('f-q').value = k;   // item 10: ?sample=<key> filters the table to that sample …
@@ -80,7 +81,34 @@ function whereClause() {
   if ($('f-has_age').checked) w.push(`s.age_at_collection_days IS NOT NULL`);
   if ($('f-has_subject').checked) w.push(`s.subject_id IS NOT NULL`);
   const mn = $('f-min_fields').value; if (mn !== '') w.push(`s.n_fields_with_value >= ${parseInt(mn)}`);
+  for (const c of collectionClauses()) w.push(c);
   return w.length ? 'WHERE ' + w.join(' AND ') : '';
+}
+// ---- collections (config/collections.yaml → data/collections.json): studies = any-of accessions; filters: list = any-of, {min,max} = range,
+// min_samples_per_subject = subjects with >= n samples in the same study. Same semantics as pages/collections.py, so counts match the collection page.
+let COLLECTION = null;
+async function loadCollection(id) {
+  COLLECTION = null; const bar = $('collection-bar'); if (bar) bar.style.display = 'none';
+  if (!id) return;
+  try {
+    const r = await fetch(CFG.collections); if (!r.ok) return;
+    const all = await r.json(); if (!all[id]) return;
+    COLLECTION = Object.assign({id}, all[id]);
+    if (bar) { bar.style.display = ''; bar.innerHTML = `Collection: <b>${h(COLLECTION.title)}</b> — filters pre-entered (<a href="../collections/${h(id)}.html">about this collection</a> · <a href="index.html">clear</a>)`; }
+  } catch (e) { COLLECTION = null; }
+}
+function collectionClauses() {
+  if (!COLLECTION) return [];
+  const w = [];
+  if (COLLECTION.studies && COLLECTION.studies.length) w.push(`s.study_accession IN (${COLLECTION.studies.map(a => `'${esc(String(a))}'`).join(',')})`);
+  for (const [k, v] of Object.entries(COLLECTION.filters || {})) {
+    if (k === 'min_samples_per_subject') { const mn = (v && typeof v === 'object') ? parseInt(v.min || 1) : parseInt(v); w.push(`(s.study_accession, s.subject_id) IN (SELECT study_accession, subject_id FROM s WHERE subject_id IS NOT NULL GROUP BY 1, 2 HAVING count(*) >= ${mn})`); continue; }
+    const col = k === 'collection_year' ? `TRY_CAST(substr(s.collection_date, 1, 4) AS INTEGER)` : (COLS.has(k) ? `s."${k}"` : null);
+    if (!col) { w.push('FALSE'); continue; }
+    if (v && typeof v === 'object' && !Array.isArray(v)) { if (v.min !== undefined) w.push(`TRY_CAST(${col} AS DOUBLE) >= ${parseFloat(v.min)}`); if (v.max !== undefined) w.push(`TRY_CAST(${col} AS DOUBLE) <= ${parseFloat(v.max)}`); }
+    else { const vals = (Array.isArray(v) ? v : [v]).map(x => `'${esc(String(x))}'`); w.push(`CAST(${col} AS VARCHAR) IN (${vals.join(',')})`); }
+  }
+  return w;
 }
 const FROM = 'FROM s LEFT JOIN st USING (study_accession)';
 
@@ -92,6 +120,7 @@ function writeUrl() {
   if ($('f-min_fields').value !== '') p.set('min_fields', $('f-min_fields').value);
   if (page) p.set('page', page + 1);
   if (sortCol !== 'study_accession' || sortDir !== 'ASC') p.set('sort', sortCol + ':' + sortDir);
+  if (COLLECTION) p.set('collection', COLLECTION.id);
   const keep = new URLSearchParams(location.search).get('sample'); if (keep && $('detail').classList.contains('open')) p.set('sample', keep);
   history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : '') + location.hash);
 }

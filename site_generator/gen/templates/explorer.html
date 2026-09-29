@@ -5,6 +5,7 @@
 <h1>Samples ({{ stats.n_samples|fmt }})</h1>
 <p class="lead">One row per curated sample of the {{ stats.n_studies|fmt }} catalog studies. Filters run in your browser with <a href="https://duckdb.org/docs/api/wasm/overview">DuckDB-WASM</a> over <span class="mono">data/gut_sample_metadata_wide.parquet</span> ({{ parquet_size }}); nothing is sent to a server. Click a row for every field with its route and confidence; the verbatim evidence quotes are in <span class="mono">gut_sample_determinations.parquet</span> ({{ det_size }}, <a href="../downloads/index.html">Downloads</a>) and per study on the study pages.</p>
 <noscript><p class="note">The explorer needs JavaScript (and WebAssembly). Without it, download the tables: <a href="../data/gut_sample_metadata_wide.parquet">gut_sample_metadata_wide.parquet</a>, <a href="../data/gut_studies.parquet">gut_studies.parquet</a>.</p></noscript>
+<div id="collection-bar" class="note" style="display:none"></div>
 <div id="boot" class="note" role="status" aria-live="polite">Loading DuckDB-WASM (from cdn.jsdelivr.net, pinned 1.29.0) and the sample table… <span id="boot-msg"></span></div>
 <div class="exp" id="exp" style="display:none">
 <aside class="filters">
@@ -40,7 +41,7 @@
 <div class="detail" id="detail" role="dialog" aria-modal="false" aria-label="Sample details" tabindex="-1"><button class="close" id="detail-close" title="close (Escape)" aria-label="close sample details">×</button><div id="detail-body"></div></div>
 {% endblock %}
 {% block scripts %}
-<script>window.GUT_CFG={samples:'../data/gut_sample_metadata_wide.parquet',studies:'../data/gut_studies.parquet',studiesUrl:'../studies/',registryUrl:'../registry/index.html',enaSampleUrl:'https://www.ebi.ac.uk/ena/browser/view/',archive:{SAMN:'https://www.ncbi.nlm.nih.gov/biosample/',SAMD:'https://ddbj.nig.ac.jp/resource/biosample/',SAME:'https://www.ebi.ac.uk/ena/browser/view/',RUN:'https://www.ebi.ac.uk/ena/browser/view/'},coreFields:{{ site.core_fields|tojson }},keyFields:{{ site.key_fields|tojson }}};</script>
+<script>window.GUT_CFG={samples:'../data/gut_sample_metadata_wide.parquet',studies:'../data/gut_studies.parquet',collections:'../data/collections.json',studiesUrl:'../studies/',registryUrl:'../registry/index.html',enaSampleUrl:'https://www.ebi.ac.uk/ena/browser/view/',archive:{SAMN:'https://www.ncbi.nlm.nih.gov/biosample/',SAMD:'https://ddbj.nig.ac.jp/resource/biosample/',SAME:'https://www.ebi.ac.uk/ena/browser/view/',RUN:'https://www.ebi.ac.uk/ena/browser/view/'},coreFields:{{ site.core_fields|tojson }},keyFields:{{ site.key_fields|tojson }}};</script>
 <script>setTimeout(function(){ if (!window.__gutReady) { var b=document.getElementById('boot'); if (b && b.style.display !== 'none') { b.innerHTML='<b>The explorer could not start within 20 s.</b> DuckDB-WASM (pinned 1.29.0) is loaded from cdn.jsdelivr.net; the CDN may be blocked on your network or the browser blocks WebAssembly/Workers. Everything the explorer shows is also downloadable: <a href="../data/gut_sample_metadata_wide.parquet">gut_sample_metadata_wide.parquet</a>.'; } } }, 20000);</script>
 <script type="module" src="../static/explorer.js"></script>
 {% endblock %}

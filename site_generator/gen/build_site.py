@@ -626,6 +626,7 @@ def main():
 
     def render(tpl, path, root, nav=None, crumbs=None, **ctx):
         html = env.get_template(tpl).render(root=root, nav=nav, crumbs=crumbs, page_path=path, **ctx)
+        (out / path).parent.mkdir(parents=True, exist_ok=True)
         (out / path).write_text(html, encoding='utf-8')
         written.append(path)
 
@@ -956,6 +957,15 @@ def main():
            parquet_size=human((pkg / 'gut_sample_metadata_wide.parquet').stat().st_size), det_size=human((pkg / 'gut_sample_determinations.parquet').stat().st_size),
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Samples')])
 
+    # ---------- collections (config/collections.yaml) and Atlas › PCA (Sandpiper scores in the package) ----------
+    sys.path.insert(0, str(HERE))
+    from pages import collections as _collections, pca as _pca
+    coll_stats = _collections.build(a.collections_config, render, cw, cs, out, hc_labels=hc_labels, ls_labels=ls_labels)
+    print(f'[{time.time()-t0:.0f}s] collections: {coll_stats}', file=sys.stderr)
+    if (pkg / 'gut_sandpiper_pca_scores.parquet').exists():
+        pca_stats = _pca.build(env, render, dict(wide=cw, studies=cs, pkg=pkg), out)
+        print(f'[{time.time()-t0:.0f}s] atlas/pca: {pca_stats.get("n_points") if isinstance(pca_stats, dict) else pca_stats}', file=sys.stderr)
+
     # ---------- fields ----------
     vocab_rows = {}
     in_vocab = False
@@ -1249,8 +1259,8 @@ def main():
     (out / 'search_index.json').write_text(dumps(sidx), encoding='utf-8')
     render('index.html', 'index.html', '', nav='home', stats=stats, home=home, readme_version_warning=readme_version_warning, n_releases=len(releases), shard_letters=sorted(shards))
     # item 5: Collections and Atlas pages are produced by other tracks; the nav entries must never be dead links
-    for sec, lab, txt in (('collections', 'Collections', 'Curated collections of studies are prepared in a separate track and will appear here in a later release.'),
-                          ('atlas', 'Atlas', 'The geographic atlas of sampling locations is prepared in a separate track and will appear here in a later release.')):
+    for sec, lab, txt in (('collections', 'Collections', 'No collections are configured in this build (config/collections.yaml).'),
+                          ('atlas', 'Atlas', 'The taxon atlas is being prepared. ' + ('The interactive <a href="pca.html">PCA of Sandpiper community profiles</a> is available.' if (out / 'atlas' / 'pca.html').exists() else ''))):
         if not (out / sec / 'index.html').exists():
             (out / sec).mkdir(parents=True, exist_ok=True)
             render('placeholder.html', f'{sec}/index.html', '../', nav=sec, heading=lab, text=txt, crumbs=[dict(label='Home', href='../index.html'), dict(label=lab)])
