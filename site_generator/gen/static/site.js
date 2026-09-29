@@ -2,10 +2,11 @@
 document.addEventListener('DOMContentLoaded', () => {
   for (const a of document.querySelectorAll('a[href^="http"]')) { a.target = '_blank'; a.rel = 'noopener'; }
 });
-// Build a GitHub issue-form URL. Keys must equal the field ids of .github/ISSUE_TEMPLATE/catalog-finding.yml.
+// Build a GitHub issue-form URL. Keys must equal the field ids of the installed issue form (config/site.yaml github.issues.template;
+// site_generator/gen/issue_templates/simple-finding.yml: accession, release_id, page_url, problem, details).
 window.catalogIssueUrl = function (fields) {
-  const C = window.CATALOG || {issueRepo: 'https://github.com/OlmLab/infant-gut-catalog/issues/new', issueTemplate: 'catalog-finding.yml', release: ''};
-  const p = [['template', C.issueTemplate], ['labels', 'finding']];
+  const C = window.CATALOG || {issueRepo: 'https://github.com/OlmLab/infant-gut-catalog/issues/new', issueTemplate: 'simple-finding.yml', issueLabel: 'finding', release: ''};
+  const p = [['template', C.issueTemplate], ['labels', C.issueLabel || 'finding']];
   if (fields.title) p.push(['title', String(fields.title).slice(0, 200)]);
   for (const k of Object.keys(fields).sort()) {
     if (k === 'title') continue;

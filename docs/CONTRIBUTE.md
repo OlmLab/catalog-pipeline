@@ -105,3 +105,25 @@ study participants**.
 
 The artifact inputs are registered in `config/inputs.json` group `contribute` (artifact id, version id, sha256);
 `bootstrap.py` materialises them under `data/inputs/contribute/`. Rebuild: `make worklist` (inside `make release`).
+
+## 6. "Flag an issue" — the simple finding form (R2026.12)
+
+Every study and cohort page carries one **Flag an issue** link (the former "Confirm correct" button was removed). It opens the
+two-question GitHub Issue form `site_generator/gen/issue_templates/simple-finding.yml` in the Issues repo
+(`config/site.yaml github.issues.repo`, template `github.issues.template = simple-finding.yml`, label `finding`):
+
+| field id | asked as | prefilled by the link |
+|---|---|---|
+| `problem` | dropdown: a value is wrong · a value is missing · the study should not be in the catalog · something else | — |
+| `details` | one free-text box (which field / sample, the correct value, where it can be checked) | — |
+| `accession` | "filled automatically — leave as is" | study accession or cohort id |
+| `release_id` | "filled automatically — leave as is" | `VERSION.json release_id` |
+| `page_url` | "filled automatically — leave as is" | canonical URL of the page |
+
+GitHub issue forms have no hidden or read-only fields, so the three prefilled values are ordinary inputs labelled as filled
+automatically. The detailed audit form `catalog-finding.yml` stays installed for the Auditor tooling (`ingest_issues.py` reads
+both labels `finding`); a simple finding is triaged by a curator into a full finding row (evidence quote ≤ 12 words, route,
+confidence) before it is applied — nothing enters the tables without evidence. **Install:** copy the file into
+`<site clone>/.github/ISSUE_TEMPLATE/simple-finding.yml` (the `make install-workflows` target copies the two existing templates;
+add this one to its copy list or copy it by hand) and commit on the site repo's `main` (owner).
+

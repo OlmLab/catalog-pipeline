@@ -1,83 +1,76 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ site.title }}</h1>
-<p class="lead">{{ site.tagline[:1]|upper }}{{ site.tagline[1:] }}. Two tiers: the <b>registry</b> lists every public ENA study with a human shotgun-metagenome signal — {{ stats.n_registry|fmt }} studies, {{ stats.n_registry_runs|fmt }} sequencing runs, all body sites and ages — each classified from the archive record (host, UBERON-anchored body sites, life stages, assay, access) and, where harvested, with per-BioSample site / age / sex / country. The <b>catalog</b> is the curated tier: every registry study of the <b>human gut</b>, <b>all ages</b> — {{ stats.n_studies|fmt }} studies, {{ stats.n_samples|fmt }} samples — with per-sample age, sex, BMI, country, health condition, antibiotic exposure, subject and timepoint recovered from archive attributes, supplementary tables and papers, every value carrying a verbatim evidence quote, a route (R1–R4) and a confidence. <b>Future plans:</b> the same curation for the other human microbiomes in the registry — oral, skin, vaginal / urogenital, respiratory, milk — one scope at a time.</p>
+<p class="lead">{{ site.tagline[:1]|upper }}{{ site.tagline[1:] }}.</p>
 
-<h2 id="catalog">Catalog: human gut, all ages</h2>
-<div class="cards">
-<a class="card" href="studies/index.html"><div class="num">{{ stats.n_studies|fmt }}</div><div class="lbl"><b>studies</b> (ENA BioProjects) with a page each: classification, papers, authors, coverage, evidence, downloads</div></a>
-<a class="card" href="samples/index.html"><div class="num">{{ stats.n_samples|fmt }}</div><div class="lbl"><b>samples</b> (BioSamples; {{ stats.n_gut_primary|fmt }} gut/stool, {{ stats.n_site_unknown|fmt }} site unknown, {{ stats.n_site_excluded|fmt }} other-site samples of gut studies kept for provenance) — filter them in the browser</div></a>
-<a class="card" href="fields/index.html"><div class="num">{{ stats.n_determinations|fmt }}</div><div class="lbl"><b>sample × field values</b>, each with route, confidence and evidence quote (R1 {{ stats.routes.R1|fmt }} · R2 {{ stats.routes.R2|fmt }} · R3 {{ stats.routes.R3|fmt }} · R4 {{ stats.routes.R4|fmt }})</div></a>
-{% for k, n in stats.age_counts %}<div class="card"><div class="num">{{ n|fmt }}</div><div class="lbl">{{ k }} samples</div></div>{% endfor %}
-<a class="card" href="cohorts/index.html"><div class="num">{{ stats.n_cohorts|fmt }}</div><div class="lbl"><b>cohorts</b>: groups of studies sharing a publication or a curated cohort record ({{ stats.n_studies_in_cohorts|fmt }} studies)</div></a>
-<a class="card" href="authors/index.html"><div class="num">{{ stats.n_authors|fmt }}</div><div class="lbl"><b>author names</b> over {{ stats.n_studies_with_author|fmt }} studies; {{ stats.n_papers|fmt }} linked papers</div></a>
-<a class="card contribute-card" href="contribute/index.html"><div class="num">{{ stats.n_contribute|fmt }}</div><div class="lbl"><b>studies need metadata — contribute</b> ({{ stats.n_contribute_samples|fmt }} samples): a per-sample table or a paper pointer unlocks them</div></a>
+<section id="find" class="find">
+<label for="q" class="small" style="display:block;margin-bottom:.2rem"><b>Find a study, cohort, author, collection or accession</b></label>
+<input id="q" class="searchbox" type="search" placeholder="BioProject accession (PRJ…), title word, cohort or collection name, author surname, or a sample / run accession (SAMEA…, SAMN…, SRR…)" autocomplete="off" autofocus>
+<ul id="search-results"></ul>
+<p class="small">Sample, BioSample and run accessions open the <a href="samples/index.html">sample explorer</a>; studies, cohorts{% if site.has_collections %}, collections{% endif %} and authors are matched in your browser against small indexes; the full author list is on the <a href="authors/index.html">Authors</a> page.</p>
+</section>
+
+<div class="cards tiles">
+<a class="card" href="studies/index.html"><div class="num">{{ stats.n_studies|fmt }}</div><div class="lbl"><b>catalog studies</b> — human gut shotgun metagenomes, all ages</div></a>
+<a class="card" href="samples/index.html"><div class="num">{{ stats.n_samples|fmt }}</div><div class="lbl"><b>catalog samples</b> with a study page and an explorer row</div></a>
+<a class="card" href="samples/index.html?min_fields=1"><div class="num">{{ stats.n_curated_samples|fmt }}</div><div class="lbl"><b>samples with ≥ 1 curated value</b>, each value carrying a route, a confidence and an evidence quote</div></a>
+<a class="card" href="registry/index.html"><div class="num">{{ stats.n_registry_human|fmt }}</div><div class="lbl"><b>registry human studies</b> (host human = yes or mixed) <span class="small">of {{ stats.n_registry|fmt }} ENA shotgun-metagenome studies screened</span></div></a>
+<a class="card" href="samples/index.html"><div class="num">{{ stats.n_countries|fmt }}</div><div class="lbl"><b>countries</b> with at least one sample carrying a country value</div></a>
 </div>
 
-<h2 id="registry">Registry: all human shotgun metagenomes</h2>
-<div class="cards">
-<a class="card" href="registry/index.html"><div class="num">{{ stats.n_registry|fmt }}</div><div class="lbl"><b>registry studies</b> — {{ stats.n_registry_human|fmt }} host = human, {{ stats.n_registry_runs|fmt }} runs, {{ stats.n_registry_biosamples|fmt }} harvested BioSamples; {{ stats.n_registry_scopes }} body-site scopes</div></a>
-<a class="card" href="registry/index.html#explorer"><div class="num">explore</div><div class="lbl">filter the registry by body site, life stage, assay, host, classification stage or scope; CSV export; one page per scope</div></a>
-<a class="card" href="scope.html"><div class="num">{{ stats.n_reg_gut_candidates|fmt }}</div><div class="lbl">registry studies with gut / stool among their body sites — how the catalog is cut from the registry</div></a>
+<p>Two tiers. The <b>registry</b> lists every public shotgun-metagenome study reached in ENA — INSDC BioProjects deposited in ENA, NCBI SRA or DDBJ and enumerated through ENA's mirror — and classifies each for human host, body sites (UBERON-anchored), life stages, assay and access. The <b>catalog</b> is the curated tier: every human-gut study of the registry, all ages, with per-sample metadata recovered from archive attributes, supplementary tables and papers; every value carries a verbatim evidence quote, a route (R1–R4) and a confidence. Other human body sites (oral, skin, vaginal / urogenital, respiratory, milk) are planned as further curated scopes.</p>
+
+<div class="sections" style="grid-template-columns:repeat(auto-fit,minmax(340px,1fr))">
+<div class="card facet"><b>Health condition</b> <span class="small">(top {{ home.hc_bars|length }} codes by samples; <a href="fields/index.html#health_condition">all codes</a>)</span>
+<div class="hbars">{% for r in home.hc_bars %}<a class="hbar" href="samples/index.html?health_condition={{ r.code }}" title="{{ r.label }} — {{ r.n|fmt }} samples in {{ r.n_studies|fmt }} studies"><span class="lbl"><span class="mono">{{ r.code }}</span>{% if r.label %} <span class="small">{{ r.label }}</span>{% endif %}</span><span class="trk"><span style="width:{{ r.pct }}%"></span></span><span class="val">{{ r.n|fmt }}</span></a>{% endfor %}</div></div>
+<div class="card facet"><b>Country</b> <span class="small">(top {{ home.country_bars|length }} of {{ stats.n_countries }} by samples)</span>
+<div class="hbars">{% for r in home.country_bars %}<a class="hbar" href="samples/index.html?country={{ r.code }}" title="{{ r.label or r.code }} — {{ r.n|fmt }} samples in {{ r.n_studies|fmt }} studies"><span class="lbl"><span class="mono">{{ r.code }}</span>{% if r.label %} <span class="small">{{ r.label }}</span>{% endif %}</span><span class="trk"><span style="width:{{ r.pct }}%"></span></span><span class="val">{{ r.n|fmt }}</span></a>{% endfor %}</div></div>
 </div>
 
-<h2 id="coverage">Field coverage by age category</h2>
-<p class="small">Share of catalog samples with a committed value. Age categories: neonate 0–28 d · infant 29–1,100 d · child 3–12 y · adolescent 12–18 y · adult 18–65 y · elderly &gt; 65 y · unknown (the <span class="mono">age_category_basis</span> column tells whether a category came from a numeric age, the sample's stated life stage, a cohort statement or the study's life stage).</p>
-<table class="tbl small"><thead><tr><th>age category</th><th class="num">samples</th>{% for f in home.fields %}<th class="num">{{ f }}</th>{% endfor %}</tr></thead><tbody>
-{% for row in home.cov_rows %}<tr><td class="mono">{{ row.cat }}</td><td class="num">{{ row.n|fmt }}</td>{% for f in home.fields %}<td class="num">{{ row.cov[f] }}%</td>{% endfor %}</tr>{% endfor %}
-</tbody></table>
-
-<div class="sections" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
-<div class="card"><b>Health condition</b> <span class="small">(top 12 codes; <a href="fields/index.html#health_condition">all codes</a>)</span>
-<table class="tbl small" style="margin-top:.4rem"><thead><tr><th>code</th><th class="num">samples</th><th class="num">studies</th></tr></thead><tbody>
-{% for k, lbl, ns, nst in home.hc_rows %}<tr><td><a class="mono" href="samples/index.html?health_condition={{ k }}">{{ k }}</a> <span class="small">{{ lbl }}</span></td><td class="num">{{ ns|fmt }}</td><td class="num">{{ nst|fmt }}</td></tr>{% endfor %}
-</tbody></table></div>
-<div class="card"><b>Country</b> <span class="small">(top 12 of {{ stats.n_countries }})</span>
-<table class="tbl small" style="margin-top:.4rem"><thead><tr><th>ISO-2</th><th class="num">samples</th><th class="num">studies</th></tr></thead><tbody>
-{% for k, ns, nst in home.country_rows %}<tr><td><a class="mono" href="samples/index.html?country={{ k }}">{{ k }}</a></td><td class="num">{{ ns|fmt }}</td><td class="num">{{ nst|fmt }}</td></tr>{% endfor %}
-</tbody></table></div>
-<div class="card"><b>Largest studies</b>
-<table class="tbl small" style="margin-top:.4rem"><thead><tr><th>study</th><th class="num">samples</th><th>ages</th></tr></thead><tbody>
-{% for s in home.top_studies %}<tr><td><a href="studies/{{ s.study_accession }}.html">{{ s.study_accession }}</a> <span class="small">{{ (s.study_title or '')[:60] }}</span></td><td class="num">{{ s.n_samples_curated|fmt }}</td><td class="small mono">{{ s.ages_short }}</td></tr>{% endfor %}
-</tbody></table></div>
+<div class="sections">
+<a class="card" href="studies/index.html"><b>Studies</b><br>One page per catalog study: how it entered the registry, papers, authors, field coverage, evidence, sequencing, sample table, downloads.</a>
+<a class="card" href="samples/index.html"><b>Samples</b><br>Filter every catalog sample by health condition, country, sex, age, antibiotics{% if stats.coverage_all.lifestyle is defined %}, lifestyle, collection year, location{% endif %}; download any slice as CSV.</a>
+<a class="card" href="cohorts/index.html"><b>Cohorts</b><br>Multi-study groups sharing a publication or a curated cohort record.</a>
+<a class="card" href="authors/index.html"><b>Authors</b><br>Author names linked to catalog studies through their papers, with a preview card per study.</a>
+<a class="card" href="registry/index.html"><b>Registry</b><br>All screened ENA shotgun-metagenome studies with their host / body-site / life-stage classification; explorer, scope pages, CSV export.</a>
+<a class="card" href="downloads/index.html"><b>Downloads &amp; releases</b><br>The data package, per-table downloads, release history and what changed.</a>
+<a class="card" href="contribute/index.html"><b>Contribute</b><br>{{ stats.n_contribute|fmt }} studies miss three or more core fields — a per-sample table or a paper pointer unlocks them.</a>
+<a class="card" href="about/index.html"><b>About</b><br>Who built this and who funds it; scope, methods, sources &amp; acknowledgements, field documentation, how to cite.</a>
 </div>
 
 {% include "_cite.html" %}
-<p class="small">This is release <b>{{ site.release_id }}</b> ({{ n_releases }} releases so far) — see the <a href="releases/index.html">release registry</a> and <a href="changes/{{ site.release_id }}.html">what changed in this release</a>.</p>
-
-<h2>Find a study, cohort or accession</h2>
-<input id="q" class="searchbox" type="search" placeholder="Type a BioProject accession (PRJ…), a study title word, a cohort name, an author, or a sample accession (SAMEA…, SAMN…)" autocomplete="off">
-<ul id="search-results"></ul>
-<p class="small">Sample and BioSample accessions are looked up in the <a href="samples/index.html">sample explorer</a>; studies, cohorts and first authors are matched client-side against a small index; all authors are on the <a href="authors/index.html">Authors</a> page.</p>
-
-<div class="sections">
-<a class="card" href="studies/index.html"><b>Studies</b><br>{{ stats.n_studies|fmt }} BioProjects with per-study pages, papers, coverage, evidence and downloads.</a>
-<a class="card" href="cohorts/index.html"><b>Cohorts</b><br>{{ stats.n_cohorts|fmt }} multi-study groups sharing a publication or a curated cohort record.</a>
-<a class="card" href="samples/index.html"><b>Samples</b><br>Filter {{ stats.n_samples|fmt }} samples by age category, health condition, country, sex, antibiotics; download any slice as CSV.</a>
-<a class="card" href="fields/index.html"><b>Fields &amp; data dictionary</b><br>Every field, vocabulary, coverage by age category, route mix and confidence.</a>
-<a class="card" href="authors/index.html"><b>Authors</b><br>{{ stats.n_authors|fmt }} author names linked to {{ stats.n_studies_with_author|fmt }} catalog studies.</a>
-<a class="card" href="scope.html"><b>Scope</b><br>How the {{ stats.n_studies|fmt }} catalog studies are cut from the {{ stats.n_registry|fmt }} registry studies, and what is left out.</a>
-<a class="card" href="registry/index.html"><b>Registry</b><br>{{ stats.n_registry|fmt }} studies across all body sites and ages with archive-only classification; explorer, scope pages, CSV export.</a>
-<a class="card" href="methods.html"><b>Methods</b><br>Registry classification, curation routes R1–R4, precedence, evidence rules, limitations.</a>
-<a class="card" href="sources.html"><b>Sources &amp; acknowledgements</b><br>Archives, literature, software, models and funding behind the catalog; related metadata efforts and what we could ingest.</a>
-</div>
+<p class="small">This is release <b>{{ site.release_id }}</b> ({{ n_releases }} releases so far) — see <a href="downloads/index.html#releases">Downloads &amp; releases</a> and <a href="changes/{{ site.release_id }}.html">what changed in this release</a>.</p>
 {% if readme_version_warning %}<p class="note">{{ readme_version_warning }}</p>{% endif %}
 {% endblock %}
 {% block scripts %}
 <script>
 (function(){
   const q = document.getElementById('q'), out = document.getElementById('search-results');
+  const shards = {{ shard_letters|tojson }}; const shardCache = {};
   let idx = null;
   const h = s => String(s === null || s === undefined ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  async function shard(letter){ if (!shardCache[letter]) shardCache[letter] = fetch('authors/idx/' + letter + '.json').then(r => r.ok ? r.json() : {}).catch(() => ({})); return shardCache[letter]; }
+  async function authorHits(s){
+    const n = norm(s); if (n.length < 2) return [];
+    const letter = /^[a-z]/.test(n) ? n[0] : '_'; if (!shards.includes(letter)) return [];
+    const a = await shard(letter);
+    return Object.keys(a).filter(k => norm(k).startsWith(n) || norm(a[k].n).includes(n)).sort((x, y) => a[y].s.length - a[x].s.length || x.localeCompare(y)).slice(0, 6)
+      .map(k => '<li><span class="tag">author</span> <a href="authors/index.html?q=' + encodeURIComponent(a[k].n) + '">' + h(a[k].n) + '</a> <span class="small">' + a[k].s.length + ' stud' + (a[k].s.length === 1 ? 'y' : 'ies') + '</span></li>');
+  }
   async function run(){
-    const s = q.value.trim().toLowerCase(); out.innerHTML = '';
+    const raw = q.value.trim(), s = raw.toLowerCase(); out.innerHTML = '';
     if (s.length < 2) return;
-    if (/^sam[nedа]?a?\d+$/i.test(s) || /^[sed]rr\d+$/i.test(s)) { out.innerHTML = '<li><a href="samples/index.html?q=' + encodeURIComponent(q.value.trim()) + '">Look up ' + h(q.value.trim()) + ' in the sample explorer</a></li>'; return; }
+    if (/^sam[ned]a?\d+$/i.test(s) || /^[sed]rr\d+$/i.test(s)) { out.innerHTML = '<li><a href="samples/index.html?sample=' + encodeURIComponent(raw.toUpperCase()) + '">Open ' + h(raw.toUpperCase()) + ' in the sample explorer</a></li>'; return; }
     if (!idx) idx = await fetch('search_index.json').then(r => r.json());
-    const hits = idx.filter(x => x.k.includes(s)).slice(0, 30);
-    out.innerHTML = hits.map(x => '<li><span class="tag">' + h(x.t) + '</span> <a href="' + h(x.u) + '">' + h(x.id) + '</a> ' + h(x.n) + '</li>').join('') || '<li>No study, cohort or scope matches — try the <a href="authors/index.html?q=' + encodeURIComponent(q.value.trim()) + '">Authors</a> page or the <a href="registry/index.html?q=' + encodeURIComponent(q.value.trim()) + '">registry explorer</a>.</li>';
+    const hits = idx.filter(x => x.k.includes(s)).slice(0, 25);
+    const au = await authorHits(raw);
+    if (q.value.trim().toLowerCase() !== s) return;
+    out.innerHTML = hits.map(x => '<li><span class="tag">' + h(x.t) + '</span> <a href="' + h(x.u) + '">' + h(x.id) + '</a> ' + h(x.n) + '</li>').join('') + au.join('')
+      || '<li>No study, cohort, collection or author matches — try the <a href="registry/index.html?q=' + encodeURIComponent(raw) + '">registry explorer</a> (all screened studies).</li>';
   }
   q.addEventListener('input', () => { clearTimeout(q._t); q._t = setTimeout(run, 150); });
+  const init = new URLSearchParams(location.search).get('q'); if (init) { q.value = init; run(); }
 })();
 </script>
 {% endblock %}

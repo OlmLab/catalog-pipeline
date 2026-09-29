@@ -25,7 +25,7 @@ github:
   default_branch: main
   issues:                                 # R1-05/R1-19: the ONE place the 'Flag an issue' target is defined (site.js/build_site.py read it)
     repo: infant-gut-catalog              # Issues live in the site repo; the template must be INSTALLED there (make install-workflows)
-    template: catalog-finding.yml
+    template: simple-finding.yml          # R2026.12: the two-question form (site_generator/gen/issue_templates/simple-finding.yml); catalog-finding.yml stays installed for the audit tooling
     label: finding
   pages_source: github-actions            # deploy-pages.yml; never commit generated HTML to main
   branch_rules:
@@ -35,6 +35,12 @@ github:
   tag_patterns:
     data_release: "data-v{package_version}"     # e.g. data-v1.2.0 -> release.yml
     site_release: "site-v{package_version}"
+
+about:                                    # About section (site_generator/gen/templates/about.html, base.html footer); nothing is hard-coded in templates
+  lab_name: "Olm Lab at the University of Colorado Boulder"
+  lab_url: "https://www.colorado.edu/lab/olm/"
+  funder_name: "Anthropic's AI for Science program"
+  funder_url: "https://www.anthropic.com/news/ai-for-science-program"
 
 local:
   root: "~/catalog"                       # the ONLY rw host grant the Release Engineer profile holds

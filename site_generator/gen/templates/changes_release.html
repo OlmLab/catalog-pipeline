@@ -2,7 +2,7 @@
 {% block title %}What changed in {{ c.release_id }} — {{ site.title }}{% endblock %}
 {% block content %}
 <h1>What changed in {{ c.release_id }} <span class="small">(package {{ c.package_version }}, {{ c.release_date }})</span></h1>
-{% if c.nothing %}<p class="lead">No catalog value, catalog study or registry study carries <span class="mono">release_added = {{ c.release_id }}</span> — this release changed documents, machinery or tables outside the current fact tables. See the <a href="../releases/index.html#rel-{{ c.release_id }}">release notes</a>.</p>{% else %}
+{% if c.nothing %}<p class="lead">No catalog value, catalog study or registry study carries <span class="mono">release_added = {{ c.release_id }}</span> — this release changed documents, machinery or tables outside the current fact tables. See the <a href="../downloads/index.html#rel-{{ c.release_id }}">release notes</a>.</p>{% else %}
 <div class="cards">
 <div class="card"><div class="num">{{ c.n_added|fmt }}</div><div class="lbl">sample × field values added ({{ c.n_samples_added|fmt }} samples, {{ c.n_studies_changed|fmt }} studies)</div></div>
 <div class="card"><div class="num">{{ c.n_studies_added|fmt }}</div><div class="lbl">catalog studies added</div></div>
@@ -22,5 +22,5 @@
 {% for s in c.studies_added %}<tr><td><a class="mono" href="../studies/{{ s.acc }}.html">{{ s.acc }}</a></td><td class="small">{{ s.title }}</td><td class="num">{{ s.n|fmt }}</td></tr>{% endfor %}
 </tbody></table>{% if c.n_studies_added > 25 %}<p class="small">First 25 of {{ c.n_studies_added|fmt }}.</p>{% endif %}{% endif %}
 {% endif %}
-<p class="small"><a href="../releases/index.html#rel-{{ c.release_id }}">Release notes</a> · <a href="index.html">all changes</a></p>
+<p class="small"><a href="../downloads/index.html#rel-{{ c.release_id }}">Release notes</a> · <a href="index.html">all changes</a></p>
 {% endblock %}

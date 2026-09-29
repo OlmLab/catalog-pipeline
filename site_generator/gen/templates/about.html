@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}About — {{ site.title }}{% endblock %}
+{% block desc %}Who built {{ site.title }} and who funds it; scope, methods, sources and acknowledgements, field documentation and how to cite.{% endblock %}
+{% block content %}
+<h1>About</h1>
+<p class="lead">{{ site.title }} was created in the <a href="{{ site.about.lab_url }}">{{ site.about.lab_name }}</a> and is funded by <a href="{{ site.about.funder_url }}">{{ site.about.funder_name }}</a>. It has two tiers: a <b>registry</b> of every shotgun-metagenome study reached in ENA — INSDC BioProjects deposited in ENA, NCBI SRA or DDBJ — classified for human host, body site, life stage, assay and access ({{ rs.n_human|fmt }} human studies of {{ rs.n_studies|fmt }}), and a curated <b>catalog</b> of the human-gut studies among them, all ages ({{ stats.n_studies|fmt }} studies, {{ stats.n_samples|fmt }} samples), with per-sample metadata in which every value carries a verbatim evidence quote, a route and a confidence.</p>
+<div class="sections">
+<a class="card" href="scope.html"><b>Scope</b><br>How the {{ stats.n_studies|fmt }} catalog studies are cut from the registry: the study rule, the funnel, and the gut studies left out and why.</a>
+<a class="card" href="methods.html"><b>Methods</b><br>Registry enumeration and classification, the four curation routes (R1–R4) and their precedence, evidence and confidence rules, cohorts, releases, limitations.</a>
+<a class="card" href="sources.html"><b>Sources &amp; acknowledgements</b><br>Archives, literature, software and models behind the catalog; the external curated resources incorporated as R2 evidence; funding.</a>
+<a class="card" href="../fields/index.html"><b>Fields documentation</b><br>All {{ n_fields }} fields grouped core / key / infant extension with vocabulary, coverage, route mix and confidence; the package data dictionary.</a>
+<a class="card" href="../downloads/index.html"><b>Downloads &amp; releases</b><br>The data package, per-table downloads, the release history and what changed in each release.</a>
+<a class="card" href="../contribute/index.html"><b>Contribute</b><br>Studies whose core fields are still missing, and how a per-sample table or a paper pointer unlocks them.</a>
+</div>
+<h2 id="funnel">Registry → catalog in numbers</h2>
+<table class="tbl small" style="max-width:720px"><tbody>{% for label, n in funnel %}<tr><td>{{ label }}</td><td class="num">{{ n|fmt }}</td></tr>{% endfor %}</tbody></table>
+<h2 id="funding">Funding</h2>
+{% for f in src.funding %}<p class="note">{{ f.text }}</p>{% endfor %}
+<h2 id="cite">How to cite</h2>
+{% include "_cite.html" %}
+<h2 id="docs">Documents</h2>
+<ul class="small">{% for d in docs %}<li><a href="../{{ d.href }}">{{ d.title }}</a> <span class="mono">({{ d.name }})</span></li>{% endfor %}</ul>
+<p class="small">Code, configuration and vocabularies: <a href="https://github.com/OlmLab/catalog-pipeline">catalog-pipeline</a>; data packages: <a href="https://github.com/{{ site.data_repo }}">{{ site.data_repo }}</a>. Found an error? Use the <b>Flag an issue</b> link on a study or cohort page — it opens a short prefilled GitHub issue.</p>
+{% endblock %}

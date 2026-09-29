@@ -3,10 +3,10 @@
 {% block desc %}All {{ n_rows|fmt }} human gut shotgun-metagenome studies of the catalog (all ages) with sample counts, age categories, health conditions, curation depth and per-field coverage.{% endblock %}
 {% block content %}
 <h1>Studies ({{ n_rows|fmt }})</h1>
-<p class="lead">Every ENA BioProject in the catalog — human gut shotgun metagenomes of all ages — with the number of curated samples, the age-category mix, the most frequent health-condition code, the routes that contributed values (<span class="mono">depth</span>: R1 archive attributes · R2 supplementary tables · R3 paper full text · R4 abstracts) and the per-field coverage. Click an accession for the study page (classification, papers, authors, evidence, sample table, downloads). The table is loaded from <a href="../data/studies_index.json">studies_index.json</a>; the full study table with every column is <a href="../data/gut_studies.parquet" download>gut_studies.parquet</a>.</p>
+<p class="lead">Every study in the catalog — an INSDC BioProject deposited in ENA, NCBI SRA or DDBJ and enumerated through ENA's mirror; human gut shotgun metagenomes of all ages — with the number of curated samples, the age-category mix, the most frequent health-condition code, the routes that contributed values (<span class="mono">depth</span>: R1 archive attributes · R2 supplementary tables · R3 paper full text · R4 abstracts) and the per-field coverage. Click an accession for the study page (how it entered the registry, papers, authors, coverage, evidence, sequencing, sample table, downloads).{% if has_seq %} <span class="mono">Gbp/run</span> is the mean base count per run in Gbp from <span class="mono">gut_runs.parquet</span>.{% endif %} The table is loaded from <a href="../data/studies_index.json">studies_index.json</a>; the full study table with every column is <a href="../data/gut_studies.parquet" download>gut_studies.parquet</a>.</p>
 <div class="btns"><a class="btn sec" href="../data/gut_studies.parquet" download>Download study table (parquet)</a> <a class="btn sec" href="../samples/index.html">Open the sample explorer</a></div>
 <table id="studies" class="tbl display compact" style="width:100%">
-<thead><tr><th>Study</th><th>Title</th><th class="num">Samples</th><th>Age categories</th><th>Top condition</th><th>Country</th><th>Depth</th><th class="num">Age %</th><th class="num">Health %</th><th class="num">Country %</th><th>First author</th><th class="num">Papers</th><th>Public</th></tr></thead>
+<thead><tr><th>Study</th><th>Title</th><th class="num">Samples</th><th>Age categories</th><th>Top condition</th><th>Country</th><th>Depth</th><th class="num">Age %</th><th class="num">Health %</th><th class="num">Country %</th><th>First author</th><th class="num">Papers</th><th>Public</th>{% if has_seq %}<th class="num">Runs</th><th class="num">Gbp/run</th>{% endif %}</tr></thead>
 <tbody></tbody></table>
 {% endblock %}
 {% block scripts %}
@@ -28,7 +28,9 @@ fetch('../data/studies_index.json').then(r => r.json()).then(rows => {
       {data: 'cc', className: 'num', render: (d, t) => t === 'display' ? d + '%' : d},
       {data: 'fa', render: (d, t) => t === 'display' ? '<span class="small">' + h(d) + '</span>' : d},
       {data: 'p', className: 'num'},
-      {data: 'y', className: 'mono'}
+      {data: 'y', className: 'mono'}{% if has_seq %},
+      {data: 'nr', className: 'num', render: (d, t) => t === 'display' ? (d === null || d === undefined ? '' : Number(d).toLocaleString()) : d},
+      {data: 'gb', className: 'num', render: (d, t) => t === 'display' ? (d === null || d === undefined ? '' : Number(d).toFixed(2)) : d}{% endif %}
     ]
   });
 });

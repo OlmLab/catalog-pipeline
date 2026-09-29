@@ -127,3 +127,19 @@ a.card.contribute-card{text-decoration:none;color:var(--ink);border-left-color:v
 .routebar{position:relative;display:inline-block;width:160px;height:10px;background:var(--panel);border:1px solid var(--line);border-radius:3px;vertical-align:middle;overflow:hidden}
 .routebar .seg{position:absolute;top:0;bottom:0}.routebar .seg.R1{background:var(--cu-gold)}.routebar .seg.R2{background:#565A5C}.routebar .seg.R3{background:#A88B4A}.routebar .seg.R4{background:#8C8F91}
 .doc{max-width:1000px}
+
+/* R2026.12 site restructure: home tiles, facet bar lists, field-tier tags, author preview cards */
+.find{margin:.6rem 0 1rem}
+.cards.tiles{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.cards.tiles a.card{text-decoration:none;color:var(--ink)}.cards.tiles a.card:hover{border-color:var(--cu-black)}
+.facet .hbars{margin-top:.5rem}
+.facet a.hbar{text-decoration:none;color:var(--ink);grid-template-columns:200px 1fr 64px;padding:.1rem 0;border-radius:4px}
+.facet a.hbar:hover{background:var(--cu-pale-gold)}
+.facet .hbar .trk>span{background:var(--cu-gold)}
+.tag.tier-core{background:var(--cu-gold);color:var(--cu-black);border-color:var(--cu-gold)}
+.tag.tier-key{background:#fff;color:var(--cu-black);border-color:var(--cu-dark-gray)}
+.tag.tier-infant{background:var(--panel);color:var(--cu-dark-gray)}
+.evlist{list-style:none;padding:0;margin:.3rem 0}.evlist li{padding:.15rem 0;border-bottom:1px solid var(--line)}
+.scards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.5rem;margin:.3rem 0 .8rem}
+a.card.scard{display:block;text-decoration:none;color:var(--ink);padding:.5rem .7rem}a.card.scard:hover{border-color:var(--cu-black)}
+@media (max-width:820px){.facet a.hbar{grid-template-columns:120px 1fr 56px}}

@@ -44,10 +44,11 @@ async function init() {
     const accs = [...INCLUDED]; for (let i = 0; i < accs.length; i += 500) await conn.query(`INSERT INTO catalog_studies VALUES ${accs.slice(i, i + 500).map(a => `('${esc(a)}')`).join(',')}`);
     window.__registryReady = true;
     $('boot').style.display = 'none'; $('exp').style.display = '';
+    const acc = new URLSearchParams(location.search).get('study');   // read BEFORE run(): writeUrl() drops the param while the panel is still closed (the old bug)
     readUrl();
+    if (acc && !$('f-q').value.trim()) { $('f-q').value = acc; setHost(['yes', 'mixed', 'unknown', 'no']); }   // the record must be findable whatever its host class
     await run();
-    const acc = new URLSearchParams(location.search).get('study');
-    if (acc) showDetail(acc);
+    if (acc) { await showDetail(acc); $('detail').scrollIntoView({block: 'start'}); }
   } catch (e) { bootFail(e); }
 }
 
@@ -67,13 +68,20 @@ function whereClause() {
     const v = sel.value; if (!v) continue;
     w.push(`"${sel.dataset.field}" = '${esc(v)}'`);
   }
+  const hosts = hostValues();   // item 2: default = human studies (yes + mixed); checkboxes add unknown / no
+  if (hosts.length && hosts.length < HOST_ALL.length) w.push(`host_human IN (${hosts.map(x => `'${esc(x)}'`).join(', ')})`);
   const mr = $('f-min_runs').value; if (mr !== '') w.push(`n_runs >= ${parseInt(mr)}`);
   if ($('f-catalog') && $('f-catalog').checked) w.push(`study_accession IN (SELECT study_accession FROM catalog_studies)`);
   return w.length ? 'WHERE ' + w.join(' AND ') : '';
 }
 
+const HOST_ALL = ['yes', 'mixed', 'unknown', 'no'], HOST_DEFAULT = ['yes', 'mixed'];
+function hostValues() { return HOST_ALL.filter(v => { const el = $('f-host_' + v); return el && el.checked; }); }
+function setHost(vals) { for (const v of HOST_ALL) { const el = $('f-host_' + v); if (el) el.checked = vals.includes(v); } }
+
 function writeUrl() {
   const p = new URLSearchParams();
+  const hv = hostValues(); if (hv.join(',') !== HOST_DEFAULT.join(',')) p.set('host', hv.join(','));
   if ($('f-q').value.trim()) p.set('q', $('f-q').value.trim());
   for (const sel of document.querySelectorAll('select[data-list], select[data-field]')) if (sel.value) p.set(sel.id.replace(/^f-/, ''), sel.value);
   if ($('f-min_runs').value !== '') p.set('min_runs', $('f-min_runs').value);
@@ -88,6 +96,8 @@ function readUrl() {
   if (p.get('q')) $('f-q').value = p.get('q');
   for (const sel of document.querySelectorAll('select[data-list], select[data-field]')) { const v = p.get(sel.id.replace(/^f-/, '')); if (v) sel.value = v; }
   if (p.get('min_runs')) $('f-min_runs').value = p.get('min_runs');
+  if (p.get('host')) setHost(p.get('host').split(',').filter(v => HOST_ALL.includes(v)));
+  else if (p.get('host_human') && HOST_ALL.includes(p.get('host_human'))) setHost([p.get('host_human')]);   // old links with the former select
   if (p.get('catalog') && $('f-catalog')) $('f-catalog').checked = true;
   if (p.get('page')) page = Math.max(0, parseInt(p.get('page')) - 1);
   if (p.get('sort')) { const [c, d] = p.get('sort').split(':'); if (SORTABLE.has(c)) { sortCol = c; sortDir = d === 'ASC' ? 'ASC' : 'DESC'; } }
@@ -115,7 +125,8 @@ async function run() {
     `<td>${accLink(row.study_accession, row.in_infant_catalog)}</td><td>${h(row.study_title)}</td><td class="num">${fmtV(row.n_runs)}</td><td class="num">${fmtV(row.n_samples)}</td>` +
     `<td class="small">${h(row.body_sites)}</td><td class="small">${h(row.life_stages)}</td><td class="mono small">${h(row.assay)}</td><td>${stageBadge(row.classification_stage)}</td>` +
     `<td><a class="small" href="${CFG.enaUrl}${h(row.study_accession)}">ENA</a></td></tr>`).join('');
-  $('count').textContent = `${total.toLocaleString()} studies · ${Number(c0.r).toLocaleString()} runs match`;
+  const hv = hostValues(); const hostNote = hv.length && hv.length < HOST_ALL.length ? ` (host human: ${hv.join(', ')})` : '';
+  $('count').textContent = `${total.toLocaleString()} studies · ${Number(c0.r).toLocaleString()} runs match${hostNote}`;
   $('pageinfo').textContent = total ? `page ${page + 1} / ${maxPage + 1}` : '';
   $('prev').disabled = page <= 0; $('next').disabled = page >= maxPage;
   writeUrl();
@@ -181,7 +192,7 @@ async function showDetail(acc) {
 
 // wiring
 $('apply').addEventListener('click', () => { page = 0; run(); });
-$('reset').addEventListener('click', () => { history.replaceState(null, '', location.pathname + location.hash); for (const el of document.querySelectorAll('.filters select, .filters input')) { if (el.tagName === 'SELECT') el.value = ''; else el.value = ''; } page = 0; sortCol = 'n_samples'; sortDir = 'DESC'; run(); });
+$('reset').addEventListener('click', () => { history.replaceState(null, '', location.pathname + location.hash); for (const el of document.querySelectorAll('.filters select, .filters input')) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; } setHost(HOST_DEFAULT); page = 0; sortCol = 'n_samples'; sortDir = 'DESC'; run(); });
 $('prev').addEventListener('click', () => { page = Math.max(0, page - 1); run(); });
 $('next').addEventListener('click', () => { page++; run(); });
 $('dl-csv').addEventListener('click', download);

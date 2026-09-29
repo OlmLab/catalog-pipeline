@@ -5,8 +5,14 @@
 const DUCKDB_URL = 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 const CFG = window.GUT_CFG;
 const PAGE = 50;
-const FIELDS = ['age_at_collection_days', 'sex', 'bmi', 'country', 'health_condition', 'antibiotic_exposure', 'subject_id', 'timepoint_label'];
-const SHOW = ['sample_key', 'study_accession', 'age_category', 'age_at_collection_days', 'sex', 'bmi', 'country', 'health_condition', 'antibiotic_exposure', 'subject_id', 'body_site_class'];
+// core + key fields come from config/packs/gut.yaml through GUT_CFG (item 7); detailed_location is derived from location_site/locality/region
+const FIELDS = [...(CFG.coreFields || ['age_at_collection_days', 'sex', 'country', 'health_condition', 'subject_id']), ...(CFG.keyFields || ['detailed_location', 'lifestyle', 'collection_date', 'antibiotic_exposure', 'bmi', 'timepoint_label'])];
+const SHOW = ['sample_key', 'archive', 'study_accession', 'age_category', 'age_at_collection_days', 'sex', 'bmi', 'country', 'health_condition', 'antibiotic_exposure', 'subject_id', 'body_site_class'];
+const LOC_PARTS = ['location_site', 'location_locality', 'location_region'];
+let COLS = new Set();   // columns present in the wide table (filled at boot); absent columns are omitted, never rendered as empty
+const archiveUrl = acc => { if (!acc) return null; const a = String(acc); if (/^[SED]RR\d+$/.test(a)) return CFG.archive.RUN + a; return (CFG.archive[a.slice(0, 4)] || CFG.archive.SAME) + a; };
+const archiveLink = (acc, label) => { const u = archiveUrl(acc); return u ? `<a class="small" href="${u}">${h(label || 'archive')}</a>` : ''; };
+const detailedLocation = s => LOC_PARTS.filter(p => COLS.has(p) && s[p] !== null && s[p] !== undefined && s[p] !== '').map(p => s[p]).join(', ');
 const SORTABLE = new Set(['sample_key', 'study_accession', 'age_category', 'age_at_collection_days', 'sex', 'bmi', 'country', 'health_condition', 'n_fields_with_value']);
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/'/g, "''");
@@ -35,11 +41,19 @@ async function init() {
     conn = await db.connect();
     await conn.query(`CREATE VIEW s AS SELECT * FROM read_parquet('samples.parquet')`);
     await conn.query(`CREATE VIEW st AS SELECT study_accession, study_title FROM read_parquet('studies.parquet')`);
+    COLS = new Set((await conn.query(`DESCRIBE s`)).toArray().map(r => r.toJSON().column_name));
+    for (const el of document.querySelectorAll('[data-field], [data-text], [data-year]')) {   // filters for columns this package does not carry are hidden
+      const col = el.dataset.field || el.dataset.text || (el.dataset.year ? 'collection_date' : null);
+      const present = col === 'detailed_location' ? LOC_PARTS.some(p => COLS.has(p)) : COLS.has(col);
+      if (!present) { el.disabled = true; const lab = el.closest('.row2') || el; lab.style.display = 'none'; const l = document.querySelector(`label[for="${el.id}"]`); if (l) l.style.display = 'none'; }
+    }
     window.__gutReady = true;
     $('boot').style.display = 'none'; $('exp').style.display = '';
+    const k = new URLSearchParams(location.search).get('sample');   // read BEFORE run(): writeUrl() would drop the param while the panel is still closed
     readUrl();
+    if (k && !$('f-q').value.trim()) $('f-q').value = k;   // item 10: ?sample=<key> filters the table to that sample …
     await run();
-    const k = new URLSearchParams(location.search).get('sample'); if (k) showDetail(k);
+    if (k) { await showDetail(k); $('detail').scrollIntoView({block: 'start'}); }   // … and opens its detail panel
   } catch (e) { bootFail(e); }
 }
 
@@ -48,10 +62,20 @@ function whereClause() {
   const q = $('f-q').value.trim();
   if (q) {
     if (/^PRJ[A-Z]*\d+$/i.test(q)) w.push(`s.study_accession = '${esc(q.toUpperCase())}'`);
-    else if (/^SAM[NED]A?\d+$/i.test(q)) w.push(`s.sample_key = '${esc(q.toUpperCase())}'`);
+    else if (/^SAM[NED]A?\d+$/i.test(q) || /^[SED]RR\d+$/i.test(q)) w.push(`(s.sample_key = '${esc(q.toUpperCase())}' OR s.biosample_accession = '${esc(q.toUpperCase())}')`);
     else w.push(`(st.study_title ILIKE '%${esc(q)}%' OR s.study_accession ILIKE '%${esc(q)}%')`);
   }
-  for (const sel of document.querySelectorAll('select[data-field]')) { const v = sel.value; if (!v) continue; w.push(v === '__null__' ? `s."${sel.dataset.field}" IS NULL` : `s."${sel.dataset.field}" = '${esc(v)}'`); }
+  for (const sel of document.querySelectorAll('select[data-field]')) { const v = sel.value; if (!v || sel.disabled) continue; w.push(v === '__null__' ? `s."${sel.dataset.field}" IS NULL` : `s."${sel.dataset.field}" = '${esc(v)}'`); }
+  for (const inp of document.querySelectorAll('input[data-text]')) {
+    const v = inp.value.trim(); if (!v || inp.disabled) continue;
+    const cols = inp.dataset.text === 'detailed_location' ? LOC_PARTS.filter(p => COLS.has(p)) : [inp.dataset.text];
+    if (cols.length) w.push('(' + cols.map(c => `s."${c}" ILIKE '%${esc(v)}%'`).join(' OR ') + ')');
+  }
+  if (COLS.has('collection_date')) {
+    const y0 = $('f-year_min') && $('f-year_min').value, y1 = $('f-year_max') && $('f-year_max').value;
+    if (y0) w.push(`TRY_CAST(substr(s.collection_date, 1, 4) AS INTEGER) >= ${parseInt(y0)}`);
+    if (y1) w.push(`TRY_CAST(substr(s.collection_date, 1, 4) AS INTEGER) <= ${parseInt(y1)}`);
+  }
   if ($('f-infant').checked) w.push(`s.infant_scope`);
   if ($('f-has_age').checked) w.push(`s.age_at_collection_days IS NOT NULL`);
   if ($('f-has_subject').checked) w.push(`s.subject_id IS NOT NULL`);
@@ -63,7 +87,7 @@ const FROM = 'FROM s LEFT JOIN st USING (study_accession)';
 function writeUrl() {
   const p = new URLSearchParams();
   if ($('f-q').value.trim()) p.set('q', $('f-q').value.trim());
-  for (const sel of document.querySelectorAll('select[data-field]')) if (sel.value) p.set(sel.id.replace(/^f-/, ''), sel.value);
+  for (const sel of document.querySelectorAll('select[data-field], input[data-text], input[data-year]')) if (sel.value && !sel.disabled) p.set(sel.id.replace(/^f-/, ''), sel.value);
   if ($('f-infant').checked) p.set('infant', '1'); if ($('f-has_age').checked) p.set('has_age', '1'); if ($('f-has_subject').checked) p.set('has_subject', '1');
   if ($('f-min_fields').value !== '') p.set('min_fields', $('f-min_fields').value);
   if (page) p.set('page', page + 1);
@@ -75,7 +99,7 @@ function readUrl() {
   const p = new URLSearchParams(location.search);
   if (p.get('q')) $('f-q').value = p.get('q');
   if (p.get('study')) $('f-q').value = p.get('study');
-  for (const sel of document.querySelectorAll('select[data-field]')) { const v = p.get(sel.id.replace(/^f-/, '')); if (v) sel.value = v; }
+  for (const sel of document.querySelectorAll('select[data-field], input[data-text], input[data-year]')) { const v = p.get(sel.id.replace(/^f-/, '')); if (v) sel.value = v; }
   if (p.get('infant')) $('f-infant').checked = true; if (p.get('has_age')) $('f-has_age').checked = true; if (p.get('has_subject')) $('f-has_subject').checked = true;
   if (p.get('min_fields')) $('f-min_fields').value = p.get('min_fields');
   if (p.get('page')) page = Math.max(0, parseInt(p.get('page')) - 1);
@@ -95,9 +119,9 @@ async function run() {
   const thead = $('result-table').querySelector('thead'), tbody = $('result-table').querySelector('tbody');
   thead.innerHTML = '<tr>' + SHOW.map(col => SORTABLE.has(col)
     ? `<th data-col="${col}" tabindex="0" role="columnheader button" aria-sort="${col === sortCol ? (sortDir === 'ASC' ? 'ascending' : 'descending') : 'none'}" title="sort by ${col}" style="cursor:pointer">${col}${col === sortCol ? (sortDir === 'ASC' ? ' ▲' : ' ▼') : ''}</th>`
-    : `<th>${col}</th>`).join('') + '</tr>';
+    : `<th>${col === 'archive' ? 'archive record' : col}</th>`).join('') + '</tr>';
   tbody.innerHTML = rows.map(row => `<tr data-key="${h(row.sample_key)}" tabindex="0" role="button" aria-label="open details for ${h(row.sample_key)}">` +
-    `<td class="mono">${h(row.sample_key)}</td><td>${studyLink(row)}</td><td>${h(row.age_category)}</td><td class="num">${fmtV(row.age_at_collection_days)} ${routeBadge(row.age_at_collection_days__route, row.age_at_collection_days__confidence)}</td>` +
+    `<td class="mono">${h(row.sample_key)}</td><td>${archiveLink(row.biosample_accession || row.sample_key, (row.biosample_accession || row.sample_key))}</td><td>${studyLink(row)}</td><td>${h(row.age_category)}</td><td class="num">${fmtV(row.age_at_collection_days)} ${routeBadge(row.age_at_collection_days__route, row.age_at_collection_days__confidence)}</td>` +
     `<td>${h(row.sex)}</td><td class="num">${fmtV(row.bmi)}</td><td>${h(row.country)}</td><td>${h(row.health_condition)} ${routeBadge(row.health_condition__route, row.health_condition__confidence)}</td><td>${h(row.antibiotic_exposure)}</td><td class="small">${h(row.subject_id)}</td><td class="small">${h(row.body_site_class)}</td></tr>`).join('');
   $('count').textContent = `${total.toLocaleString()} samples match (${Number(c0.k).toLocaleString()} studies)`;
   $('pageinfo').textContent = total ? `page ${page + 1} / ${maxPage + 1}` : '';
@@ -130,14 +154,24 @@ async function showDetail(key) {
   const s = rows[0].toJSON();
   const p = new URLSearchParams(location.search); p.set('sample', key); history.replaceState(null, '', location.pathname + '?' + p.toString() + location.hash);
   let html = `<h2 style="margin-top:0">${h(key)}</h2><p>${studyLink(s)} · ${h(s.study_title)}</p>
-  <p class="small"><a href="${CFG.enaSampleUrl}${h(s.biosample_accession || key)}">ENA BioSample</a> · unit ${h(s.sample_unit)} · body site ${h(s.body_site_code)} (${h(s.body_site_class)}) · source ${h(s.curated_source)}${s.infant_scope ? ' · infant scope' : ''}</p>
+  <p class="small">${archiveLink(s.biosample_accession || key, 'archive record ' + (s.biosample_accession || key))}${/^[SED]RR\d+$/.test(key) ? '' : ' · <a href="' + CFG.enaSampleUrl + h(s.biosample_accession || key) + '">ENA</a>'} · unit ${h(s.sample_unit)} · body site ${h(s.body_site_code)} (${h(s.body_site_class)}) · source ${h(s.curated_source)}${s.infant_scope ? ' · infant extension' : ''}</p>
   <h3>Age category</h3><p><b>${h(s.age_category)}</b> <span class="small">(basis: ${h(s.age_category_basis)})</span></p>
   <h3>Fields</h3><table class="tbl kv">`;
-  for (const f of FIELDS) html += `<tr><td>${f}</td><td>${fmtV(s[f])} ${routeBadge(s[f + '__route'], s[f + '__confidence'])}</td></tr>`;
+  const tierOf = f => (CFG.coreFields || []).includes(f) ? 'core' : 'key';
+  for (const f of FIELDS) {
+    if (f === 'detailed_location') { if (LOC_PARTS.some(p => COLS.has(p))) html += `<tr><td>detailed_location <span class="tag tier-key">key</span></td><td>${h(detailedLocation(s))}</td></tr>`; continue; }
+    if (!COLS.has(f)) continue;   // column absent from this package → omitted
+    html += `<tr><td>${f} <span class="tag tier-${tierOf(f)}">${tierOf(f)}</span></td><td>${fmtV(s[f])} ${routeBadge(s[f + '__route'], s[f + '__confidence'])}</td></tr>`;
+    if (f === 'lifestyle' && COLS.has('lifestyle_detail') && s.lifestyle_detail) html += `<tr><td>lifestyle_detail</td><td class="small">${h(s.lifestyle_detail)}</td></tr>`;
+  }
   if (s.health_condition_detail) html += `<tr><td>health_condition_detail</td><td class="small">${h(s.health_condition_detail)}</td></tr>`;
+  if (COLS.has('latitude') && COLS.has('longitude') && s.latitude !== null && s.latitude !== undefined && s.longitude !== null && s.longitude !== undefined) {
+    const la = Number(s.latitude), lo = Number(s.longitude);
+    html += `<tr><td>latitude, longitude</td><td>${la.toFixed(4)}, ${lo.toFixed(4)} ${routeBadge(s.latitude__route, s.latitude__confidence)} · <a href="https://www.openstreetmap.org/?mlat=${la}&mlon=${lo}#map=8/${la}/${lo}">OpenStreetMap</a></td></tr>`;
+  }
   html += '</table>';
-  const inf = ['delivery_mode', 'feeding_mode', 'preterm_status', 'gestational_age_weeks', 'birth_weight_grams', 'maternal_antibiotics', 'probiotic_exposure', 'hmo_supplementation', 'nec_status'].filter(f => s[f] !== null && s[f] !== undefined);
-  if (inf.length) html += '<h3>Infant-catalog fields</h3><table class="tbl kv">' + inf.map(f => `<tr><td>${f}</td><td>${fmtV(s[f])}</td></tr>`).join('') + '</table>';
+  const inf = ['delivery_mode', 'feeding_mode', 'preterm_status', 'gestational_age_weeks', 'birth_weight_grams', 'maternal_antibiotics', 'probiotic_exposure', 'hmo_supplementation', 'nec_status'].filter(f => COLS.has(f) && s[f] !== null && s[f] !== undefined);
+  if (inf.length) html += '<h3>Infant extension fields</h3><table class="tbl kv">' + inf.map(f => `<tr><td>${f}</td><td>${fmtV(s[f])}</td></tr>`).join('') + '</table>';
   html += `<h3>Evidence</h3><p class="small">Every value above has an evidence row (verbatim quote ≤ 12 words, labelled source, locator, route, confidence): <a href="${detUrl(s.study_accession)}">${h(s.study_accession)}_determinations.csv.gz</a> (this study) or <span class="mono">gut_sample_determinations.parquet</span> (all). Cohort-wide statements (R3/R4) are shown on the <a href="${CFG.studiesUrl}${h(s.study_accession)}.html">study page</a>.</p>`;
   body.innerHTML = html;
 }

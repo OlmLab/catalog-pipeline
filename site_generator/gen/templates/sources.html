@@ -3,6 +3,7 @@
 {% block desc %}Where the data comes from, what it is built with, who funds it, and the related human-microbiome metadata efforts we could ingest.{% endblock %}
 {% block content %}
 <h1>Sources and acknowledgements</h1>
+<p class="small"><a href="index.html">About</a> › Sources &amp; acknowledgements</p>
 <p class="lead">Everything on this site is derived from public archives and open literature; this page names those sources and their terms, the software and models the pipeline uses, the funding, and the other projects that curate human-microbiome metadata — with an honest assessment of what each could add to the catalog and how it would join. Last reviewed {{ src.updated }}.</p>
 {% for f in src.funding %}<p class="note">{{ f.text }}</p>{% endfor %}
 

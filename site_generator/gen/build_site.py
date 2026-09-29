@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """Static site generator v3 for Microbiome Repo — all ages, one catalog.
 
-Tiers on the site: the REGISTRY (registry_studies.parquet: every ENA study with a human shotgun-metagenome signal, all body
-sites and ages) and the CATALOG = the curated gut_all scope (gut_studies / gut_sample_metadata_wide / gut_sample_determinations:
-every human gut shotgun study, all ages, per-sample evidence-linked metadata). Every navigation section (Studies, Cohorts,
-Samples, Fields, Authors, Scope, Contribute) is built from the catalog tables; the former infant-only tables remain in the
-package as the deep infant-field extension (delivery mode, feeding, gestational age …) and surface only as fields.
+Tiers on the site: the REGISTRY (registry_studies.parquet: every ENA shotgun-metagenome study reached by the enumeration — INSDC
+BioProjects from ENA / NCBI SRA / DDBJ — classified for human host, body site, life stage, assay, access; the headline number is
+the HUMAN count, host_human in {yes, mixed}) and the CATALOG = the curated gut_all scope (gut_studies / gut_sample_metadata_wide /
+gut_sample_determinations: every human gut shotgun study, all ages, per-sample evidence-linked metadata). Navigation (NAV):
+Home · Studies · Samples · Cohorts · Collections · Atlas · Authors · Registry · Downloads · Contribute · About; Scope, Methods
+and Sources live under about/, Downloads and Releases are one page, old URLs redirect (REDIRECTS). Field tiers (core / key /
+infant extension) come from config/packs/gut.yaml; columns the package does not carry yet are omitted, never shown as 0 %.
+The former infant-only tables remain in the package as the infant extension and surface only as fields.
 
 Usage:  python build_site.py --package PKG_DIR --out site [--reports DIR] [--package-zip ZIP] [--base-url URL]
 
@@ -29,8 +32,17 @@ LABELS = {'age_at_collection_days': 'Age at collection (days)', 'sex': 'Sex', 'b
           'health_condition_detail': 'Health condition (detail)', 'antibiotic_exposure': 'Antibiotic exposure', 'subject_id': 'Subject id', 'timepoint_label': 'Timepoint label',
           'delivery_mode': 'Delivery mode', 'feeding_mode': 'Feeding mode', 'preterm_status': 'Preterm status', 'gestational_age_weeks': 'Gestational age (weeks)',
           'birth_weight_grams': 'Birth weight (g)', 'maternal_antibiotics': 'Maternal antibiotics', 'probiotic_exposure': 'Probiotic exposure',
-          'hmo_supplementation': 'HMO supplementation', 'nec_status': 'NEC status'}
+          'hmo_supplementation': 'HMO supplementation', 'nec_status': 'NEC status',
+          'collection_date': 'Collection date', 'location_region': 'Location (region)', 'location_locality': 'Location (locality)', 'location_site': 'Location (site)',
+          'detailed_location': 'Detailed location', 'latitude': 'Latitude', 'longitude': 'Longitude', 'lifestyle': 'Lifestyle', 'lifestyle_detail': 'Lifestyle (detail)'}
 FIELD_CAVEATS = {
+    'collection_date': 'As specific as the source gives it (YYYY, YYYY-MM, YYYY-MM-DD or an ISO interval for a stated sampling period); placeholders (missing / not collected / restricted) stay unknown.',
+    'location_region': 'First-level administrative region below the country (state, province, prefecture …); English exonym, no country name.',
+    'location_locality': 'City, town, village or district where subjects were recruited — not where the laboratory is.',
+    'location_site': 'Named recruitment site (hospital, clinic, school, cohort field station, community name) in the source\'s own words.',
+    'latitude': 'Decimal degrees from lat_lon / geographic-location attributes (R1/R2 only), rounded to 4 decimals.', 'longitude': 'Decimal degrees; same source row as latitude.',
+    'lifestyle': 'Controlled vocabulary (config/vocab/lifestyle.yaml); committed only when the source states it — never inferred from the country.',
+    'lifestyle_detail': 'Named population or the source\'s own words behind the lifestyle code (Hadza, Hutterite colony, elite rugby players …).',
     'age_at_collection_days': 'Age at sample collection in days. Archive ages without a unit are read as years for non-infant studies (rule recorded in the field map); ranges and timepoint lists are never values. The age category (neonate … elderly) is derived from this value, else from the sample\'s or study\'s stated life stage (basis column).',
     'sex': 'Archive attribute, table column or single-sex cohort statement (R3); no external truth set.',
     'bmi': 'Body-mass index from archive attributes or tables; plausibility window 10–80; never derived from a cohort mean.',
@@ -62,7 +74,7 @@ FILE_DESC = {
     'study_metadata_wide.parquet': 'Infant extension: one row per infant study with infant-field coverage, triage evidence and recoverability tiers.', 'study_metadata_wide.csv': 'Same table as CSV.',
     'runs.parquet': 'Infant extension: run → sample → study for the infant studies.', 'sample_subjects.parquet': 'Infant extension: subject and timepoint resolution per sample.',
     'cohorts.csv': 'Infant extension: curated cohort clusters with unique-infant estimates (the site\'s cohort pages carry these names).',
-    'study_paper_links.csv': 'Infant extension: curated study ↔ paper links.', 'universe_studies_all.parquet': 'Infant extension: the 9.6 k studies screened for the infant scope with verdict and reason.',
+    'study_paper_links.csv': 'Infant extension: curated study ↔ paper links.', 'universe_studies_all.parquet': 'Infant extension: the 9.6 k studies screened for the infant extension with verdict and reason.',
     'human_review_queue.csv': 'Infant extension: studies the infant triage could not decide.', 'field_coverage_summary.csv': 'Infant extension: coverage per infant field.',
     'study_field_coverage_matrix.csv': 'Infant extension: coverage per infant study × field.', 'extraction_gold_eval_hires.csv': 'Infant extension: precision/recall vs curatedMetagenomicData.',
     'parent_biosamples.parquet': 'Infant extension: parent BioSamples of run-level rows.', 'study_verdict_history.parquet': 'Infant extension: every triage-stage verdict per screened study.',
@@ -88,15 +100,138 @@ OFFSITE = [dict(name='registry_runs_v{v}.parquet', desc='Registry run tier: one 
            dict(name='sandpiper_profiles.parquet', desc='Full sample × rank × taxon Sandpiper profiles of the infant studies (≈100 MB) — Release asset.')]
 TAXON_PALETTE = ['#CFB87C', '#565A5C', '#A88B4A', '#8C8F91', '#7A6A3C', '#3C3C3C', '#8A7A48', '#7F7060', '#6E6A5E', '#8F7418', '#6F6D62', '#6B6F73', '#7D7461', '#4A4A4A', '#75604A', '#5F6366']
 UNASSIGNED_COLOR = '#D9D9D9'
-ISSUE_REPO = 'https://github.com/OlmLab/infant-gut-catalog/issues/new'
+ISSUE_REPO = 'https://github.com/OlmLab/infant-gut-catalog/issues/new'   # default; main() replaces both from config/site.yaml github.issues
 ISSUE_TEMPLATE = 'catalog-finding.yml'
-PUBLIC_REPORT_DOCS = [('CATALOG_REPORT.md', 'Infant-scope catalog report'), ('EXTRACTION_REPORT.md', 'Infant-field extraction report')]
+SIMPLE_ISSUE_TEMPLATE = 'simple-finding.yml'   # site_generator/gen/issue_templates/simple-finding.yml (installed into the Issues repo)
+PUBLIC_REPORT_DOCS = [('CATALOG_REPORT.md', 'Infant-extension catalog report'), ('EXTRACTION_REPORT.md', 'Infant-field extraction report')]
 NEVER_PUBLISH_DOCS = {'NEXT_STAGE.md', 'SCALE_UP_PLAN.md', 'RUNBOOK.md', 'STATE_BRIEF.md'}
 FRAME_TOKEN_RE = re.compile(r'\s*\((?:frame|session)\s+[0-9a-f]{6,}[^)]*\)|\b(?:frame|session)\s+[0-9a-f]{8,}\b')
 ORG_LEAK_RE = re.compile(r'SUB\d{6,}|@')
-CORE_FIELDS = ['age_at_collection_days', 'sex', 'bmi', 'country', 'health_condition', 'antibiotic_exposure', 'subject_id', 'timepoint_label']
-CONTRIB_FIELDS = ['age_at_collection_days', 'sex', 'country', 'health_condition', 'antibiotic_exposure']  # a study enters the worklist when >= CONTRIB_MIN_MISSING of these are below the threshold
+# Field tiers are NOT hard-coded: config/packs/gut.yaml core_fields / key_fields / derived_fields (read_field_tiers). A study enters the
+# contribute worklist when >= CONTRIB_MIN_MISSING of the CORE fields are below the coverage threshold.
 CONTRIB_MIN_SAMPLES, CONTRIB_MIN_MISSING = 50, 3
+NAV = [('home', 'Home', 'index.html'), ('studies', 'Studies', 'studies/index.html'), ('samples', 'Samples', 'samples/index.html'), ('cohorts', 'Cohorts', 'cohorts/index.html'),
+       ('collections', 'Collections', 'collections/index.html'), ('atlas', 'Atlas', 'atlas/index.html'), ('authors', 'Authors', 'authors/index.html'),
+       ('registry', 'Registry', 'registry/index.html'), ('downloads', 'Downloads', 'downloads/index.html'), ('contribute', 'Contribute', 'contribute/index.html'), ('about', 'About', 'about/index.html')]
+# Old URLs → new homes (item 5/6): every entry is written as a redirect stub so bookmarks keep working.
+REDIRECTS = {'scope.html': 'about/scope.html', 'methods.html': 'about/methods.html', 'sources.html': 'about/sources.html', 'downloads.html': 'downloads/index.html',
+             'releases/index.html': '../downloads/index.html#releases', 'gut/index.html': '../samples/index.html', 'universe.html': 'about/scope.html'}
+ARCHIVE_URLS = {'SAMN': 'https://www.ncbi.nlm.nih.gov/biosample/', 'SAMD': 'https://ddbj.nig.ac.jp/resource/biosample/', 'SAME': 'https://www.ebi.ac.uk/ena/browser/view/',
+                'RUN': 'https://www.ebi.ac.uk/ena/browser/view/'}
+
+
+def archive_url(acc):
+    """Archive record of a BioSample / run accession (item 10): SAMN → NCBI BioSample, SAME/SAMEA → ENA browser, SAMD → DDBJ, runs → ENA browser."""
+    if isnull(acc) or not acc:
+        return None
+    a = str(acc)
+    if re.match(r'^[SED]RR\d+$', a):
+        return ARCHIVE_URLS['RUN'] + a
+    return ARCHIVE_URLS.get(a[:4], ARCHIVE_URLS['SAME']) + a
+
+
+def read_field_tiers(pack):
+    """core_fields / key_fields / derived_fields / infant fields from config/packs/gut.yaml (item 7). Nothing hard-coded."""
+    core = list(pack.get('core_fields') or [])
+    key = list(pack.get('key_fields') or [])
+    derived = dict(pack.get('derived_fields') or {})
+    assert core and key, 'config/packs/gut.yaml must define core_fields and key_fields'
+    infant = [f for f, v in list(pack['fields'].items()) + list(derived.items()) if isinstance(v, dict) and v.get('infant_only')]
+    return core, key, derived, infant
+
+
+def field_series(df, f, derived):
+    """Column f of the wide table, or the composed derived field (detailed_location = site, locality, region); None when absent."""
+    if f in df.columns:
+        return df[f]
+    spec = derived.get(f) or {}
+    parts = [p for p in (spec.get('compose') or []) if p in df.columns]
+    if parts:
+        sep = spec.get('sep', ', ')
+        s = df[parts].apply(lambda r: sep.join(str(x) for x in r if not isnull(x) and str(x) != ''), axis=1)
+        return s.where(s != '', None)
+    if spec.get('from') and spec['from'] in df.columns:
+        return df[spec['from']].map(lambda v: None if isnull(v) else str(v)[:4])
+    return None
+
+
+def read_about(cfg_path):
+    a = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8')).get('about', {}) or {}
+    for k in ('lab_name', 'lab_url', 'funder_name', 'funder_url'):
+        assert a.get(k), f'config/site.yaml about.{k} is required'
+    return a
+
+
+def read_issue_cfg(cfg_path):
+    g = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8')).get('github', {})
+    iss = g.get('issues', {}) or {}
+    repo = f"https://github.com/{g.get('org')}/{iss.get('repo') or g.get('repos', {}).get('site')}/issues/new"
+    return repo, iss.get('template', SIMPLE_ISSUE_TEMPLATE), iss.get('label', 'finding')
+
+
+def simple_issue_url(repo, template, label, accession, release_id, page_url, kind='study'):
+    """Item 8: the simple finding form asks two things; accession, release and page URL are prefilled (field ids in issue_templates/simple-finding.yml)."""
+    q = [('template', template), ('labels', label), ('title', f'[finding] {accession}'), ('accession', accession), ('release_id', release_id), ('page_url', page_url)]
+    return repo + '?' + '&'.join(f'{k}={quote(str(v), safe="")}' for k, v in q)
+
+
+def read_collections(cfg_path):
+    """config/collections.yaml (another track) → [{id, name, u, k}] for the home search; [] when absent or unreadable."""
+    p = Path(cfg_path)
+    if not p.exists():
+        return []
+    y = yaml.safe_load(p.read_text(encoding='utf-8')) or {}
+    items = y.get('collections') if isinstance(y, dict) else y
+    out = []
+    for c in items or []:
+        if not isinstance(c, dict):
+            continue
+        cid = str(c.get('id') or c.get('collection_id') or '')
+        name = str(c.get('label') or c.get('name') or c.get('title') or cid)
+        if not cid:
+            continue
+        studies = c.get('studies') or c.get('study_accessions') or []
+        out.append(dict(id=cid, name=name, u=f'collections/index.html#{cid}', k=f"{cid} {name} {c.get('description', '')} {' '.join(map(str, studies))}".lower()))
+    return out
+
+
+def registry_summary(rgr, site_labels, stage_labels_short, assay_labels):
+    """Item 9: one plain-language sentence from the registry classification row (labels from the vocabularies; nothing invented)."""
+    host = {'yes': 'human', 'mixed': 'human and non-human (mixed)', 'no': 'non-human', 'unknown': 'unknown-host'}.get(str(rgr.get('host_human')), str(rgr.get('host_human') or 'unclassified'))
+    lc = lambda s: (s[:1].lower() + s[1:]) if s else s   # vocabulary labels start with a capital; the sentence runs on
+    sites = [lc(site_labels.get(b, b)) for b in split_list(rgr.get('body_sites'))]
+    assay = lc(assay_labels.get(str(rgr.get('assay')), str(rgr.get('assay') or '')))
+    stages = [lc(stage_labels_short.get(b, b)) for b in split_list(rgr.get('life_stages'))]
+    parts = [f'Classified as {host} ' + (' / '.join(sites) if sites else 'body site unknown') + (f' {assay}' if assay else '')]
+    if stages:
+        parts.append('of ' + ' and '.join(stages))
+    stage = rgr.get('classification_stage')
+    if stage:
+        parts.append(f'by {stage}')
+    if not isnull(rgr.get('classification_confidence')):
+        parts.append(f"with confidence {float(rgr['classification_confidence']):.2f}")
+    return ' '.join(parts) + '.'
+
+
+def ev_rows(v, limit=6):
+    lst = jl(v, default=[])
+    return [dict(source=str(x.get('source', '')), quote=str(x.get('quote', ''))) for x in (lst if isinstance(lst, list) else [])[:limit] if isinstance(x, dict)]
+
+
+def gbp_stats(runs):
+    """Item 11: per-study sequencing summary from gut_runs.parquet (base_count / 1e9 per run)."""
+    r = runs.copy()
+    r['gbp'] = pd.to_numeric(r['base_count'], errors='coerce') / 1e9
+    r['sp'] = r['sandpiper_profiled'].fillna(False).astype(bool) if 'sandpiper_profiled' in r.columns else False
+    out = {}
+    for acc, g in r.groupby('study_accession', sort=True):
+        gb = g['gbp'].dropna()
+        out[acc] = dict(n_runs=int(len(g)), n_samples=int(g['sample_key'].nunique()) if 'sample_key' in g.columns else None,
+                        gbp_mean=float(gb.mean()) if len(gb) else None, gbp_median=float(gb.median()) if len(gb) else None, gbp_total=float(gb.sum()) if len(gb) else None,
+                        n_with_bases=int(len(gb)), layouts=counts_sorted(g['library_layout'].dropna()), platforms=counts_sorted(g['instrument_platform'].dropna()),
+                        models=counts_sorted(g['instrument_model'].dropna())[:6], sandpiper_share=float(g['sp'].mean()) if len(g) else None,
+                        first_public=(str(g['first_public'].dropna().min())[:10] if g['first_public'].notna().any() else None, str(g['first_public'].dropna().max())[:10] if g['first_public'].notna().any() else None))
+    return out
 
 
 def strip_frame_tokens(text):
@@ -293,6 +428,7 @@ def main():
     ap.add_argument('--scope-config', default=str(HERE.parent.parent / 'config' / 'scope.yaml'))
     ap.add_argument('--pack-config', default=str(HERE.parent.parent / 'config' / 'packs' / 'gut.yaml'))
     ap.add_argument('--sources-config', default=str(HERE.parent.parent / 'config' / 'sources.yaml'))
+    ap.add_argument('--collections-config', default=str(HERE.parent.parent / 'config' / 'collections.yaml'), help='optional (another track); searched from the home page when present')
     ap.add_argument('--allow-placeholder-base-url', action='store_true', help='test builds only')
     ap.add_argument('--build-date', default=None, help='overrides VERSION.json build_date (tests only)')
     ap.add_argument('--max-rows-html', type=int, default=2000)
@@ -308,7 +444,7 @@ def main():
         sys.exit(f'refusing to build: base_url is the placeholder {placeholder!r} (A15). Set site.base_url in config/site.yaml or pass --base-url.')
     if out.exists():
         shutil.rmtree(out)
-    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes', 'contribute', 'registry/scopes', 'gut']:
+    for d in ['studies', 'cohorts', 'samples', 'fields', 'authors/idx', 'static/vendor', 'docs', 'data/studies', 'data/cohorts', 'data/package', 'releases', 'changes', 'contribute', 'registry/scopes', 'gut', 'about', 'downloads']:
         (out / d).mkdir(parents=True, exist_ok=True)
     repo_root = HERE.parent.parent
 
@@ -369,9 +505,17 @@ def main():
     inc_set = set(included)
     infant_studies = sorted(set(cs.loc[cs.curated_source == 'infant_catalog', 'study_accession']))
     age_cats = list(pack['age_categories'].keys()) + ['unknown']
-    all_fields = list(pack['fields'].keys())
-    infant_fields = [f for f, v in pack['fields'].items() if v.get('infant_only')]
+    CORE_FIELDS, KEY_FIELDS, DERIVED, infant_fields = read_field_tiers(pack)
+    CONTRIB_FIELDS = CORE_FIELDS
+    all_fields = [f for f in list(pack['fields'].keys()) + [d for d in DERIVED if d not in pack['fields']] if f not in infant_fields] + infant_fields
+    ls_path = repo_root / 'config' / 'vocab' / 'lifestyle.yaml'
+    ls_labels = {k: (v.get('label', '') if isinstance(v, dict) else '') for k, v in (yaml.safe_load(ls_path.read_text(encoding='utf-8'))['codes'].items() if ls_path.exists() else {})}
+    # item 7: the new columns may be absent from the wide table — every use goes through has_col / field_series (present → render, absent → omit)
+    has_col = {f: (field_series(cw, f, DERIVED) is not None) for f in set(all_fields) | set(DERIVED) | {'lifestyle_detail', 'latitude', 'longitude', 'location_locality', 'location_region', 'location_site'}}
     n_by_study = cw.groupby('study_accession').size().to_dict()
+    # item 11: run-level table (optional) → per-study sequencing block + Gbp/run on the studies index
+    runs_path = pkg / 'gut_runs.parquet'
+    seq_by_study = gbp_stats(pd.read_parquet(runs_path)) if runs_path.exists() else {}
 
     # registry tier
     sspec = read_scope_spec(a.scope_config)
@@ -441,12 +585,14 @@ def main():
         n_infant_scope=int(cw.infant_scope.fillna(False).astype(bool).sum()),
         n_papers=int(papers.paper_id.nunique()), n_links=len(papers), n_studies_with_paper=int(papers.study_accession.nunique()),
         n_authors=int(authors.author_key.nunique()), n_author_rows=len(authors), n_studies_with_author=int(authors.study_accession.nunique()),
-        n_registry=len(rg), n_registry_runs=int(rg.n_runs.fillna(0).sum()), n_registry_human=int((rg.host_human == 'yes').sum()), n_registry_scopes=len(sspec['scopes']),
+        n_registry=len(rg), n_registry_runs=int(rg.n_runs.fillna(0).sum()), n_registry_human=int(rg.host_human.isin(['yes', 'mixed']).sum()), n_registry_scopes=len(sspec['scopes']),
+        n_registry_host={k: int((rg.host_human == k).sum()) for k in sspec['host_human_values']}, n_registry_host_yes=int((rg.host_human == 'yes').sum()),
+        n_curated_samples=int((pd.to_numeric(cw.n_fields_with_value, errors='coerce').fillna(0) >= 1).sum()) if 'n_fields_with_value' in cw.columns else int(cw[[f for f in CORE_FIELDS + KEY_FIELDS if f in cw.columns]].notna().any(axis=1).sum()),
         n_registry_biosamples=int(pd.to_numeric(rg.get('n_biosamples_harvested', pd.Series(dtype=float)), errors='coerce').fillna(0).sum()),
         n_reg_gut_candidates=n_reg_gut_candidates, n_runs=int(cs.n_runs.fillna(0).sum()), n_runs_sandpiper=int(cs.n_runs_sandpiper.fillna(0).sum()),
         n_studies_sandpiper=int((cs.n_runs_sandpiper.fillna(0) > 0).sum()),
         age_counts=[(c, int((cw.age_category == c).sum())) for c in age_cats if (cw.age_category == c).any()],
-        coverage_all={f: round(float(cw[f].notna().mean()), 4) for f in CORE_FIELDS},
+        coverage_all={f: round(float(field_series(cw, f, DERIVED).notna().mean()), 4) for f in CORE_FIELDS + KEY_FIELDS if has_col.get(f)},
         routes={r: int((cd.route == r).sum()) for r in ROUTES}, n_countries=int(cw.country.nunique()), n_conditions=int(cw.health_condition.nunique()),
         n_gut_primary=int((cw.body_site_class == 'primary').sum()), n_site_unknown=int((cw.body_site_class == 'unknown').sum()), n_site_excluded=int(cw.body_site_class.isin(['excluded', 'linked']).sum()),
         has_registry=True,
@@ -455,8 +601,15 @@ def main():
     doi = cur_rel.get('doi') or ''
     names = read_site_names(a.config)
     cspec = read_contribute_spec(a.contribute_config)
+    about = read_about(a.config)
+    issue_repo, issue_template, issue_label = read_issue_cfg(a.config)
+    collections = read_collections(a.collections_config)
+
+    def flag_url(acc, page):
+        return simple_issue_url(issue_repo, issue_template, issue_label, acc, release_id, base_url + page)
     site = dict(title=names['title'], short_title=names['short_title'], tagline=names['tagline'], version=version, release_tag=vj['release_tag'], build_date=build_date,
-                sha8=gen_sha[:8], base_url=base_url, issue_repo=ISSUE_REPO,
+                sha8=gen_sha[:8], base_url=base_url, issue_repo=issue_repo, issue_template=issue_template, issue_label=issue_label, about=about, nav=NAV,
+                core_fields=CORE_FIELDS, key_fields=KEY_FIELDS, has_collections=bool(collections),
                 release_id=release_id, previous_release_id=vj.get('previous_release_id'), release_date=cur_rel['release_date'], doi=doi,
                 data_release_url=rspec['site_pages']['data_release_url'].format(data_tag=cur_rel['data_tag']) if cur_rel['data_tag'] else None,
                 zenodo_badge=f'https://zenodo.org/badge/{data_repo_id}.svg', zenodo_latest=f'https://zenodo.org/badge/latestdoi/{data_repo_id}', data_repo_id=data_repo_id,
@@ -543,7 +696,7 @@ def main():
         return re.sub(r'<a href="([^"]+)">', lambda m: m.group(0) if m.group(1).startswith(('http', '#')) else '<a>', html)
     dictionary = (pkg / 'DATA_DICTIONARY.md').read_text(encoding='utf-8')
     docs = [('README.md', readme, 'README'), ('DATA_DICTIONARY.md', dictionary, 'Data dictionary'), ('CHANGELOG.md', (pkg / 'CHANGELOG.md').read_text(encoding='utf-8'), 'Changelog')]
-    for name, title in [('REGISTRY_REPORT.md', 'Registry report'), ('SANDPIPER_REPORT.md', 'Sandpiper report'), ('AUTHORS_REPORT.md', 'Authors report (infant scope)'), ('DATA_MODEL_FIX_REPORT.md', 'Data-model fix report (infant scope)')]:
+    for name, title in [('REGISTRY_REPORT.md', 'Registry report'), ('SANDPIPER_REPORT.md', 'Sandpiper report'), ('AUTHORS_REPORT.md', 'Authors report (infant extension)'), ('DATA_MODEL_FIX_REPORT.md', 'Data-model fix report (infant extension)')]:
         if (pkg / name).exists():
             docs.append((name, (pkg / name).read_text(encoding='utf-8'), title))
     for name, title in PUBLIC_REPORT_DOCS:
@@ -552,8 +705,8 @@ def main():
     doc_list = []
     for name, text, title in docs:
         (out / 'docs' / name).write_text(text, encoding='utf-8')
-        render('doc.html', f'docs/{name[:-3]}.html', '../', nav='methods', doc_title=title, md_name=name, body=md_to_html(text),
-               crumbs=[dict(label='Home', href='../index.html'), dict(label='Methods', href='../methods.html'), dict(label=title)])
+        render('doc.html', f'docs/{name[:-3]}.html', '../', nav='about', doc_title=title, md_name=name, body=md_to_html(text),
+               crumbs=[dict(label='Home', href='../index.html'), dict(label='About', href='../about/index.html'), dict(label='Methods', href='../about/methods.html'), dict(label=title)])
         doc_list.append(dict(name=name, title=title, href=f'docs/{name[:-3]}.html'))
 
     # ---------- per-study helpers ----------
@@ -626,7 +779,7 @@ def main():
     _center = cs.set_index('study_accession').center_name.fillna('').astype(str)
     _same_center = _reg_links.assign(_c=_reg_links.study_accession.map(_center)).groupby('paper_id')._c.agg(lambda x: x.nunique() == 1 and (x.iloc[0] != ''))
     _ok_own = _reg_links.groupby('paper_id').relation.agg(lambda x: 'own_data' in set(x))
-    _keep = _fan.index[(_fan >= 2) & (_fan <= MAX_COHORT_PAPER_STUDIES) & (_ok_own | _same_center)]
+    _keep = _fan.index[(_fan >= 2) & (_fan <= MAX_COHORT_PAPER_STUDIES) & (_ok_own.astype(bool) | _same_center.astype(bool))]   # astype: an empty papers table yields str/object dtypes
     link_papers = _reg_links[_reg_links.paper_id.isin(_keep)]
     paper_rule = {pid: ('shared own-data paper' if _ok_own.get(pid) else 'shared paper, same submitting centre') for pid in _keep}
     curated_members = {}
@@ -690,13 +843,14 @@ def main():
         n = int(r.n_samples_curated or 0)
         if n < CONTRIB_MIN_SAMPLES:
             continue
-        missing = [f for f in CONTRIB_FIELDS if float(getattr(r, f'cov_{f}') or 0) < thr]
+        cov_of = {f: float(getattr(r, f'cov_{f}', 0) or 0) for f in CONTRIB_FIELDS}   # gut_studies.cov_<field>; a field without a cov_ column counts as 0 coverage
+        missing = [f for f in CONTRIB_FIELDS if cov_of[f] < thr]
         if len(missing) < CONTRIB_MIN_MISSING:
             continue
         n_pap = int(r.n_linked_papers or 0)
         ctype = 'per_sample_table' if n_pap else 'paper_pointer'
         blocker = ('no_linked_paper' if not n_pap else ('partial_coverage' if (r.curated_depth or '') and 'R2' in str(r.curated_depth) else 'no_supplement_found'))
-        wl_rows.append(dict(acc=r.study_accession, title=(r.study_title or '')[:140], n=n, missing=missing, n_missing=len(missing), coverage={f: float(getattr(r, f'cov_{f}') or 0) for f in CONTRIB_FIELDS},
+        wl_rows.append(dict(acc=r.study_accession, title=(r.study_title or '')[:140], n=n, missing=missing, n_missing=len(missing), coverage=cov_of,
                             papers=n_pap, ctype=ctype, type_label=TLABEL.get(ctype, ctype), blocker=blocker, blocker_label=cspec.get('blocker_labels', {}).get(blocker, blocker),
                             depth=r.curated_depth or '', ages=' '.join(f'{k}:{v}' for k, v in sorted(jl(r.age_categories).items(), key=lambda kv: -kv[1])[:3]),
                             issue_url=contribute_issue_url(cspec, r.study_accession, ctype, release_id), score=n * len(missing),
@@ -726,9 +880,11 @@ def main():
     studies = [study_row(r) for r in cs.to_dict('records')]
     sidx_rows = [dict(a=s['study_accession'], t=(s['study_title'] or '')[:160], n=int(s['n_samples_curated'] or 0), ag=s['ages_short'], hc=s['top_condition'], co=s.get('top_country') or '',
                       d=s['curated_depth'] or '', ca=int(round(100 * float(s.get('cov_age_at_collection_days') or 0))), ch=int(round(100 * float(s.get('cov_health_condition') or 0))),
-                      cc=int(round(100 * float(s.get('cov_country') or 0))), ls=s.get('life_stage_primary') or '', src=s['curated_source'], fa=s['first_author'], p=s['n_papers'], y=(s.get('first_public_min') or '')[:4]) for s in studies]
+                      cc=int(round(100 * float(s.get('cov_country') or 0))), ls=s.get('life_stage_primary') or '', src=s['curated_source'], fa=s['first_author'], p=s['n_papers'], y=(s.get('first_public_min') or '')[:4],
+                      gb=(round(seq_by_study[s['study_accession']]['gbp_mean'], 2) if seq_by_study.get(s['study_accession'], {}).get('gbp_mean') is not None else None),
+                      nr=(seq_by_study.get(s['study_accession'], {}).get('n_runs'))) for s in studies]
     (out / 'data' / 'studies_index.json').write_text(dumps(sidx_rows), encoding='utf-8')
-    render('studies_index.html', 'studies/index.html', '../', nav='studies', use_datatables=True, stats=stats, n_rows=len(studies),
+    render('studies_index.html', 'studies/index.html', '../', nav='studies', use_datatables=True, stats=stats, n_rows=len(studies), has_seq=bool(seq_by_study),
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Studies')])
     for s in studies:
         acc = s['study_accession']
@@ -737,31 +893,34 @@ def main():
         shown = g if n_total <= a.max_rows_html else g.head(a.show_rows_html)
         dg = det_by_study.get(acc, cd.iloc[0:0])
         cov = []
-        for f in CORE_FIELDS + [f for f in infant_fields if f in g.columns and g[f].notna().any()]:
-            has = g[f].notna()
-            rc = dg.loc[dg.field_name == f, 'route'].value_counts() if len(dg) else pd.Series(dtype=int)
-            cov.append(dict(field=f, label=LABELS.get(f, f), n=int(has.sum()), frac=float(has.mean()) if n_total else 0.0, routes={r: int(rc.get(r, 0)) for r in ROUTES}, infant=f in infant_fields))
+        for tier, flist in (('core', CORE_FIELDS), ('key', KEY_FIELDS), ('infant', [f for f in infant_fields if f in g.columns and g[f].notna().any()])):
+            for f in flist:
+                ser = field_series(g, f, DERIVED)
+                if ser is None:   # column absent from this package (item 7): omit rather than show 0
+                    continue
+                has = ser.notna()
+                rc = dg.loc[dg.field_name == f, 'route'].value_counts() if len(dg) else pd.Series(dtype=int)
+                cov.append(dict(field=f, label=LABELS.get(f, f), n=int(has.sum()), frac=float(has.mean()) if n_total else 0.0, routes={r: int(rc.get(r, 0)) for r in ROUTES}, infant=tier == 'infant', tier=tier))
         group_rows = dg[dg.scope == 'study_all'].drop_duplicates(['field_name', 'value_normalized']).sort_values(['route', 'field_name'], kind='mergesort') if len(dg) else dg
         group_stmts = [clean(x) for x in group_rows[['field_name', 'value_normalized', 'route', 'confidence', 'evidence_source', 'evidence_locator', 'evidence_quote']].head(40).to_dict('records')]
         ev_sample = dg[dg.scope != 'study_all'].assign(_src=lambda d: d.evidence_source.astype(str).str.split('.').str[:2].str.join('.')).drop_duplicates(['field_name', 'route', '_src']).sort_values(['field_name', 'route'], kind='mergesort').head(40) if len(dg) else dg
-        ev_rows = [clean(x) for x in ev_sample[['sample_key', 'field_name', 'value_normalized', 'route', 'confidence', 'evidence_source', 'evidence_locator', 'evidence_quote']].to_dict('records')]
+        ev_rows_study = [clean(x) for x in ev_sample[['sample_key', 'field_name', 'value_normalized', 'route', 'confidence', 'evidence_source', 'evidence_locator', 'evidence_quote']].to_dict('records')]
         ages = counts_sorted(g.age_category.fillna('unknown'))
         sites = counts_sorted(g.body_site_class.fillna('unknown'))
         conds = counts_sorted(g.health_condition.dropna())[:8]
         countries = counts_sorted(g.country.dropna())[:8]
         sexes = counts_sorted(g.sex.dropna())
-        flag = issue_url(title=f'[finding] {acc}: study', identifier=acc, finding_type='other', action='study_note',
-                         current_state=f"host={s.get('host_human')} · body_sites={s.get('body_sites')} · life_stages={s.get('life_stages')} · assay={s.get('assay')} · n_samples_curated={s.get('n_samples_curated')} · depth={s.get('curated_depth')}",
-                         evidence_source='external_curation.human', release_tag=f"{vj['release_tag']} · studies/{acc}.html")
-        confirm = issue_url(title=f'[confirmed] {acc}: study', identifier=acc, finding_type='confirmed_correct', action='confirm', proposed_change='none — confirmed correct',
-                            current_state=f"host={s.get('host_human')} · body_sites={s.get('body_sites')} · assay={s.get('assay')}", evidence_source='external_curation.human', release_tag=f"{vj['release_tag']} · studies/{acc}.html")
+        flag = flag_url(acc, f'studies/{acc}.html')   # item 8: one simple form; the 'Confirm correct' button is gone
         rgr = clean(rg_by.loc[acc].to_dict()) if acc in rg_by.index else {}
-        for k in ('host_evidence', 'body_site_evidence', 'life_stage_evidence'):
-            rgr[k] = ev_quotes(rgr.get(k))
-        render('study.html', f'studies/{acc}.html', '../', nav='studies', use_datatables=True, s=s, rg=rgr,
+        rg_evidence = [dict(kind=lab, **e) for k, lab in (('host_evidence', 'host'), ('body_site_evidence', 'body site'), ('life_stage_evidence', 'life stage')) for e in ev_rows(rgr.get(k))]
+        rg_summary = registry_summary(rgr, vocabs['body_site'], vocabs['life_stage'], vocabs['assay']) if rgr else ''
+        srows = [clean(x) for x in shown[[c for c in SAMPLE_COLS if c in shown.columns]].to_dict('records')]
+        for x in srows:
+            x['archive_url'] = archive_url(x.get('biosample_accession') or x.get('sample_key'))
+        render('study.html', f'studies/{acc}.html', '../', nav='studies', use_datatables=True, s=s, rg=rgr, rg_summary=rg_summary, rg_evidence=rg_evidence, seq=seq_by_study.get(acc),
                papers=papers_by_study.get(acc, []), study_authors=authors_by_study.get(acc, []), cov=cov, ages=ages, sites=sites, conds=conds, countries=countries, sexes=sexes,
-               group_stmts=group_stmts, ev_rows=ev_rows, n_det=int(len(dg)), panel=panel_by_study.get(acc), help=help_by_study.get(acc), flag_url=flag, confirm_url=confirm,
-               samples=[clean(x) for x in shown[SAMPLE_COLS].to_dict('records')], sample_cols=SAMPLE_COLS, thr_pct=int(round(100 * thr)), n_total=n_total, n_shown=len(shown), dl=study_dl[acc], hc_labels=hc_labels,
+               group_stmts=group_stmts, ev_rows=ev_rows_study, n_det=int(len(dg)), panel=panel_by_study.get(acc), help=help_by_study.get(acc), flag_url=flag, n_core=len(CORE_FIELDS),
+               samples=srows, sample_cols=SAMPLE_COLS, thr_pct=int(round(100 * thr)), n_total=n_total, n_shown=len(shown), dl=study_dl[acc], hc_labels=hc_labels,
                site_labels=vocabs['body_site'], stage_labels=vocabs['life_stage'],
                crumbs=[dict(label='Home', href='../index.html'), dict(label='Studies', href='index.html'), dict(label=acc)])
     print(f'[{time.time()-t0:.0f}s] {len(studies)} study pages', file=sys.stderr)
@@ -782,22 +941,20 @@ def main():
         members = [dict(acc=acc, title=title_by_acc.get(acc) or '', n_samples=int(n_by_study.get(acc, 0)), source=cs.loc[cs.study_accession == acc, 'curated_source'].iloc[0]) for acc in c['studies']]
         members.sort(key=lambda m_: (-m_['n_samples'], m_['acc']))
         cpapers = [papers_by_id[pid] for pid in c['paper_ids'] if pid in papers_by_id]
-        flag = issue_url(title=f'[finding] {cid}: cohort', identifier=cid, finding_type='other', action='study_note',
-                         current_state=f"cohort={c['cohort_name']} · studies={'|'.join(c['studies'])} · rule={c['rule']}",
-                         evidence_source='external_curation.human', release_tag=f"{vj['release_tag']} · cohorts/{cid}.html")
+        flag = flag_url(cid, f'cohorts/{cid}.html')
         render('cohort.html', f'cohorts/{cid}.html', '../', nav='cohorts', c=c, members=members, papers=cpapers, dl=cohort_dl.get(cid, {}), flag_url=flag, hc_labels=hc_labels,
                crumbs=[dict(label='Home', href='../index.html'), dict(label='Cohorts', href='index.html'), dict(label=c['cohort_name'])])
     print(f'[{time.time()-t0:.0f}s] {len(cohorts)} cohort pages', file=sys.stderr)
 
     # ---------- sample explorer ----------
     hc_rows = cw.dropna(subset=['health_condition']).groupby('health_condition').agg(ns=('sample_key', 'size'), nst=('study_accession', 'nunique')).sort_values(['ns'], ascending=False)
+    ls_codes = [(k, ls_labels.get(k, '')) for k, _n in counts_sorted(cw['lifestyle'].dropna())] if has_col.get('lifestyle') else []
+    years = sorted({int(y) for y in field_series(cw, 'collection_year', DERIVED).dropna().astype(str).str[:4] if y.isdigit()}) if has_col.get('collection_year') else []
     render('explorer.html', 'samples/index.html', '../', nav='samples', stats=stats, age_cats=[c for c in age_cats if (cw.age_category == c).any()],
-           hc_codes=list(hc_rows.index), countries=sorted(cw.country.dropna().unique().tolist()), n_cols=int(cw.shape[1]),
+           hc_codes=list(hc_rows.index), countries=sorted(cw.country.dropna().unique().tolist()), n_cols=int(cw.shape[1]), has_col=has_col, ls_codes=ls_codes,
+           year_min=(years[0] if years else None), year_max=(years[-1] if years else None), n_fields_max=len(CORE_FIELDS) + len(KEY_FIELDS),
            parquet_size=human((pkg / 'gut_sample_metadata_wide.parquet').stat().st_size), det_size=human((pkg / 'gut_sample_determinations.parquet').stat().st_size),
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Samples')])
-    # legacy paths keep working
-    for old, new in (('gut/index.html', '../samples/index.html'), ('universe.html', 'scope.html')):
-        (out / old).write_text(f'<!DOCTYPE html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url={new}"><title>moved</title><a href="{new}">moved</a>', encoding='utf-8')
 
     # ---------- fields ----------
     vocab_rows = {}
@@ -814,9 +971,10 @@ def main():
     route_by_field = cd.groupby(['field_name', 'route']).size()
     fields = []
     for f in all_fields:
-        if f not in cw.columns:
+        ser = field_series(cw, f, DERIVED)
+        if ser is None:   # item 7: absent column → omitted (never shown as 0 %)
             continue
-        has = cw[f].notna()
+        has = ser.notna()
         nR = {r: int(route_by_field.get((f, r), 0)) for r in ROUTES}
         tot = max(1, sum(nR.values()))
         left, segs = 0.0, []
@@ -824,30 +982,39 @@ def main():
             w = 100 * nR[r] / tot
             segs.append(dict(r=r, left=round(left, 2), w=round(w, 2), n=nR[r]))
             left += w
-        spec = pack['fields'][f]
+        spec = pack['fields'].get(f) or DERIVED.get(f) or {}
         vocab_txt = vocab_rows.get(f, '')
         if f == 'health_condition':
             vocab_txt = ', '.join(f'{k}' for k in hcv.keys())
+        elif f == 'lifestyle' and ls_labels:
+            vocab_txt = ', '.join(ls_labels.keys())
         elif spec.get('type') == 'enum' and spec.get('values'):
             vocab_txt = ', '.join(map(str, spec['values']))
-        by_cat = {c: (float(cw.loc[cw.age_category == c, f].notna().mean()) if (cw.age_category == c).any() else None) for c in age_cats}
-        fields.append(dict(name=f, label=LABELS.get(f, f), type=spec.get('type', ''), infant=bool(spec.get('infant_only')), routes_allowed=spec.get('routes', ROUTES), vocab=vocab_txt, caveat=FIELD_CAVEATS.get(f, ''),
+        elif spec.get('compose'):
+            vocab_txt = 'derived: ' + ', '.join(spec['compose'])
+        by_cat = {c: (float(has[cw.age_category == c].mean()) if (cw.age_category == c).any() else None) for c in age_cats}
+        tier = 'core' if f in CORE_FIELDS else 'key' if f in KEY_FIELDS else 'infant' if f in infant_fields else 'other'
+        fields.append(dict(name=f, label=LABELS.get(f, f), type=spec.get('type', 'derived' if spec.get('compose') or spec.get('from') else ''), infant=tier == 'infant', tier=tier,
+                           routes_allowed=spec.get('routes', ROUTES if tier != 'infant' else []), vocab=vocab_txt, caveat=FIELD_CAVEATS.get(f, spec.get('note', '')),
                            samples=int(has.sum()), frac=float(has.mean()), studies=int(cw.loc[has, 'study_accession'].nunique()), frac_studies=int(cw.loc[has, 'study_accession'].nunique()) / max(1, len(cs)),
                            route_segs=segs, nR=nR, by_cat=by_cat))
-    fields.sort(key=lambda f: (f['infant'], -f['samples'], f['name']))
+    TIER_ORDER = {'core': 0, 'key': 1, 'other': 2, 'infant': 3}
+    fields.sort(key=lambda f: (TIER_ORDER[f['tier']], (CORE_FIELDS + KEY_FIELDS).index(f['name']) if f['name'] in CORE_FIELDS + KEY_FIELDS else 99, -f['samples'], f['name']))
+    field_groups = [(t_, lab, [f for f in fields if f['tier'] == t_]) for t_, lab in (('core', 'Core fields'), ('key', 'Key fields'), ('other', 'Further fields'), ('infant', 'Infant extension'))]
+    field_groups = [g_ for g_ in field_groups if g_[2]]
     conf_rows = []
     cbins = [(0.0, 0.5, '< 0.5'), (0.5, 0.7, '0.5–0.69'), (0.7, 0.85, '0.7–0.84'), (0.85, 1.01, '≥ 0.85')]
     for r in ROUTES:
         m_ = cd[cd.route == r]
         conf_rows.append(dict(route=r, label=ROUTE_LABELS[r], n=len(m_), bins=[int(((m_.confidence >= lo) & (m_.confidence < hi)).sum()) for lo, hi, _ in cbins], n_group=int((m_.scope == 'study_all').sum())))
-    render('fields.html', 'fields/index.html', '../', nav='fields', fields=fields, age_cats=age_cats, conf_rows=conf_rows, cbins=[b[2] for b in cbins], stats=stats,
+    render('fields.html', 'fields/index.html', '../', nav='about', fields=fields, field_groups=field_groups, age_cats=age_cats, conf_rows=conf_rows, cbins=[b[2] for b in cbins], stats=stats,
            dictionary_html=md_to_html(dictionary), hc_rows=[(k, hc_labels.get(k, ''), int(v.ns), int(v.nst)) for k, v in hc_rows.iterrows()],
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Fields')])
 
     # ---------- scope (how the catalog is cut from the registry) ----------
     gut_cand = rg[rg.body_sites.map(lambda v: 'gut_stool' in split_list(v))]
-    funnel = [('registry studies (human shotgun-metagenome signal)', len(rg)), ('host = human', int((rg.host_human == 'yes').sum())),
-              ('… with gut / stool among the body sites', len(gut_cand)), ('… host human AND assay shotgun (catalog rule)', len(gut_cand[(gut_cand.host_human == 'yes') & (gut_cand.assay.astype(str).str.startswith('shotgun') | gut_cand.study_accession.isin(inc_set))])),
+    funnel = [('registry studies (every ENA shotgun-metagenome study reached by the enumeration)', len(rg)), ('host human = yes or mixed', int(rg.host_human.isin(['yes', 'mixed']).sum())),
+              ('… with gut / stool among the body sites', len(gut_cand)), ('… host human AND assay shotgun (catalog rule)', len(gut_cand[gut_cand.host_human.isin(['yes', 'mixed']) & (gut_cand.assay.astype(str).str.startswith('shotgun') | gut_cand.study_accession.isin(inc_set))])),
               ('catalog studies', len(cs))]
     not_in = gut_cand[~gut_cand.study_accession.isin(inc_set)]
     excl_reasons = []
@@ -859,9 +1026,9 @@ def main():
     for sc in sspec['scopes']:
         m_ = rg[rg.scope_memberships.map(lambda v: sc['id'] in split_list(v))]
         other_scopes.append(dict(id=sc['id'], label=sc['label'], n_studies=len(m_), n_runs=int(m_.n_runs.fillna(0).sum()), curated=bool(sc.get('curated'))))
-    render('scope.html', 'scope.html', '', nav='scope', use_datatables=True, funnel=funnel, excl_reasons=excl_reasons, excl_rows=excl_rows, n_excl=len(not_in), scopes=other_scopes, stats=stats,
+    render('scope.html', 'about/scope.html', '../', nav='about', use_datatables=True, funnel=funnel, excl_reasons=excl_reasons, excl_rows=excl_rows, n_excl=len(not_in), scopes=other_scopes, stats=stats,
            pack=dict(study_rule=pack.get('study_rule', ''), sample_rule=pack.get('sample_rule', ''), age_categories=pack['age_categories']), site_labels=vocabs['body_site'],
-           crumbs=[dict(label='Home', href='index.html'), dict(label='Scope')])
+           crumbs=[dict(label='Home', href='../index.html'), dict(label='About', href='index.html'), dict(label='Scope')])
 
     # ---------- authors ----------
     aidx = {}
@@ -876,8 +1043,7 @@ def main():
         shards.setdefault(letter, {})[key] = aidx[key]
     for letter in sorted(shards):
         (out / 'authors' / 'idx' / f'{letter}.json').write_text(dumps(shards[letter]), encoding='utf-8')
-    top_authors = sorted(((k, v['n'], len(v['s']), v['f']) for k, v in aidx.items()), key=lambda x: (-x[2], x[1]))[:60]
-    render('authors.html', 'authors/index.html', '../', nav='authors', stats=stats, shard_letters=sorted(shards), n_index=len(aidx), top_authors=top_authors,
+    render('authors.html', 'authors/index.html', '../', nav='authors', stats=stats, shard_letters=sorted(shards), n_index=len(aidx),
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Authors')])
 
     # ---------- releases ----------
@@ -894,8 +1060,7 @@ def main():
     for d in releases:
         if d['notes_html'] is not None:
             (out / 'releases' / f"RELEASE_NOTES_{d['release_id']}.md").write_text(notes_by_release[d['release_id']], encoding='utf-8')
-    render('releases.html', rspec['site_pages']['releases_index'], '../', nav='releases', releases=releases_desc, n_releases=len(releases), first_numbered=rspec['release_id']['first_numbered'],
-           crumbs=[dict(label='Home', href='../index.html'), dict(label='Releases')])
+    # item 6: the release list lives on downloads/index.html (rendered below, after the file inventory); the old releases page redirects there
 
     # ---------- changes ("what changed in <release>") — catalog determinations, catalog studies, registry studies by release_added ----------
     def by_field(df_):
@@ -921,10 +1086,10 @@ def main():
         c = changes_for(d['release_id'])
         c.update(release_date=d['release_date'], package_version=d['package_version'], current=d['current'], href=d['changes_href'])
         changes.append(c)
-        render('changes_release.html', rspec['site_pages']['changes_release'].format(release_id=d['release_id']), '../', nav='releases', c=c, rel=d,
-               crumbs=[dict(label='Home', href='../index.html'), dict(label='Releases', href='../' + rspec['site_pages']['releases_index']), dict(label='Changes', href='index.html'), dict(label=d['release_id'])])
-    render('changes_index.html', rspec['site_pages']['changes_index'], '../', nav='releases', changes=changes,
-           crumbs=[dict(label='Home', href='../index.html'), dict(label='Releases', href='../' + rspec['site_pages']['releases_index']), dict(label='Changes')])
+        render('changes_release.html', rspec['site_pages']['changes_release'].format(release_id=d['release_id']), '../', nav='downloads', c=c, rel=d,
+               crumbs=[dict(label='Home', href='../index.html'), dict(label='Downloads & releases', href='../downloads/index.html#releases'), dict(label='Changes', href='index.html'), dict(label=d['release_id'])])
+    render('changes_index.html', rspec['site_pages']['changes_index'], '../', nav='downloads', changes=changes,
+           crumbs=[dict(label='Home', href='../index.html'), dict(label='Downloads & releases', href='../downloads/index.html#releases'), dict(label='Changes')])
     print(f'[{time.time()-t0:.0f}s] releases + {len(changes)} changes pages', file=sys.stderr)
 
     # ---------- contribute ----------
@@ -932,6 +1097,7 @@ def main():
     cs_ = dict(n_open=len(wl_rows), n_samples=stats['n_contribute_samples'], threshold=thr, min_samples=CONTRIB_MIN_SAMPLES, min_missing=CONTRIB_MIN_MISSING, fields=[dict(name=f, label=LABELS.get(f, f), n_missing=n_missing_by_field[f]) for f in CONTRIB_FIELDS],
                types=[dict(code=c, label=TLABEL.get(c, c), n=int(sum(1 for r in wl_rows if r['ctype'] == c))) for c in cspec['contribution_types'] if any(r['ctype'] == c for r in wl_rows)],
                repo=cspec['issue_form']['repo'], issues_list_url=f"https://github.com/{cspec['issue_form']['repo']}/issues?q=is%3Aissue+label%3A{cspec['issue_form']['label']}")
+    cs_['core_fields'] = CORE_FIELDS
     render('contribute.html', site['contribute_page'], '../', nav='contribute', rows=wl_rows, cs=cs_, stats=stats,
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Contribute')])
     (out / 'data' / 'contribute_worklist.json').write_text(dumps([dict(rank=r['rank'], acc=r['acc'], title=r['title'], n=r['n'], missing=r['missing'], coverage=r['coverage'], type=r['ctype'], papers=r['papers'], issue_url=r['issue_url']) for r in wl_rows]), encoding='utf-8')
@@ -961,6 +1127,7 @@ def main():
                     n_with_age=int(pd.to_numeric(frame['n_biosamples_with_age'], errors='coerce').fillna(0).sum()),
                     n_with_sex=int(pd.to_numeric(frame['n_biosamples_with_sex'], errors='coerce').fillna(0).sum()))
     rstats = dict(n_studies=len(rg), n_runs=int(rg.n_runs.fillna(0).sum()), n_biosamples=int(rg.n_biosamples.fillna(0).sum()), host=host_counts,
+                  n_human=int(rg.host_human.isin(['yes', 'mixed']).sum()), n_runs_human=int(rg.loc[rg.host_human.isin(['yes', 'mixed']), 'n_runs'].fillna(0).sum()),
                   n_runs_sandpiper=int(_sp.sum()), n_studies_sandpiper=int((_sp > 0).sum()), has_biosamples=(pkg / 'registry_biosamples.parquet').exists(), **_sample_tier(rg),
                   n_pending=n_pending, n_classified=len(rg) - n_pending, pct_classified=int(round(100 * (len(rg) - n_pending) / max(1, len(rg)))),
                   n_catalog=len(cs), n_scopes=len(sspec['scopes']))
@@ -1029,8 +1196,9 @@ def main():
     ]
     offsite = [dict(o, name=o['name'].replace('{v}', version), desc=o['desc'].replace('{v}', version)) for o in OFFSITE]
     groups = [('catalog', 'Catalog tables (human gut, all ages)'), ('registry', 'Registry tables (all human shotgun metagenomes)'), ('release', 'Release documents'), ('infant', 'Infant extension tables (deep infant-field curation of the infant studies; also present in the catalog tables)')]
-    render('downloads.html', 'downloads.html', '', nav='downloads', files=pkg_files, groups=groups, zip_name=zip_name, zip_size=zip_size, zip_href=zip_href, sitedata=sitedata, offsite=offsite, vj=vj,
-           crumbs=[dict(label='Home', href='index.html'), dict(label='Downloads')])
+    render('downloads.html', 'downloads/index.html', '../', nav='downloads', files=pkg_files, groups=groups, zip_name=zip_name, zip_size=zip_size, zip_href=zip_href, sitedata=sitedata, offsite=offsite, vj=vj,
+           releases=releases_desc, n_releases=len(releases), first_numbered=rspec['release_id']['first_numbered'],
+           crumbs=[dict(label='Home', href='../index.html'), dict(label='Downloads & releases')])
     manifest = dict(site=site['title'], package_version=version, release_tag=vj['release_tag'], release_id=release_id, build_date=build_date, generator_git_sha=gen_sha, base_url=base_url,
                     files=[dict(path=str(p.relative_to(out)), bytes=p.stat().st_size, sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for p in sorted((out / 'data').rglob('*')) if p.is_file()],
                     tables={k: dict(rows=v.get('rows'), sha256=v.get('sha256')) for k, v in sorted(vj['tables'].items())})
@@ -1039,9 +1207,9 @@ def main():
 
     # ---------- methods ----------
     depth_counts = counts_sorted(cs.curated_depth.fillna('none'))
-    route_field = {f: {r: int(route_by_field.get((f, r), 0)) for r in ROUTES} for f in CORE_FIELDS}
-    render('methods.html', 'methods.html', '', nav='methods', reg=reg_methods, stats=stats, depth_counts=depth_counts, route_field=route_field, docs=doc_list, pack=pack,
-           crumbs=[dict(label='Home', href='index.html'), dict(label='Methods')])
+    route_field = {f: {r: int(route_by_field.get((f, r), 0)) for r in ROUTES} for f in CORE_FIELDS + KEY_FIELDS if has_col.get(f)}
+    render('methods.html', 'about/methods.html', '../', nav='about', reg=reg_methods, stats=stats, depth_counts=depth_counts, route_field=route_field, docs=doc_list, pack=pack,
+           crumbs=[dict(label='Home', href='../index.html'), dict(label='About', href='index.html'), dict(label='Methods')])
 
     # ---------- sources and acknowledgements (config/sources.yaml) ----------
     src = yaml.safe_load(Path(a.sources_config).read_text(encoding='utf-8'))
@@ -1051,24 +1219,45 @@ def main():
     assert all(r.get('ingestion') in _ing for r in src['related_efforts']), 'sources.yaml: ingestion outside the vocabulary'
     order = ['used', 'candidate_high', 'candidate_medium', 'candidate_low', 'not_applicable']
     src['related_efforts'] = sorted(src['related_efforts'], key=lambda r: (order.index(r['ingestion']), r['name'].lower()))
-    render('sources.html', 'sources.html', '', nav='sources', src=src, crumbs=[dict(label='Home', href='index.html'), dict(label='Sources')])
+    render('sources.html', 'about/sources.html', '../', nav='about', src=src, crumbs=[dict(label='Home', href='../index.html'), dict(label='About', href='index.html'), dict(label='Sources & acknowledgements')])
+    render('about.html', 'about/index.html', '../', nav='about', stats=stats, rs=rstats, funnel=funnel, docs=doc_list, src=src, n_fields=len(fields),
+           crumbs=[dict(label='Home', href='../index.html'), dict(label='About')])
 
     # ---------- home, search index, sitemap ----------
-    cov_rows = []
-    for c in age_cats:
-        m_ = cw[cw.age_category == c]
-        if len(m_):
-            cov_rows.append(dict(cat=c, n=len(m_), cov={f: int(round(100 * m_[f].notna().mean())) for f in CORE_FIELDS}))
-    cov_rows.append(dict(cat='all', n=len(cw), cov={f: int(round(100 * cw[f].notna().mean())) for f in CORE_FIELDS}))
-    co = cw.dropna(subset=['country']).groupby('country').agg(ns=('sample_key', 'size'), nst=('study_accession', 'nunique')).sort_values('ns', ascending=False).head(12)
-    home = dict(cov_rows=cov_rows, fields=CORE_FIELDS, hc_rows=[(k, hc_labels.get(k, ''), int(v.ns), int(v.nst)) for k, v in hc_rows.head(12).iterrows()],
-                country_rows=[(k, int(v.ns), int(v.nst)) for k, v in co.iterrows()], top_studies=studies[:12], scopes=other_scopes)
+    # item 1: one clean horizontal bar list per facet (top 8), counts straight from the wide table, links into the explorer with the filter applied
+    def bar_rows(series_, labels, n=8):
+        vc = series_.dropna()
+        g_ = cw.loc[vc.index].groupby(vc).agg(ns=('sample_key', 'size'), nst=('study_accession', 'nunique')).sort_values('ns', ascending=False, kind='mergesort').head(n)
+        top = int(g_.ns.max()) if len(g_) else 1
+        return [dict(code=str(k), label=labels.get(str(k), ''), n=int(v.ns), n_studies=int(v.nst), pct=round(100 * int(v.ns) / top, 1)) for k, v in g_.iterrows()]
+    country_labels = {}
+    try:   # optional: ISO-3166 names for the country codes (pycountry); codes alone when unavailable
+        import pycountry
+        for code in cw.country.dropna().unique():
+            c_ = pycountry.countries.get(alpha_2=str(code))
+            if c_ is not None:
+                country_labels[str(code)] = c_.name
+    except ImportError:
+        pass
+    home = dict(hc_bars=bar_rows(cw.health_condition, hc_labels), country_bars=bar_rows(cw.country, country_labels), top_studies=studies[:12], scopes=other_scopes)
+    assert sum(r['n'] for r in home['hc_bars']) <= int(cw.health_condition.notna().sum()) and all(r['n'] > 0 for r in home['hc_bars'] + home['country_bars'])
     sidx = [dict(t='study', id=s['study_accession'], n=s['study_title'] or '', u=f"studies/{s['study_accession']}.html",
                  k=f"{s['study_accession']} {s['study_title'] or ''} {s['cohort_name'] or ''} {s['first_author'] or ''}".lower()) for s in studies]
     sidx += [dict(t='cohort', id=c['cohort_id'], n=c['cohort_name'], u=f"cohorts/{c['cohort_id']}.html", k=f"{c['cohort_id']} {c['cohort_name']} {' '.join(c['studies'])}".lower()) for c in cohorts]
+    sidx += [dict(t='collection', id=c['id'], n=c['name'], u=c['u'], k=c['k']) for c in collections]
     sidx += [dict(t='scope', id=d['id'], n=d['label'], u=f"registry/scopes/{d['id']}.html", k=f"{d['id']} {d['label']} registry scope".lower()) for d in scope_rows]
     (out / 'search_index.json').write_text(dumps(sidx), encoding='utf-8')
-    render('index.html', 'index.html', '', nav='home', stats=stats, home=home, readme_version_warning=readme_version_warning, n_releases=len(releases))
+    render('index.html', 'index.html', '', nav='home', stats=stats, home=home, readme_version_warning=readme_version_warning, n_releases=len(releases), shard_letters=sorted(shards))
+    # item 5: Collections and Atlas pages are produced by other tracks; the nav entries must never be dead links
+    for sec, lab, txt in (('collections', 'Collections', 'Curated collections of studies are prepared in a separate track and will appear here in a later release.'),
+                          ('atlas', 'Atlas', 'The geographic atlas of sampling locations is prepared in a separate track and will appear here in a later release.')):
+        if not (out / sec / 'index.html').exists():
+            (out / sec).mkdir(parents=True, exist_ok=True)
+            render('placeholder.html', f'{sec}/index.html', '../', nav=sec, heading=lab, text=txt, crumbs=[dict(label='Home', href='../index.html'), dict(label=lab)])
+    # items 5/6: old URLs keep working as redirects to their new homes
+    for old_, new_ in REDIRECTS.items():
+        (out / old_).parent.mkdir(parents=True, exist_ok=True)
+        (out / old_).write_text(f'<!DOCTYPE html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url={new_}"><link rel="canonical" href="{base_url}{new_.replace("../", "")}"><title>moved</title><p>This page moved to <a href="{new_}">{new_}</a>.</p>', encoding='utf-8')
     urls = ''.join(f'<url><loc>{base_url}{p}</loc></url>' for p in sorted(written))
     (out / 'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + '</urlset>', encoding='utf-8')
     (out / 'robots.txt').write_text(f'User-agent: *\nAllow: /\nSitemap: {base_url}sitemap.xml\n', encoding='utf-8')

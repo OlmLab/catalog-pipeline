@@ -3,15 +3,11 @@
 {% block desc %}Search {{ n_index|fmt }} author names linked to the catalog studies (human gut shotgun metagenomes, all ages) through their papers.{% endblock %}
 {% block content %}
 <h1>Authors</h1>
-<p class="lead">Search {{ n_index|fmt }} author names ({{ stats.n_author_rows|fmt }} study × author rows over {{ stats.n_studies_with_author|fmt }} of the {{ stats.n_studies|fmt }} catalog studies). Each hit lists the catalog studies the author is linked to through a paper (Europe PMC author lists of the linked papers; for the infant studies also the curated links).</p>
+<p class="lead">Search {{ n_index|fmt }} author names ({{ stats.n_author_rows|fmt }} study × author rows over {{ stats.n_studies_with_author|fmt }} of the {{ stats.n_studies|fmt }} catalog studies). Each hit lists the catalog studies the author is linked to through a paper (Europe PMC author lists of the linked papers; for the infant-extension studies also the curated links). Each study appears as a preview card: accession, title, samples, country / top condition, year.</p>
 <p class="note"><b>Caveats:</b> names are string-matched from Europe PMC author strings — the same person can appear under several initial variants (e.g. "Aagaard K" and "Aagaard KM") and no disambiguation was attempted; studies without a linked paper have no authors; consortium names are kept as group authors. A paper linked with relation <span class="mono">unsure</span> may re-analyse rather than produce the data.</p>
 <input id="q" class="searchbox" type="search" placeholder="Surname (and initials), e.g. Segata N, Knight R, Olm" autocomplete="off">
 <div id="status" class="small"></div>
 <div id="results"></div>
-<h2>Most-linked authors</h2>
-<table class="tbl small compact" style="max-width:760px"><thead><tr><th>author</th><th class="num">catalog studies</th><th class="num">as first author</th></tr></thead><tbody>
-{% for key, name, n, f in top_authors %}<tr><td><a href="?q={{ name|urlencode }}">{{ name }}</a></td><td class="num">{{ n }}</td><td class="num">{{ f }}</td></tr>{% endfor %}
-</tbody></table>
 {% endblock %}
 {% block scripts %}
 <script>
@@ -29,14 +25,19 @@
     const idx = await shard(letter);
     const keys = Object.keys(idx).filter(k => norm(k).startsWith(s) || norm(idx[k].n).includes(s)).sort().slice(0, 40);
     st.textContent = keys.length ? keys.length + ' author name(s) match' + (keys.length === 40 ? ' (first 40 shown — type more)' : '') : 'No author matches "' + q.value + '".';
+    if (!keys.length) return;
+    const S = await studyIndex();
     for (const k of keys) {
       const a = idx[k];
-      const div = document.createElement('div');
-      div.innerHTML = '<h3>' + h(a.n) + ' <span class="small">' + a.s.length + ' stud' + (a.s.length === 1 ? 'y' : 'ies') + (a.f ? ' · first author on ' + a.f : '') + '</span></h3><p class="small">' +
-        a.s.map(acc => '<a class="mono" href="../studies/' + h(acc) + '.html">' + h(acc) + '</a>').join(' · ') + '</p>';
+      const div = document.createElement('div'); div.id = 'a-' + encodeURIComponent(k).replace(/%/g, '_');
+      const cards = a.s.map(acc => { const r = S[acc] || {}; return '<a class="card scard" href="../studies/' + h(acc) + '.html"><span class="mono">' + h(acc) + '</span>' + (r.y ? ' <span class="small">' + h(r.y) + '</span>' : '') +
+        '<br><span class="small">' + h(r.t || '(no title)') + '</span><br><span class="small">' + (r.n !== undefined ? Number(r.n).toLocaleString() + ' samples' : '') + (r.co ? ' · ' + h(r.co) : '') + (r.hc ? ' · ' + h(r.hc) : '') + '</span></a>'; });
+      div.innerHTML = '<h3>' + h(a.n) + ' <span class="small">' + a.s.length + ' stud' + (a.s.length === 1 ? 'y' : 'ies') + (a.f ? ' · first author on ' + a.f : '') + '</span></h3><div class="scards">' + cards.join('') + '</div>';
       out.appendChild(div);
     }
   }
+  let sidx = null;
+  async function studyIndex(){ if (!sidx) sidx = fetch('../data/studies_index.json').then(r => r.json()).then(rows => Object.fromEntries(rows.map(r => [r.a, r]))).catch(() => ({})); return sidx; }
   q.addEventListener('input', () => { clearTimeout(q._t); q._t = setTimeout(run, 150); });
   const init = new URLSearchParams(location.search).get('q'); if (init) { q.value = init; run(); }
 })();

@@ -34,7 +34,7 @@ flowchart LR
     VERIFY --> PAGES[deploy-pages.yml → olmlab.github.io/infant-gut-catalog]
     PKG --> REL[release.yml → Release assets + Zenodo DOI]
   end
-  PAGES -->|Report an issue| ISSUE[GitHub Issue<br/>catalog-finding.yml] --> FIND
+  PAGES -->|Flag an issue| ISSUE[GitHub Issue<br/>simple-finding.yml → curator → catalog-finding.yml] --> FIND
   KERNEL[[infant-curation-rules kernel.py<br/>= src/catalog/triage/curation_kernel.py]] -.validate every commit.-> TRIAGE & EXTRACT & FIND
 ```
 

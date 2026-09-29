@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Samples — {{ site.title }}{% endblock %}
-{% block desc %}Filter {{ stats.n_samples|fmt }} human gut shotgun-metagenome samples of all ages by age category, health condition, country, sex and antibiotic exposure; every value with its route and confidence; CSV export.{% endblock %}
+{% block desc %}Filter {{ stats.n_samples|fmt }} human gut shotgun-metagenome samples of all ages by health condition, country, sex, age, antibiotic exposure{% if has_col.lifestyle %}, lifestyle, collection year and location{% endif %}; every value with its route and confidence; CSV export.{% endblock %}
 {% block content %}
 <h1>Samples ({{ stats.n_samples|fmt }})</h1>
-<p class="lead">One row per curated sample of the {{ stats.n_studies|fmt }} catalog studies. Filters run in your browser with <a href="https://duckdb.org/docs/api/wasm/overview">DuckDB-WASM</a> over <span class="mono">data/gut_sample_metadata_wide.parquet</span> ({{ parquet_size }}); nothing is sent to a server. Click a row for every field with its route and confidence; the verbatim evidence quotes are in <span class="mono">gut_sample_determinations.parquet</span> ({{ det_size }}, <a href="../downloads.html">Downloads</a>) and per study on the study pages.</p>
+<p class="lead">One row per curated sample of the {{ stats.n_studies|fmt }} catalog studies. Filters run in your browser with <a href="https://duckdb.org/docs/api/wasm/overview">DuckDB-WASM</a> over <span class="mono">data/gut_sample_metadata_wide.parquet</span> ({{ parquet_size }}); nothing is sent to a server. Click a row for every field with its route and confidence; the verbatim evidence quotes are in <span class="mono">gut_sample_determinations.parquet</span> ({{ det_size }}, <a href="../downloads/index.html">Downloads</a>) and per study on the study pages.</p>
 <noscript><p class="note">The explorer needs JavaScript (and WebAssembly). Without it, download the tables: <a href="../data/gut_sample_metadata_wide.parquet">gut_sample_metadata_wide.parquet</a>, <a href="../data/gut_studies.parquet">gut_studies.parquet</a>.</p></noscript>
 <div id="boot" class="note" role="status" aria-live="polite">Loading DuckDB-WASM (from cdn.jsdelivr.net, pinned 1.29.0) and the sample table… <span id="boot-msg"></span></div>
 <div class="exp" id="exp" style="display:none">
@@ -13,12 +13,16 @@
   <label for="f-health_condition">Health condition</label><select id="f-health_condition" data-field="health_condition"><option value="">(any)</option>{% for c in hc_codes %}<option value="{{ c }}">{{ c }}</option>{% endfor %}<option value="__null__">(no value)</option></select>
   <label for="f-sex">Sex</label><select id="f-sex" data-field="sex"><option value="">(any)</option><option>female</option><option>male</option><option value="__null__">(no value)</option></select>
   <label for="f-country">Country</label><select id="f-country" data-field="country"><option value="">(any)</option>{% for c in countries %}<option value="{{ c }}">{{ c }}</option>{% endfor %}<option value="__null__">(no value)</option></select>
+  {% if has_col.lifestyle %}<label for="f-lifestyle">Lifestyle</label><select id="f-lifestyle" data-field="lifestyle"><option value="">(any)</option>{% for c, l in ls_codes %}<option value="{{ c }}">{{ c }}{% if l %} — {{ l }}{% endif %}</option>{% endfor %}<option value="__null__">(no value)</option></select>{% endif %}
+  {% if has_col.collection_date %}<label for="f-year_min">Collection year (from – to)</label><div class="row2"><input id="f-year_min" type="number" data-year="min" min="{{ year_min }}" max="{{ year_max }}" placeholder="{{ year_min }}"><input id="f-year_max" type="number" data-year="max" min="{{ year_min }}" max="{{ year_max }}" placeholder="{{ year_max }}"></div>{% endif %}
+  {% if has_col.detailed_location %}<label for="f-detailed_location">Detailed location (site, locality, region) contains</label><input id="f-detailed_location" data-text="detailed_location" placeholder="e.g. Boston, Guangdong, clinic">{% endif %}
+  {% if has_col.location_locality %}<label for="f-location_locality">Locality</label><input id="f-location_locality" data-text="location_locality" placeholder="city / town / district">{% endif %}
   <label for="f-antibiotic_exposure">Antibiotic exposure</label><select id="f-antibiotic_exposure" data-field="antibiotic_exposure"><option value="">(any)</option><option>yes</option><option>no</option><option value="__null__">(no value)</option></select>
   <label for="f-body_site_class">Body site class</label><select id="f-body_site_class" data-field="body_site_class"><option value="">(any)</option><option>primary</option><option>unknown</option><option>excluded</option><option>linked</option></select>
   <label><input type="checkbox" id="f-has_age"> has numeric age</label>
   <label><input type="checkbox" id="f-has_subject"> has subject id</label>
-  <label><input type="checkbox" id="f-infant"> infant-scope samples only <span class="small">(the former infant catalog)</span></label>
-  <label for="f-min_fields">Minimum fields with a value</label><input id="f-min_fields" type="number" min="0" max="9" placeholder="e.g. 3">
+  <label><input type="checkbox" id="f-infant"> infant-extension samples only <span class="small">(samples with the deep infant-field curation)</span></label>
+  <label for="f-min_fields">Minimum fields with a value</label><input id="f-min_fields" type="number" min="0" max="{{ n_fields_max }}" placeholder="e.g. 3">
   <div class="btns"><button class="btn" id="apply">Apply</button><button class="btn sec" id="reset">Reset</button></div>
 </aside>
 <section>
@@ -30,13 +34,13 @@
   </div>
   <div class="status" id="dl-status"></div>
   <div id="result-wrap"><table class="tbl" id="result-table"><thead></thead><tbody></tbody></table></div>
-  <p class="small">Route badges: R1 archive attribute · R2 supplementary table · R3 paper full text · R4 abstract / description. The CSV export carries all {{ n_cols }} columns of the filtered rows.</p>
+  <p class="small">Route badges: R1 archive attribute · R2 supplementary table · R3 paper full text · R4 abstract / description. Click a row for every field; the <b>archive</b> link opens the BioSample record (NCBI / ENA / DDBJ). The CSV export carries all {{ n_cols }} columns of the filtered rows.</p>
 </section>
 </div>
 <div class="detail" id="detail" role="dialog" aria-modal="false" aria-label="Sample details" tabindex="-1"><button class="close" id="detail-close" title="close (Escape)" aria-label="close sample details">×</button><div id="detail-body"></div></div>
 {% endblock %}
 {% block scripts %}
-<script>window.GUT_CFG={samples:'../data/gut_sample_metadata_wide.parquet',studies:'../data/gut_studies.parquet',studiesUrl:'../studies/',registryUrl:'../registry/index.html',enaSampleUrl:'https://www.ebi.ac.uk/ena/browser/view/'};</script>
+<script>window.GUT_CFG={samples:'../data/gut_sample_metadata_wide.parquet',studies:'../data/gut_studies.parquet',studiesUrl:'../studies/',registryUrl:'../registry/index.html',enaSampleUrl:'https://www.ebi.ac.uk/ena/browser/view/',archive:{SAMN:'https://www.ncbi.nlm.nih.gov/biosample/',SAMD:'https://ddbj.nig.ac.jp/resource/biosample/',SAME:'https://www.ebi.ac.uk/ena/browser/view/',RUN:'https://www.ebi.ac.uk/ena/browser/view/'},coreFields:{{ site.core_fields|tojson }},keyFields:{{ site.key_fields|tojson }}};</script>
 <script>setTimeout(function(){ if (!window.__gutReady) { var b=document.getElementById('boot'); if (b && b.style.display !== 'none') { b.innerHTML='<b>The explorer could not start within 20 s.</b> DuckDB-WASM (pinned 1.29.0) is loaded from cdn.jsdelivr.net; the CDN may be blocked on your network or the browser blocks WebAssembly/Workers. Everything the explorer shows is also downloadable: <a href="../data/gut_sample_metadata_wide.parquet">gut_sample_metadata_wide.parquet</a>.'; } } }, 20000);</script>
 <script type="module" src="../static/explorer.js"></script>
 {% endblock %}
