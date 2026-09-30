@@ -258,8 +258,8 @@ site_pages:
   study_verdict_timeline: 'studies/{study_accession}.html#verdict-timeline'
   sample_value_timeline: 'samples/index.html#timeline'
   determinations_all_site_path: data/sample_determinations_all.parquet   # where build_site.py copies files.determinations_all (explorer loads it on demand)
-  data_release_url: 'https://github.com/OlmLab/infant-gut-catalog-data/releases/tag/{data_tag}'
-  site_release_url: 'https://github.com/OlmLab/infant-gut-catalog/releases/tag/{site_tag}'
+  data_release_url: 'https://github.com/OlmLab/microbiome_repo-data/releases/tag/{data_tag}'
+  site_release_url: 'https://github.com/OlmLab/microbiome_repo/releases/tag/{site_tag}'
 derived_tables_without_release_columns: [sample_metadata_wide.parquet, sample_metadata_wide.csv.gz]   # wide table is derived from sample_determinations
 
 # Registry tier tables (S0 track, docs/EXPANSION.md). Written by `make registry-build` WITH the release columns already

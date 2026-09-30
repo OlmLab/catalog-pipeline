@@ -1,5 +1,5 @@
 # A1: uploads.github.com (Release asset upload) is on the sandbox's non-grantable denylist, so the agent never
-# uploads assets. It pushes a tag `data-v<semver>` to the DATA repo (OlmLab/infant-gut-catalog-data); this workflow
+# uploads assets. It pushes a tag `data-v<semver>` to the DATA repo (OlmLab/microbiome_repo-data); this workflow
 # builds the zip + SQLite on GitHub's side and attaches them with softprops/action-gh-release using GITHUB_TOKEN.
 # Zenodo DOI: enable the Zenodo↔GitHub integration on the data repo once; every published Release then mints a DOI.
 name: release

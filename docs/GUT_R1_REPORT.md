@@ -1,6 +1,6 @@
 # GUT_R1_REPORT — R1 attribute extraction for scope `gut_all` (src_track gut_all_v1, release R2026.7, package 1.8.0)
 
-Generated 2026-09-27 from `gut_attributes_nonInfant.parquet` (9,411,229 attribute rows; 437,184 BioSamples; 2,427 studies with ≥1 attribute row of the 2,448 non-infant gut studies) and `gut_attribute_keys.csv` (4,936 keys). Deterministic parsers only; the utility model classified KEYS (never values). catalog-pipeline commit 6568731.
+Generated 2026-09-27 from `gut_attributes_nonInfant.parquet` (9,411,229 attribute rows; 437,184 BioSamples; 2,427 studies with ≥1 attribute row of the 2,448 non-infant gut studies) and `gut_attribute_keys.csv` (4,936 keys). Deterministic parsers only; the utility model classified KEYS (never values). microbiome_repo-pipeline commit 6568731.
 
 ## Deliverables
 - `gut_attribute_field_map.csv` — 532 rows (518 keys; 288 active key→field mappings, 244 explicit SKIP rows with reasons), same columns as `config/attribute_field_map.csv`.

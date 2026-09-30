@@ -5,7 +5,7 @@ into a flat row: accession, sra_sample (SRS from Ids), organism, tax_id, title, 
 package, attributes (json of harmonized_name->value), plus the convenience fields the infant rule
 needs. All HTTP via harvest_lib.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

@@ -1,7 +1,7 @@
 # GUT R2 deterministic supplementary-table extraction — shard 2 of 8
 
 Scope `gut_all` (config/packs/gut.yaml), route R2, src_track `gut_all_v1`, release_added `R2026.7`, package_added `1.8.0`.
-Method: catalog-pipeline `gapfill_samples` R2 (exact-ID gate + header-named columns; `_supp_id_columns`, `norm_key`, `r1_parsers`)
+Method: microbiome_repo-pipeline `gapfill_samples` R2 (exact-ID gate + header-named columns; `_supp_id_columns`, `norm_key`, `r1_parsers`)
 re-driven from the shard's pmcid list instead of the infant package's `study_paper_links.csv`; all numbers below are computed from the
 shard outputs. No LLM calls were made.
 

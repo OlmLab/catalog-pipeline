@@ -1,6 +1,6 @@
 """Driver for the R2 full re-run (v2 gate). Expects in namespace: wl, samples, runs, attrs, existing_r12, host, HL, R2, LBC.
 Processes studies smallest-first in chunks; per chunk: gate -> new-accepted tables -> Haiku classify -> extract -> filter -> checkpoint."""
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

@@ -74,7 +74,7 @@ def test_unlock_templates_fit_limit():
 def test_issue_url_roundtrip():
     u = bw.issue_url_for(CFG, "PRJNA123456", "id_key", "R2026.2")
     p = urlparse(u)
-    assert p.scheme == "https" and p.netloc == "github.com" and p.path == "/OlmLab/infant-gut-catalog/issues/new"
+    assert p.scheme == "https" and p.netloc == "github.com" and p.path == "/OlmLab/microbiome_repo/issues/new"
     q = parse_qs(p.query)
     assert q["template"] == ["catalog-contribution.yml"] and q["labels"] == ["contribution"]
     assert q["study_accession"] == ["PRJNA123456"] and q["contribution_type"] == ["id_key"] and q["release_tag"] == ["R2026.2"]

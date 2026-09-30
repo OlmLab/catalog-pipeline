@@ -1,6 +1,6 @@
 # CONTRIBUTE_SITE_REPORT — R2026.2 Site track (branch `cycle/R2026.2-site`)
 
-Base: `OlmLab/catalog-pipeline` main `885072f`. Four commits on `cycle/R2026.2-site` (bundle `cycle_R2026.2_site.bundle`,
+Base: `OlmLab/microbiome_repo-pipeline` main `885072f`. Four commits on `cycle/R2026.2-site` (bundle `cycle_R2026.2_site.bundle`,
 `git bundle create … main..cycle/R2026.2-site`; apply with `git fetch <bundle> cycle/R2026.2-site`). Nothing was pushed; nothing under
 `/Users/Kira/` was modified. Every number below is read from the tables of the MOCK 1.4.0 package or the built mock site
 (`report_numbers.json`) — the mock's blocker assignment is a placeholder (see "Deviations"), so **all counts are provisional** until the

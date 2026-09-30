@@ -2,7 +2,7 @@
 
 Spec-level tests always run; built-site tests need CATALOG_SITE_DIR (a build of the MOCK 1.4.0 package) and CATALOG_PACKAGE_DIR:
     python site_generator/gen/tests/make_mock_contribute_package.py --src data/inputs/data_package --out build/mock_package_1.4.0
-    python site_generator/gen/build_site.py --package build/mock_package_1.4.0 --out build/site_mock --base-url https://olmlab.github.io/infant-gut-catalog/ --build-date 2026-10-24
+    python site_generator/gen/build_site.py --package build/mock_package_1.4.0 --out build/site_mock --base-url https://olmlab.github.io/microbiome_repo/ --build-date 2026-10-24
     CATALOG_SITE_DIR=build/site_mock CATALOG_PACKAGE_DIR=build/mock_package_1.4.0 python -m pytest site_generator/gen/tests/test_contribute_pages.py
 """
 import json, os, re, sys
@@ -52,7 +52,7 @@ def test_issue_form_ids_match_config():
 def test_issue_url_builder():
     u = bs.contribute_issue_url(CSPEC, 'PRJNA294605', 'id_key', 'R2026.2')
     p = urlparse(u)
-    assert p.scheme == 'https' and p.netloc == 'github.com' and p.path == '/OlmLab/infant-gut-catalog/issues/new'
+    assert p.scheme == 'https' and p.netloc == 'github.com' and p.path == '/OlmLab/microbiome_repo/issues/new'
     q = parse_qs(p.query)
     assert q['template'] == ['catalog-contribution.yml'] and q['labels'] == ['contribution'] and q['study_accession'] == ['PRJNA294605']
     assert q['contribution_type'] == ['id_key'] and q['release_tag'] == ['R2026.2'] and q['title'] == ['[contribution] PRJNA294605: id_key']

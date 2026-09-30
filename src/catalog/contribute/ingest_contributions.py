@@ -2,7 +2,7 @@
 """ingest_contributions.py — GitHub Issues labelled `contribution` (form catalog-contribution.yml) → audit/contributions/<issue>/
 (MATURITY_PLAN §3.4 step 1, zero-backend variant §3.3). Deterministic; no LLM; nothing uploaded is ever executed.
 
-    python -m catalog.contribute.ingest_contributions --repo OlmLab/infant-gut-catalog --package data/inputs/data_package \\
+    python -m catalog.contribute.ingest_contributions --repo OlmLab/microbiome_repo --package data/inputs/data_package \\
         --out audit/contributions [--since 2026-10-01T00:00:00Z] [--comment] [--from-json issues.json]
 
 Per issue: parse the form body (`### <field id>` blocks), find attachment URLs (github.com/user-attachments/files/…,

@@ -42,7 +42,7 @@ scopes:
     curated: true
     field_pack: infant
     membership_rule: infant_catalog_include
-    site_repo: infant-gut-catalog
+    site_repo: microbiome_repo
   - id: gut_child
     label: Child / adolescent gut (3–18 y)
     definition: Human gut/stool shotgun metagenomes from children and adolescents.
@@ -237,7 +237,7 @@ package_version: "1.6.0"
 scope_rules:
   infant_gut:
     rule: in_infant_catalog == include
-    site: https://olmlab.github.io/infant-gut-catalog/
+    site: https://olmlab.github.io/microbiome_repo/
   gut_child:
     rule: gut_stool in body_sites AND (child in life_stages OR adolescent in life_stages)
     site: null

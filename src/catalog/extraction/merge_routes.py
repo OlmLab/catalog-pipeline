@@ -8,7 +8,7 @@ Conflict = different normalized values across routes (categoricals) or age diffe
 Adjudication (Opus, 4 conflicts per request) is run on a per-(study, field, value-pair) *pattern* basis: identical
 conflicts across many samples of one study share one decision (recorded with n_samples).
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

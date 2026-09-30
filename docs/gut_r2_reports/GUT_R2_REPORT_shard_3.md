@@ -1,6 +1,6 @@
 # GUT R2 deterministic supplementary-table extraction — shard 3
 
-Generated 2026-09-28T04:28:03Z. Scope `gut_all`, src_track `gut_all_v1`, release R2026.7 / package 1.8.0. Method: catalog-pipeline `gapfill_samples` R2 gate (exact-ID ≥ 50 % of rows or ≥ 20 hits; matrix sheets excluded) + header-named columns, deterministic parsers only (no LLM calls).
+Generated 2026-09-28T04:28:03Z. Scope `gut_all`, src_track `gut_all_v1`, release R2026.7 / package 1.8.0. Method: microbiome_repo-pipeline `gapfill_samples` R2 gate (exact-ID ≥ 50 % of rows or ≥ 20 hits; matrix sheets excluded) + header-named columns, deterministic parsers only (no LLM calls).
 
 ## Coverage
 

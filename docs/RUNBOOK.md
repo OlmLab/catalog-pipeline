@@ -44,21 +44,21 @@ Key artifact ids (latest versions at 2026-09-26; the authoritative list with sha
 ## 0a. Owner bootstrap (once, ~45 min, no tokens) — R1-05
 
 **Status 2026-09-26 (evening): DONE.** All three repos exist and are public with an active `protect-main` ruleset;
-Pages source on `infant-gut-catalog` = GitHub Actions; the PAT is stored as credential `GitHub` (env `GITHUB_TOKEN`);
+Pages source on `microbiome_repo` = GitHub Actions; the PAT is stored as credential `GitHub` (env `GITHUB_TOKEN`);
 `~/catalog/` is granted rw and holds the three clones. Steps 2–4 and 8 below were executed by the agent (the owner
 authorised the first pushes to `main` of the two new repos and the `.github/` install on the site repo). Kept for reference:
 
-State probed 2026-09-26 morning (Reviewer 1): `OlmLab/infant-gut-catalog` exists (main only, no `.github/`, pre-1.2.0 site);
-`OlmLab/catalog-pipeline` and `OlmLab/infant-gut-catalog-data` do **not** exist. Nothing in stage 7 works until:
+State probed 2026-09-26 morning (Reviewer 1): `OlmLab/microbiome_repo` exists (main only, no `.github/`, pre-1.2.0 site);
+`OlmLab/microbiome_repo-pipeline` and `OlmLab/microbiome_repo-data` do **not** exist. Nothing in stage 7 works until:
 
-1. **Create the two missing repositories** (GitHub UI, org OlmLab): `catalog-pipeline` (private or public, empty, no
-   README) and `infant-gut-catalog-data` (public, empty). Enable Issues on `infant-gut-catalog` (the Issues repo,
+1. **Create the two missing repositories** (GitHub UI, org OlmLab): `microbiome_repo-pipeline` (private or public, empty, no
+   README) and `microbiome_repo-data` (public, empty). Enable Issues on `microbiome_repo` (the Issues repo,
    `config/site.yaml` → `github.issues.repo`).
 2. **First push of the pipeline repo** (owner shell):
    ```
-   cd ~/catalog && unzip -q pipeline_repo_v3.zip && cd catalog-pipeline      # or the artifact of the current cycle
-   git init -b main && git add -A && git commit -m "catalog-pipeline v1.2.1 (repo fix wave)"
-   git remote add origin https://github.com/OlmLab/catalog-pipeline.git && git push -u origin main
+   cd ~/catalog && unzip -q pipeline_repo_v3.zip && cd microbiome_repo-pipeline      # or the artifact of the current cycle
+   git init -b main && git add -A && git commit -m "microbiome_repo-pipeline v1.2.1 (repo fix wave)"
+   git remote add origin https://github.com/OlmLab/microbiome_repo-pipeline.git && git push -u origin main
    ```
    `verify.yml` runs on that push (unit tests only — no site in this repo).
 3. **Clone the site and data repos** to the paths in `config/site.yaml` (`~/catalog/infant-gut-catalog`,
@@ -68,12 +68,12 @@ State probed 2026-09-26 morning (Reviewer 1): `OlmLab/infant-gut-catalog` exists
    into the site clone and `release.yml` into the data clone. Commit and push `.github/` in both clones **to main**
    (owner — the agent never pushes main). Without the template in the Issues repo every "Flag an issue" link opens a
    blank issue and the prefilled fields are lost.
-5. **Pages source = GitHub Actions** on `infant-gut-catalog` (Settings → Pages → Build and deployment → Source:
+5. **Pages source = GitHub Actions** on `microbiome_repo` (Settings → Pages → Build and deployment → Source:
    GitHub Actions). Until this is switched, `deploy-pages.yml` cannot deploy and generated HTML would have to be
    committed to `main` (the legacy path via `~/Downloads/site`, RUNBOOK §7 last line).
 6. **Rulesets** on `main` of all three repos (docs/SECURITY.md §2 item 2) and **Zenodo ↔ GitHub** on the data repo.
-7. **PAT**: fine-grained, resource owner OlmLab, repositories `infant-gut-catalog` + `infant-gut-catalog-data`
-   (+ `catalog-pipeline` if the agent is to push `cycle/*` branches), permissions Contents: read/write, Issues:
+7. **PAT**: fine-grained, resource owner OlmLab, repositories `microbiome_repo` + `microbiome_repo-data`
+   (+ `microbiome_repo-pipeline` if the agent is to push `cycle/*` branches), permissions Contents: read/write, Issues:
    read/write (for `make ingest-issues`), Metadata: read. Store it under Customize → Credentials as `github`
    (SECURITY §2 item 5, §3). Record the injected env-var name in SECURITY §3 after the first successful
    `git ls-remote` (R1-15).
@@ -296,7 +296,7 @@ from `config/inputs.json` group `reports` into `data/inputs/reports/`; the PNG i
 
 ## 7. Publish (Release Engineer profile; 10 min; 0 tokens) — the agent pushes branches + tags, Actions deploys
 
-Sandbox notes (2026-09-26): `git checkout -B release/<v> origin/main` inside the clones prints `could not write config file .git/config: Operation not permitted` — harmless (branch tracking only); rsync into the clones exits 23 (utimensat on the clone root) — `publish-branch` tolerates it and proves completeness with a checksum dry-run. Actions job logs cannot be downloaded from the sandbox (Azure blob redirect); read the jobs/steps API instead. Re-running a failed deploy: `POST /repos/OlmLab/infant-gut-catalog/actions/runs/<id>/rerun-failed-jobs` (PAT has Actions: write).
+Sandbox notes (2026-09-26): `git checkout -B release/<v> origin/main` inside the clones prints `could not write config file .git/config: Operation not permitted` — harmless (branch tracking only); rsync into the clones exits 23 (utimensat on the clone root) — `publish-branch` tolerates it and proves completeness with a checksum dry-run. Actions job logs cannot be downloaded from the sandbox (Azure blob redirect); read the jobs/steps API instead. Re-running a failed deploy: `POST /repos/OlmLab/microbiome_repo/actions/runs/<id>/rerun-failed-jobs` (PAT has Actions: write).
 
 ```
 make publish-branch                          # release/<semver> in both clones; tags site-v<semver>, data-v<semver>
@@ -305,7 +305,7 @@ git -C ~/catalog/infant-gut-catalog-data -c credential.helper='!f(){ echo "usern
 ```
 (declare `credentials=["GitHub"]` on the cell; `GITHUB_TOKEN` is read from the environment, never printed.)
 Then: `verify.yml` runs on the branch/tag → `deploy-pages.yml` deploys the `site-v*` tag to
-https://olmlab.github.io/infant-gut-catalog/ → `release.yml` builds `data_package_v<semver>.zip` +
+https://olmlab.github.io/microbiome_repo/ → `release.yml` builds `data_package_v<semver>.zip` +
 `infant_catalog_v<semver>.sqlite` and attaches them to the `data-v<semver>` Release (Zenodo mints the DOI).
 Post-check (needs the `olmlab.github.io` grant): fetch `/data/VERSION.json` and compare `release_tag`.
 The owner merges `release/<semver>` → `main` at leisure (or `main` is left as the last-known-good pointer).
@@ -344,7 +344,7 @@ Contrast: building the catalog cost ≈ 47.3 M tokens (CHANGELOG); a monthly cyc
    mismatch) = stop; tests are not run then.
 5. Run the stage's `make` target; LLM stages: dispatch leaf workers from the root with `SLICE`/`OUT_PREFIX` and the
    budget caps in `config/budgets.yaml`; save every output as an artifact as soon as it exists (workspaces are wiped).
-6. Append the actuals to `docs/CYCLE_LOG.md`; commit code/doc changes to `catalog-pipeline` on a `cycle/<YYYY-MM>` branch.
+6. Append the actuals to `docs/CYCLE_LOG.md`; commit code/doc changes to `microbiome_repo-pipeline` on a `cycle/<YYYY-MM>` branch.
 
 ## Stage 7 — registry tier (scale-up S1, from R2026.4 / package 1.6.0)
 

@@ -8,7 +8,7 @@ One semver for the data package is the public version; release tags and site lab
       "package_version":    "1.2.0",                # semver, from config/version.txt (or --package-version)
       "build_date":         "2026-09-26",           # package release date; the site footer uses THIS, never wall clock
       "generator_git_sha":  "<short sha or 'nogit'>",
-      "generator_repo":     "OlmLab/catalog-pipeline",
+      "generator_repo":     "OlmLab/microbiome_repo-pipeline",
       "release_id":         "R2026.1",                # numbered catalog release (config/releases.yaml); pre-numbered = the semver
       "previous_release_id": "1.2.2",
       "tables": { "<file>": {"sha256": ..., "size_bytes": ..., "rows": <int|null>} , ... }
@@ -96,7 +96,7 @@ def build(package_dir: str, package_version: str, build_date: str | None = None,
         tables[name] = dict(sha256=sha256_file(p), size_bytes=os.path.getsize(p), rows=row_count(p))
     v = dict(release_tag=f"data-v{package_version}", package_version=package_version,
              build_date=build_date or dt.date.today().isoformat(), generator_git_sha=git_sha(repo),
-             generator_repo="OlmLab/catalog-pipeline", tables=tables)
+             generator_repo="OlmLab/microbiome_repo-pipeline", tables=tables)
     v.update(release_ids(package_version, repo))
     return v
 

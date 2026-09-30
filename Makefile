@@ -1,4 +1,4 @@
-# catalog-pipeline — monthly cycle targets (docs/RUNBOOK.md has the narrative, budgets and stop rules).
+# microbiome_repo-pipeline — monthly cycle targets (docs/RUNBOOK.md has the narrative, budgets and stop rules).
 # Every target is deterministic EXCEPT triage and extract, which call host.llm and therefore must run inside a
 # Claude Science session (root frame with delegation on). PYTHONPATH=src makes `import catalog` work.
 SHELL      := bash
@@ -55,7 +55,7 @@ bootstrap-kernel: ## print the in-kernel form (artifact store reachable through 
 lock:            ## regenerate requirements.lock + environment.lock.yml from the active env (no file:// URLs) — R1-04
 	{ echo "# pip list --format=freeze of the infantcat env, $$(date +%F) (python $$($(PY) -c 'import platform;print(platform.python_version())')). No file:// URLs (R1-04)."; \
 	  echo "# appnope is macOS-only; environment marker added so Linux CI can install this file."; \
-	  $(PY) -m pip list --format=freeze | grep -v '^catalog-pipeline' | sed 's/^appnope==\(.*\)$$/appnope==\1; sys_platform == "darwin"/'; } > requirements.lock
+	  $(PY) -m pip list --format=freeze | grep -v '^microbiome_repo-pipeline' | sed 's/^appnope==\(.*\)$$/appnope==\1; sys_platform == "darwin"/'; } > requirements.lock
 	$(PY) - <<-'EOF'
 	import platform
 	lines=[l.strip() for l in open('requirements.lock') if l.strip() and not l.startswith('#')]

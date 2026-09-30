@@ -32,7 +32,7 @@ they enter the registry as `in_infant_catalog` / `infant_reason_code` and as det
 
 The plan proposed separate repositories (`human-metagenome-registry-data`, a registry index site, one Pages repo per scope).
 **Decision: the registry tier lives inside the existing repos.** `registry_*` tables are added to the data package built by
-`catalog-pipeline` and published in `infant-gut-catalog-data`; the site gains a `registry/` section; the infant catalog is one
+`microbiome_repo-pipeline` and published in `microbiome_repo-data`; the site gains a `registry/` section; the infant catalog is one
 scope inside it. Consequences that this track honours:
 
 * registry tables follow the package conventions — bitemporal columns `release_added / release_retired / package_added`

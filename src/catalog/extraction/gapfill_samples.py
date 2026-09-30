@@ -29,7 +29,7 @@ Usage: python -m catalog.extraction.gapfill_samples --study PRJNA1140720 --new-r
          --package data/inputs/data_package --out build/gapfill_R2026.2 --release-id R2026.2 --package-version 1.4.0 \
          [--field-map config/attribute_field_map.csv] [--cache-dir ~/catalog/cache] [--sandpiper] [--harvest-existing]
 """
-# --- catalog-pipeline repo layout shim ---
+# --- microbiome_repo-pipeline repo layout shim ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", ".."), _os.path.join(_here, "..", "harvest"), _os.path.join(_here, "..", "enumeration"),

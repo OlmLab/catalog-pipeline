@@ -2,7 +2,7 @@
 Writes bioproject_records.parquet (checkpointed every ~2,000 studies) + bioproject_fetch_log.json."""
 import sys, os, json, time, re
 sys.path.append(os.getcwd())
-# --- catalog-pipeline shim (2026-09-26, R3-4): harvest_lib lives in src/catalog/harvest/ (cache dir via CATALOG_CACHE_DIR) ---
+# --- microbiome_repo-pipeline shim (2026-09-26, R3-4): harvest_lib lives in src/catalog/harvest/ (cache dir via CATALOG_CACHE_DIR) ---
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "harvest"))
 import pandas as pd
 import xml.etree.ElementTree as ET

@@ -2,13 +2,13 @@
 # targets and by site_generator/gen/build_site.py via --base-url. The generator must refuse to build
 # for publish while base_url still contains the USERNAME/REPOSITORY placeholder.
 site:
-  # Names live HERE only (owner decision 2026-09-28: site rebranded to the all-human catalog; repository names / URL unchanged until a final name is chosen)
+  # Names live HERE only. Repositories renamed 2026-09-30 (owner): microbiome_repo (site/Pages), microbiome_repo-data, microbiome_repo-pipeline; GitHub redirects the old infant-gut-catalog* / catalog-pipeline URLs for git + web (not for Pages). Local clone directories keep their old names (.git/config is read-only under the host grant; the redirect keeps them working).
   title: "Microbiome Repo"
   short_title: "Microbiome Repo"
   tagline: "every public human shotgun-metagenome study in ENA/SRA/DDBJ (registry) and a curated, evidence-linked catalog of human gut metagenomes of all ages"
   curated_scope_title: "Infant Gut Shotgun-Metagenome Catalog"     # historical name of the infant extension (package README history); no site section carries it since 1.10.0
   curated_scope_short: "Infant gut"
-  base_url: "https://olmlab.github.io/infant-gut-catalog/"
+  base_url: "https://olmlab.github.io/microbiome_repo/"
   placeholder_base_url: "https://USERNAME.github.io/REPOSITORY/"   # build fails if base_url == this
   build_date_source: package_release_date   # never wall-clock (A2 determinism); taken from VERSION.json
   gzip_mtime: 0                             # deterministic *.csv.gz (A2)
@@ -16,15 +16,15 @@ site:
 github:
   org: OlmLab
   repos:
-    pipeline: catalog-pipeline            # this repository (code, config, docs, tests, workflows)
-    data: infant-gut-catalog-data         # package tables <=50 MB each, audit/findings/, reports/, tags data-vX.Y.Z
-    site: infant-gut-catalog              # GitHub Pages repo (generated output only; Pages source = Actions)
-  # GitHub repository id of OlmLab/infant-gut-catalog-data (GET https://api.github.com/repos/OlmLab/infant-gut-catalog-data -> id, fetched 2026-09-26).
+    pipeline: microbiome_repo-pipeline            # this repository (code, config, docs, tests, workflows)
+    data: microbiome_repo-data         # package tables <=50 MB each, audit/findings/, reports/, tags data-vX.Y.Z
+    site: microbiome_repo              # GitHub Pages repo (generated output only; Pages source = Actions)
+  # GitHub repository id of OlmLab/microbiome_repo-data (GET https://api.github.com/repos/OlmLab/microbiome_repo-data -> id, fetched 2026-09-26).
   # Zenodo's GitHub integration keys its badge and latest-DOI redirect on this id: https://zenodo.org/badge/<id>.svg -> https://zenodo.org/badge/latestdoi/<id>
   data_repo_id: 1389758854
   default_branch: main
   issues:                                 # R1-05/R1-19: the ONE place the 'Flag an issue' target is defined (site.js/build_site.py read it)
-    repo: infant-gut-catalog              # Issues live in the site repo; the template must be INSTALLED there (make install-workflows)
+    repo: microbiome_repo              # Issues live in the site repo; the template must be INSTALLED there (make install-workflows)
     template: simple-finding.yml          # R2026.12: the two-question form (site_generator/gen/issue_templates/simple-finding.yml); catalog-finding.yml stays installed for the audit tooling
     label: finding
   pages_source: github-actions            # deploy-pages.yml; never commit generated HTML to main

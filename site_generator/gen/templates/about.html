@@ -20,5 +20,5 @@
 {% include "_cite.html" %}
 <h2 id="docs">Documents</h2>
 <ul class="small">{% for d in docs %}<li><a href="../{{ d.href }}">{{ d.title }}</a> <span class="mono">({{ d.name }})</span></li>{% endfor %}</ul>
-<p class="small">Code, configuration and vocabularies: <a href="https://github.com/OlmLab/catalog-pipeline">catalog-pipeline</a>; data packages: <a href="https://github.com/{{ site.data_repo }}">{{ site.data_repo }}</a>. Found an error? Use the <b>Flag an issue</b> link on a study or cohort page — it opens a short prefilled GitHub issue.</p>
+<p class="small">Code, configuration and vocabularies: <a href="https://github.com/OlmLab/microbiome_repo-pipeline">microbiome_repo-pipeline</a>; data packages: <a href="https://github.com/{{ site.data_repo }}">{{ site.data_repo }}</a>. Found an error? Use the <b>Flag an issue</b> link on a study or cohort page — it opens a short prefilled GitHub issue.</p>
 {% endblock %}

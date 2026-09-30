@@ -35,7 +35,7 @@ the catalog vocabularies: `age_category` from `config/packs/gut.yaml` (`neonate`
 
 ## How to propose a collection
 
-1. Fork `OlmLab/catalog-pipeline` and edit `config/collections.yaml` (append an entry; keep ids stable once shipped —
+1. Fork `OlmLab/microbiome_repo-pipeline` and edit `config/collections.yaml` (append an entry; keep ids stable once shipped —
    rename by adding a new entry and retiring the old one in `notes`).
 2. Verify every accession exists in the current package: `duckdb -c "select study_accession, study_title, n_samples
    from 'gut_studies.parquet' where study_accession in ('PRJ...')"` — accessions that are not catalog studies are

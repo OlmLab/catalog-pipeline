@@ -1,5 +1,5 @@
 # A2/A3: GitHub Pages deploys FROM ACTIONS (Settings → Pages → Source: GitHub Actions), so generated HTML never
-# accumulates in git history. Lives in the SITE repo (OlmLab/infant-gut-catalog).
+# accumulates in git history. Lives in the SITE repo (OlmLab/microbiome_repo).
 #
 # Flow: the agent pushes the built site to a `release/<package_version>` branch and tags `site-v<package_version>`
 #       → verify (link check, parquet read, Playwright smoke) must pass → deploy.
@@ -32,8 +32,8 @@ concurrency:
 
 jobs:
   verify:
-    # this file is authored in catalog-pipeline and INSTALLED into the site repo; only the site repo has Pages
-    if: github.repository == 'OlmLab/infant-gut-catalog'
+    # this file is authored in microbiome_repo-pipeline and INSTALLED into the site repo; only the site repo has Pages
+    if: github.repository == 'OlmLab/microbiome_repo'
     uses: ./.github/workflows/verify.yml
     with:
       site_dir: "."
@@ -42,7 +42,7 @@ jobs:
     secrets: inherit
 
   deploy:
-    if: github.repository == 'OlmLab/infant-gut-catalog'
+    if: github.repository == 'OlmLab/microbiome_repo'
     needs: verify
     runs-on: ubuntu-latest
     environment:

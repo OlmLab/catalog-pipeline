@@ -2,7 +2,7 @@
 
 Generated 2026-09-29 from the outputs of `catalog.scopes.newfields_r1` (data/inputs/gut/gut_r1_newfields_*.parquet) and of the pack-driven
 `catalog.scopes.build_gut_scope` run against package 1.11.0 (build/gut/). Every number below is read from those files. Patch: `gut_newfields_r1.patch`
-(`git diff --cached` after `git add -A src tests docs Makefile audit` on catalog-pipeline main @ 7793898; **not pushed**).
+(`git diff --cached` after `git add -A src tests docs Makefile audit` on microbiome_repo-pipeline main @ 7793898; **not pushed**).
 
 ## A. Pipeline changes (patch)
 

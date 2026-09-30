@@ -1,7 +1,7 @@
 # GUT R2 deterministic supplementary-table extraction — shard 4 of 8
 
 Scope: 165 non-infant human-gut shotgun studies with ≥ 1 open-access PMC paper (214 distinct PMCIDs, ≤ 4 own-data papers per study).
-Method: pipeline R2 (catalog-pipeline `gapfill_samples.r2_gate` / `r2_extract` logic re-hosted on the pmcid input instead of `study_paper_links.csv`; `_supp_id_columns`, `norm_key`, `q12`, `DET_COLS` and `r1_parsers` imported unchanged). Exact-ID gate on the study's ENA universe (BioSample, secondary sample, run, experiment, library_name, sample_title); matrix sheets excluded; header-named columns only; parsers deterministic. **No LLM calls were made.**
+Method: pipeline R2 (microbiome_repo-pipeline `gapfill_samples.r2_gate` / `r2_extract` logic re-hosted on the pmcid input instead of `study_paper_links.csv`; `_supp_id_columns`, `norm_key`, `q12`, `DET_COLS` and `r1_parsers` imported unchanged). Exact-ID gate on the study's ENA universe (BioSample, secondary sample, run, experiment, library_name, sample_title); matrix sheets excluded; header-named columns only; parsers deterministic. **No LLM calls were made.**
 Deliverables: `gut_r2_determinations_shard_4.parquet` (determination schema of config/packs/gut.yaml, src_track gut_all_v1, release R2026.7, package 1.8.0), `gut_r2_gate_shard_4.parquet`, `gut_supp_header_map_shard_4.csv`, `gut_r2_log_shard_4.json`, plus `gut_r2_conflicts_shard_4.csv` and `gut_r2_skipped_headers_shard_4.csv`.
 
 ## Fetch (Europe PMC `supplementaryFiles`, ≤ 2 concurrent, `includeInlineImage=false`, streamed with an 80 MB / 240 s cap, then a 400 MB / 600 s retry for the capped ones)

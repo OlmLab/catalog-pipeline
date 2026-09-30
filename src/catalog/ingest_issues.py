@@ -6,7 +6,7 @@ their `id` (the label text starts with the id — see findings_schema.render_tem
 date), `source` = `issue#<number>`; both are never typed by hand. Issues already present in an earlier
 audit/findings/*_issues.csv (same source) are skipped unless --all.
 
-    python -m catalog.ingest_issues --repo OlmLab/infant-gut-catalog --out audit/findings [--state open] [--since 2026-09-01]
+    python -m catalog.ingest_issues --repo OlmLab/microbiome_repo --out audit/findings [--state open] [--since 2026-09-01]
     python -m catalog.ingest_issues --from-json issues.json --out audit/findings     # offline: a saved API response
 
 Auth: GITHUB_TOKEN or GH_TOKEN in the environment (fine-grained PAT, issues:read). In a Claude kernel declare the

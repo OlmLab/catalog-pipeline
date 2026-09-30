@@ -1,6 +1,6 @@
 # REGISTRY_SITE_REPORT — scale-up track S1 "Registry site" (branch `scaleup/S1-site`)
 
-*2026-09-27. Base: OlmLab/catalog-pipeline main 8b6c506. Every number below is read from the tables and files this track produced (mock package `build/mock_package_1.6.0`, built site `build/site_mock`); the mock's synthetic rows are labelled as such and none of its counts is a finding about the real registry universe.*
+*2026-09-27. Base: OlmLab/microbiome_repo-pipeline main 8b6c506. Every number below is read from the tables and files this track produced (mock package `build/mock_package_1.6.0`, built site `build/site_mock`); the mock's synthetic rows are labelled as such and none of its counts is a finding about the real registry universe.*
 
 ## 1. What was built
 

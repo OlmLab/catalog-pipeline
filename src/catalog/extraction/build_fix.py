@@ -1,5 +1,5 @@
 """Steps 2-3 of the sample-unit fix. Needs in namespace: sam, runs, det, per_run, cls_out, tm, tab (attrs of multi BioSamples), LBC, A_studies."""
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

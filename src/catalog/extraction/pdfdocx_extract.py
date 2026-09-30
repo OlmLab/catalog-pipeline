@@ -2,7 +2,7 @@
 members of Europe PMC supplementary ZIPs, then the UNCHANGED r2_supp_extract gate (map_ids), extended
 with an exact-match inverted index over the study's BioSample attribute values.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

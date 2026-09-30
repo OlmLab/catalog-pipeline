@@ -44,8 +44,8 @@ software:
   role: Sortable study, cohort and scope tables.
   terms: MIT.
 - name: Apache Parquet / Arrow, pandas, DuckDB, Jinja2, Python-Markdown
-  url: https://github.com/OlmLab/catalog-pipeline
-  role: Pipeline and site generator (catalog-pipeline).
+  url: https://github.com/OlmLab/microbiome_repo-pipeline
+  role: Pipeline and site generator (microbiome_repo-pipeline).
   terms: Apache-2.0 / BSD / MIT (see the repository).
 - name: Anthropic Claude models
   url: https://www.anthropic.com/

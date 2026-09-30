@@ -1,8 +1,8 @@
-# catalog-pipeline — Infant Gut Shotgun-Metagenome Catalog
+# microbiome_repo-pipeline — Infant Gut Shotgun-Metagenome Catalog
 
 Code, configuration, tests and documentation that build and maintain the catalog
-(https://olmlab.github.io/infant-gut-catalog/). Data tables live in `infant-gut-catalog-data`, the generated site in
-`infant-gut-catalog` (docs/DATA_LAYOUT.md). Assembled 2026-09-26 from the release-v11 artifacts (config/inputs.json
+(https://olmlab.github.io/microbiome_repo/). Data tables live in `microbiome_repo-data`, the generated site in
+`microbiome_repo` (docs/DATA_LAYOUT.md). Assembled 2026-09-26 from the release-v11 artifacts (config/inputs.json
 records every source artifact id + sha256).
 
 * **docs/RUNBOOK.md** — the monthly cycle: re-sweep → triage → extraction → findings → package → site → publish,

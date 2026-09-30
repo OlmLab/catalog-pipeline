@@ -1,6 +1,6 @@
 """Post-processing for the multi-paper R3 track: skill group-statement rules, consistency check,
 R1/R2 gap restriction, Opus audit. Statements are dicts as produced by r3_p2_driver.run_requests."""
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

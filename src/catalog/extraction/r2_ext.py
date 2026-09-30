@@ -4,7 +4,7 @@ new ID gate is run. Haiku re-classifies columns with r2_column_classify_system_e
 fields are extracted; values are normalised deterministically (multiple_birth, sibling_in_study legends) or via the
 R1 Haiku normalisers (health_condition, geo_subregion) with the same evidence-fidelity checks.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

@@ -4,7 +4,7 @@ Two layers:
   * spec-level tests (always run): config/releases.yaml shape, release ordering, Zenodo URL construction, templates reference no placeholder URL.
   * built-site tests (run when CATALOG_SITE_DIR points at a build and CATALOG_PACKAGE_DIR at the package it was built from):
       python site_generator/gen/tests/make_mock_release_package.py --src data/inputs/data_package --out build/mock_package_1.3.0
-      cd site_generator/gen && python build_site.py --package ../../build/mock_package_1.3.0 --out ../../build/site --base-url https://olmlab.github.io/infant-gut-catalog/ --build-date 2026-09-26
+      cd site_generator/gen && python build_site.py --package ../../build/mock_package_1.3.0 --out ../../build/site --base-url https://olmlab.github.io/microbiome_repo/ --build-date 2026-09-26
       CATALOG_SITE_DIR=build/site CATALOG_PACKAGE_DIR=build/mock_package_1.3.0 python -m pytest site_generator/gen/tests/test_release_pages.py
 """
 import json, os, re, sys
@@ -43,7 +43,7 @@ def test_release_order_key():
 
 def test_data_repo_id_and_zenodo_urls():
     rid = bs.read_data_repo_id(REPO / 'config' / 'site.yaml')
-    assert rid == 1389758854  # GET https://api.github.com/repos/OlmLab/infant-gut-catalog-data -> id
+    assert rid == 1389758854  # GET https://api.github.com/repos/OlmLab/microbiome_repo-data -> id
     assert f'https://zenodo.org/badge/{rid}.svg' and f'https://zenodo.org/badge/latestdoi/{rid}'
 
 
@@ -95,7 +95,7 @@ def test_releases_page_lists_every_registry_row_and_changes_pages_exist():
         assert f'id="rel-{r.release_id}"' in t, r.release_id
         assert (SITE / 'changes' / f'{r.release_id}.html').exists(), r.release_id
         if r.data_tag:
-            assert f'https://github.com/OlmLab/infant-gut-catalog-data/releases/tag/{r.data_tag}' in t
+            assert f'https://github.com/OlmLab/microbiome_repo-data/releases/tag/{r.data_tag}' in t
         if not r.doi:
             assert 'pending' in t
     ci = (SITE / 'changes/index.html').read_text()

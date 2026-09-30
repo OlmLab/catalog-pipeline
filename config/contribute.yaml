@@ -113,7 +113,7 @@ tables:
 
 # Prefilled GitHub Issue (GitHub prefills form inputs/dropdowns whose ids match the query keys).
 issue:
-  repo: OlmLab/infant-gut-catalog
+  repo: OlmLab/microbiome_repo
   template: catalog-contribution.yml
   labels: contribution
   title_template: "[contribution] {accession}: {contribution_type}"
@@ -213,7 +213,7 @@ contribution_type_labels:
   age_schedule: Age schedule (timepoint label → age in days)
   verdict_evidence: Verdict evidence (is this study infant gut shotgun metagenomics?)
 issue_form:
-  repo: OlmLab/infant-gut-catalog
+  repo: OlmLab/microbiome_repo
   template: catalog-contribution.yml
   label: contribution
   title: '[contribution] {study_accession}: {contribution_type}'

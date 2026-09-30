@@ -60,7 +60,7 @@ quote and note.
 | `age_schedule` | the unit of the age column or the sampling schedule, with the paper section |
 | `verdict_evidence` | evidence that settles the triage verdict (infant shotgun metagenome yes/no) |
 
-`issue_url` opens a **prefilled GitHub Issue** in `OlmLab/infant-gut-catalog` using the form
+`issue_url` opens a **prefilled GitHub Issue** in `OlmLab/microbiome_repo` using the form
 `.github/ISSUE_TEMPLATE/catalog-contribution.yml` (name "Catalog contribution", label `contribution`); GitHub prefills the
 form inputs/dropdowns whose ids match the query keys `study_accession`, `contribution_type`, `release_tag` and the `title`.
 Form fields: `study_accession` (required), `contribution_type` (dropdown, required), `source` (dropdown:

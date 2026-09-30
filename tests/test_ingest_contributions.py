@@ -49,7 +49,7 @@ R2026.2
 
 
 def issue(n, acc, links, login='contributor1'):
-    return dict(number=n, title=f'[contribution] {acc}: per_sample_table', html_url=f'https://github.com/OlmLab/infant-gut-catalog/issues/{n}',
+    return dict(number=n, title=f'[contribution] {acc}: per_sample_table', html_url=f'https://github.com/OlmLab/microbiome_repo/issues/{n}',
                 created_at='2026-10-25T10:00:00Z', user=dict(login=login), body=BODY.format(acc=acc, links='\n'.join(links)))
 
 

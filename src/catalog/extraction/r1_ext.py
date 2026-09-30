@@ -3,7 +3,7 @@ geo_subregion). Deterministic maps where the attribute vocabulary is unambiguous
 distinct free-text values (<=300 per request) for health_condition and geo_subregion; family-identifier
 logic for sibling_in_study. Every emitted row is validated with curation_kernel_ext.validate_row.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

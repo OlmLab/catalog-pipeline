@@ -4,7 +4,7 @@ Usage inside a python cell (env infantcat, cwd on sys.path, infant-curation-rule
     SP.screen(slice_path, prefix, model, start=0, stop=None, batch=20, concurrency=5)
 Writes ckpt/{prefix}_{start:05d}_{stop:05d}.parquet and tokens/{prefix}_{start}_{stop}.json.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

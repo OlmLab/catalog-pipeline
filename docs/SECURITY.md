@@ -8,7 +8,7 @@ supplementary file) cannot escalate.
 
 | item | scope | where it lives | who may use it |
 |---|---|---|---|
-| GitHub fine-grained PAT | **Resource owner: OlmLab**; repositories: `infant-gut-catalog` (site) and `infant-gut-catalog-data` (data) ONLY; permissions as configured 2026-09-26 after the first release: **Contents: read/write**, **Workflows: read/write** (needed to install/update `.github/workflows/*` — GitHub rejects workflow pushes without it; may be set back to *No access* between workflow changes), **Actions: read/write** (re-run a failed deploy, rollback via `workflow_dispatch`), Issues: read/write (findings inbox), Metadata: read; NOT granted: Administration, Environments, Pages (the `github-pages` environment rule and Pages source are owner-only UI settings); expiry ≤ 1 year | Customize → Credentials (stored 2026-09-26 under the display name `GitHub`; env var `GITHUB_TOKEN`), injected only into cells that declare `credentials=["GitHub"]` | Release Engineer profile only |
+| GitHub fine-grained PAT | **Resource owner: OlmLab**; repositories: `microbiome_repo` (site) and `microbiome_repo-data` (data) ONLY; permissions as configured 2026-09-26 after the first release: **Contents: read/write**, **Workflows: read/write** (needed to install/update `.github/workflows/*` — GitHub rejects workflow pushes without it; may be set back to *No access* between workflow changes), **Actions: read/write** (re-run a failed deploy, rollback via `workflow_dispatch`), Issues: read/write (findings inbox), Metadata: read; NOT granted: Administration, Environments, Pages (the `github-pages` environment rule and Pages source are owner-only UI settings); expiry ≤ 1 year | Customize → Credentials (stored 2026-09-26 under the display name `GitHub`; env var `GITHUB_TOKEN`), injected only into cells that declare `credentials=["GitHub"]` | Release Engineer profile only |
 | host filesystem grant | `~/catalog/` read-write (see DATA_LAYOUT.md) | Claude Science host grants | Release Engineer, Curator (rw); Auditor: **no grants** |
 | network grants | github.com, api.github.com (push + Issues API); olmlab.github.io (post-deploy check); zenodo.org and sandpiper.qut.edu.au (Sandpiper module) | Settings → Domain Allowlist | any profile that needs them; Auditor read-only sites only |
 
@@ -21,17 +21,17 @@ Not held by the agent, ever: org admin, Pages settings, repository rulesets, `wo
    "require approval" — then approve the one token). Without this the PAT cannot see org repos.
 2. **Repository rulesets on `main`** (both repos): block force-push, block deletion, require linear history,
    restrict pushes to the owner (the agent never pushes `main`). Optionally require the `verify` status check.
-3. **Pages source = GitHub Actions** on `infant-gut-catalog` (Settings → Pages). Generated HTML then never enters
+3. **Pages source = GitHub Actions** on `microbiome_repo` (Settings → Pages). Generated HTML then never enters
    `main` history (A2).
-4. Enable the **Zenodo ↔ GitHub integration** on `infant-gut-catalog-data` so every Release mints a DOI (no agent
+4. Enable the **Zenodo ↔ GitHub integration** on `microbiome_repo-data` so every Release mints a DOI (no agent
    upload needed).
 5. Create the PAT (step 1 scope), store it under Customize → Credentials as `github`, note its expiry in
    `docs/CYCLE_LOG.md`.
 
 ### 2a. Owner bootstrap checklist (R1-05)
 
-The repositories `OlmLab/catalog-pipeline` and `OlmLab/infant-gut-catalog-data` did not exist at review time and
-`OlmLab/infant-gut-catalog` had no `.github/`. Follow **docs/RUNBOOK.md §0a** (create repos → first push → clone →
+The repositories `OlmLab/microbiome_repo-pipeline` and `OlmLab/microbiome_repo-data` did not exist at review time and
+`OlmLab/microbiome_repo` had no `.github/`. Follow **docs/RUNBOOK.md §0a** (create repos → first push → clone →
 `make install-workflows` → push `.github/` to main → Pages source = Actions → rulesets → PAT). The workflows and the
 Issue form are authored in this repository but only act once installed in the repo they belong to; `publish-branch`
 never overwrites the site repo's `.github/workflows/*` or `ISSUE_TEMPLATE/*`.
@@ -95,7 +95,7 @@ Read-only by construction: no host grants, no credentials, network limited to pu
   `site-v1.2.2` tag was verified but the deploy job was rejected with no step executed. Fix (owner UI, once): Settings →
   Environments → github-pages → Deployment branches and tags → add rule *Tag* `site-v*`. The PAT cannot do this (no
   Environments permission by design).
-* `deploy-pages.yml` carries `if: github.repository == 'OlmLab/infant-gut-catalog'` so the authored copy in this repo never
+* `deploy-pages.yml` carries `if: github.repository == 'OlmLab/microbiome_repo'` so the authored copy in this repo never
   tries to deploy (it failed at `configure-pages` on the first pipeline push).
 * The site repo has no `check_links.py`; `verify.yml` fetches it from this repo's `main` via raw.githubusercontent.com.
 * Release assets built and attached by `release.yml` in ~3 min: `data_package_v1.2.2.zip` 62.6 MB, `infant_catalog_v1.2.2.sqlite` 532 MB.

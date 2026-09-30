@@ -5,7 +5,7 @@ BioSample-attribute sweep, ENA side. Pulls ENA `sample` records that can fire th
       infant text pattern (portal wildcard), filtered locally afterwards.
 Every pull goes through harvest_lib (cached). limit=0 streaming, chunked parquet writes.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

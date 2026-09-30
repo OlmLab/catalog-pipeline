@@ -1,6 +1,6 @@
 # gut_all value normalisation — health_condition and antibiotic_exposure
 
-Scope: `gut_all` curated scope (config/packs/gut.yaml @ catalog-pipeline 6568731). Inputs: `gut_condition_values.parquet`
+Scope: `gut_all` curated scope (config/packs/gut.yaml @ microbiome_repo-pipeline 6568731). Inputs: `gut_condition_values.parquet`
 (3,719 distinct (attr_key_norm, attr_value) pairs, 106,694 sample-attribute rows) and
 `gut_treatment_values.parquet` (1,784 pairs, 44,512 sample-attribute rows). Vocabulary: `config/vocab/health_conditions.yaml`
 (29 codes; the 4 `legacy_infant` codes were excluded from every rule and from the model's enum — 0 assigned).

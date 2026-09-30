@@ -10,7 +10,7 @@ Sources, in order, for every study:
   4. Europe PMC full-text XML (open access only) -> corresponding author(s), affiliation, email
 No LLM. Nothing is inferred: contact fields are copied from the XML or left empty.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

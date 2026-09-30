@@ -1,6 +1,6 @@
 # GUT R2 deterministic supplementary-table extraction — shard 6 of 8
 
-Scope `gut_all` (config/packs/gut.yaml), route R2, determined_by `gut_r2_header_named`, src_track `gut_all_v1`, release R2026.7 / package 1.8.0. Method = catalog-pipeline `gapfill_samples` R2 (exact-ID gate ≥ 50 % rows or ≥ 20 hits; matrix sheets excluded; header-named columns only), plus a prefix-stripped join variant (confidence 0.8) tried only when the raw gate fails. No LLM calls were made (n_llm_calls = 0).
+Scope `gut_all` (config/packs/gut.yaml), route R2, determined_by `gut_r2_header_named`, src_track `gut_all_v1`, release R2026.7 / package 1.8.0. Method = microbiome_repo-pipeline `gapfill_samples` R2 (exact-ID gate ≥ 50 % rows or ≥ 20 hits; matrix sheets excluded; header-named columns only), plus a prefix-stripped join variant (confidence 0.8) tried only when the raw gate fails. No LLM calls were made (n_llm_calls = 0).
 
 ## Coverage
 

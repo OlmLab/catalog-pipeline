@@ -9,7 +9,7 @@ One person. You audit the metadata by browsing a website that is simultaneously 
 |---|---|---|
 | One project or several? | **One project for the infant catalog + its website.** New **project per scope** (e.g. adult gut, skin, vaginal) when you expand — sharing the pipeline repo and the core skills, not the memory or the credentials. | §2 |
 | Different agents? | **Three specialist profiles inside the project**: **Curator** (runs cycles; may delegate), **Auditor** (read-only explainer; no grants, no credentials), **Release Engineer** (package + site + publish; the only profile holding the GitHub token and the `~/catalog/` write grant). | §2 |
-| Where do files live on your Mac? | One folder **`~/catalog/`**, granted read-write once, with three git clones inside: `catalog-pipeline/` (code), `infant-gut-catalog-data/` (published tables, findings), `infant-gut-catalog/` (the Pages site, generated only), plus gitignored `cache/` and `external/`. | §3 |
+| Where do files live on your Mac? | One folder **`~/catalog/`**, granted read-write once, with three git clones inside: `microbiome_repo-pipeline/` (code), `microbiome_repo-data/` (published tables, findings), `microbiome_repo/` (the Pages site, generated only), plus gitignored `cache/` and `external/`. | §3 |
 | How does a session publish without you? | Fine-grained GitHub PAT stored in **Customize → Credentials**, scoped to the two public repos with `contents: write` only; **rulesets on `main`** (no force-push, no deletion); the agent pushes **`release/<version>` branches and `data-vX.Y.Z` tags**; **GitHub Actions** deploys Pages and attaches large files as Release assets after a smoke test. Rollback = redeploy the previous tag. | §4 |
 | How do you audit while browsing? | Every study page and every value in the explorer gets **Flag / Confirm** buttons that open a pre-filled GitHub Issue; the Curator converts labelled Issues into `audit/findings/*.csv`; `apply_findings.py` re-validates and applies them with decision stage `auditor_review`; the site shows **decision history** and **superseded values**. | §5 |
 | Taxonomy (Sandpiper)? | Two tiers: **summary columns + top-15 genera per sample + per-study composition panels on the site**; full run × taxon profiles as a Release/Zenodo asset. GTDB-defined indicators, coverage summed across runs then normalised. Refresh when Zenodo publishes a new Sandpiper version. | §6 |
@@ -29,9 +29,9 @@ One person. You audit the metadata by browsing a website that is simultaneously 
 ## 3. Filesystem layout (`~/catalog/`, granted rw once)
 ```
 ~/catalog/
-  catalog-pipeline/          # code, config, tests, docs, site_generator/, src/catalog/sandpiper/, src/catalog/authors/  (GitHub: OlmLab/catalog-pipeline)
-  infant-gut-catalog-data/   # package tables (≤50 MB each), audit/findings/, reports/, VERSION.json; tags data-vX.Y.Z  (public)
-  infant-gut-catalog/        # generated site only; Pages deploys from Actions  (public, existing repo)
+  microbiome_repo-pipeline/          # code, config, tests, docs, site_generator/, src/catalog/sandpiper/, src/catalog/authors/  (GitHub: OlmLab/microbiome_repo-pipeline)
+  microbiome_repo-data/   # package tables (≤50 MB each), audit/findings/, reports/, VERSION.json; tags data-vX.Y.Z  (public)
+  microbiome_repo/        # generated site only; Pages deploys from Actions  (public, existing repo)
   cache/                     # harvest_cache untarred (~10 GB), gitignored — never in git, never an artifact version per run
   external/sandpiper/<ver>/  # Zenodo bulk snapshots with sha256
 ```
@@ -43,8 +43,8 @@ Today's `~/Downloads/site` clone becomes `~/catalog/infant-gut-catalog/` (move t
 What you set up once (≈20 min):
 1. **Organisation policy**: OlmLab → Settings → Third-party access → Personal access tokens → allow fine-grained PATs (approval optional).
 2. **Rulesets** on `main` of both public repos: block force-push and branch deletion; require linear history.
-3. **Pages source = GitHub Actions** on `infant-gut-catalog` (Settings → Pages). The repo's `deploy-pages.yml` (shipped in the pipeline repo) builds the artifact from `release/*` merges or `site-v*` tags after `verify.yml` passes.
-4. **Fine-grained PAT**: resource owner OlmLab; repositories `infant-gut-catalog` and `infant-gut-catalog-data`; permissions Contents: read/write, Metadata: read; expiry 1 year (calendar reminder). Store it in **Customize → Credentials** as `github` (token). The agent uses it only in cells that declare it, via an in-memory git credential helper — it is never written to disk, artifacts or remotes.
+3. **Pages source = GitHub Actions** on `microbiome_repo` (Settings → Pages). The repo's `deploy-pages.yml` (shipped in the pipeline repo) builds the artifact from `release/*` merges or `site-v*` tags after `verify.yml` passes.
+4. **Fine-grained PAT**: resource owner OlmLab; repositories `microbiome_repo` and `microbiome_repo-data`; permissions Contents: read/write, Metadata: read; expiry 1 year (calendar reminder). Store it in **Customize → Credentials** as `github` (token). The agent uses it only in cells that declare it, via an in-memory git credential helper — it is never written to disk, artifacts or remotes.
 5. Optional: Zenodo–GitHub integration on the data repo → a DOI per Release.
 
 What the agent then does: commit to `release/<version>`, push, tag `data-vX.Y.Z`; Actions runs link check + DuckDB parquet read + Playwright explorer smoke; on success deploys Pages and attaches Release assets; on failure opens an Issue and does not deploy. Rollback: re-run the deploy workflow on the previous tag. Things that stay manual: Pages settings, custom domain, token rotation, org policy.

@@ -3,7 +3,7 @@ Haiku, confidence <= 0.5, evidence_limited_to_abstract=1, evidence_source 'paper
 Statements are cohort-wide ('all') only; expanded to the study's infant samples like R3.
 Driven by a study list; `abstracts` = {study: [(pmid, title, abstract, relation), ...]}.
 """
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):

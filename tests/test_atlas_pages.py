@@ -76,7 +76,7 @@ def built(tmp_path_factory):
     env.filters.update(fmt=lambda v: v, pct=lambda v: v, pct1=lambda v: v, num2=lambda v: v, numint=lambda v: f'{int(v):,}')
     sri = json.loads((GEN / 'static' / 'vendor' / 'SRI.json').read_text())
     env.globals.update(site=dict(nav=[('home','Home','index.html'),('atlas','Atlas','atlas/index.html')], issue_template='', issue_label='', about=dict(lab_name='Lab', lab_url='https://example.org/lab', funder_name='Funder', funder_url='https://example.org/f'), title='T', short_title='T', tagline='', version='1.12.0-test', release_tag='data-v1.12.0', build_date='2026-10-01', sha8='deadbeef', base_url='https://example.org/',
-                                 issue_repo='OlmLab/infant-gut-catalog', release_id='R2026.12', previous_release_id='R2026.11', release_date='2026-10-01', doi='', data_release_url=None,
+                                 issue_repo='OlmLab/microbiome_repo', release_id='R2026.12', previous_release_id='R2026.11', release_date='2026-10-01', doi='', data_release_url=None,
                                  zenodo_badge='', zenodo_latest='', data_repo_id='0', releases_page='releases/index.html', changes_page='changes/index.html', description='', citation='',
                                  sri=sri, has_contribute=True, contribute_page='contribute/index.html', has_registry=True, registry_page='registry/index.html', data_repo='OlmLab/x'))
     out = tmp / 'site'; out.mkdir(); written = []

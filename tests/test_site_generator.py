@@ -118,7 +118,7 @@ def make_package(out: Path, new_cols: bool):
 
 
 def build(pkg: Path, out: Path):
-    cmd = [sys.executable, str(GEN / 'build_site.py'), '--package', str(pkg), '--out', str(out), '--base-url', 'https://olmlab.github.io/infant-gut-catalog/', '--build-date', DATE]
+    cmd = [sys.executable, str(GEN / 'build_site.py'), '--package', str(pkg), '--out', str(out), '--base-url', 'https://olmlab.github.io/microbiome_repo/', '--build-date', DATE]
     r = subprocess.run(cmd, capture_output=True, text=True)
     assert r.returncode == 0, r.stderr[-4000:]
     return out
@@ -327,7 +327,7 @@ def test_issue_template_and_config():
     assert len(dd) == 1 and dd[0]['attributes']['options'] == ['a value is wrong', 'a value is missing', 'the study should not be in the catalog', 'something else']
     assert sum(1 for b in tpl['body'] if b['type'] == 'textarea') == 1
     assert SITE_CFG['github']['issues']['template'] == 'simple-finding.yml'
-    url = bs.simple_issue_url('https://github.com/OlmLab/infant-gut-catalog/issues/new', 'simple-finding.yml', 'finding', 'PRJTEST000001', 'R2026.12', 'https://x/studies/PRJTEST000001.html')
+    url = bs.simple_issue_url('https://github.com/OlmLab/microbiome_repo/issues/new', 'simple-finding.yml', 'finding', 'PRJTEST000001', 'R2026.12', 'https://x/studies/PRJTEST000001.html')
     assert 'template=simple-finding.yml' in url and 'accession=PRJTEST000001' in url and 'release_id=R2026.12' in url and 'page_url=https%3A%2F%2Fx' in url
 
 

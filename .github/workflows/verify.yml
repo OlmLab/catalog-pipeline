@@ -1,7 +1,7 @@
 # A9: the live site and the explorer cannot be verified from a Claude sandbox (no browser, olmlab.github.io blocked),
 # so verification runs here. Used in two repos:
-#   * catalog-pipeline  — on push/PR: unit tests + a build from the checked-in test package (if present)
-#   * infant-gut-catalog (site) — on push to release/* and on the deploy workflow: link check, DuckDB read of every
+#   * microbiome_repo-pipeline  — on push/PR: unit tests + a build from the checked-in test package (if present)
+#   * microbiome_repo (site) — on push to release/* and on the deploy workflow: link check, DuckDB read of every
 #     parquet under data/, Playwright smoke of the explorer.
 # A failure on a release/* branch opens an Issue (label: verify-failed) instead of deploying (A3 step 5).
 name: verify
@@ -79,7 +79,7 @@ jobs:
           if [ -z "$CL" ]; then
             # site repo holds generated output only — fetch the checker from the (public) pipeline repo
             CL="$RUNNER_TEMP/check_links.py"
-            curl -fsSL -o "$CL" https://raw.githubusercontent.com/OlmLab/catalog-pipeline/main/site_generator/gen/check_links.py
+            curl -fsSL -o "$CL" https://raw.githubusercontent.com/OlmLab/microbiome_repo-pipeline/main/site_generator/gen/check_links.py
           fi
           python "$CL" "${{ steps.site.outputs.dir }}"
       - name: DuckDB reads every parquet under data/

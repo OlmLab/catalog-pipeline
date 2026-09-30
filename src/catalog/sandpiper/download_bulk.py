@@ -1,7 +1,7 @@
 """Resume-safe streaming download of the Sandpiper 2.0.0 GTDB bulk condensed profiles from Zenodo.
 Writes sp/sandpiper2.0.0.gtdb.csv.gz and sp/download_log.json (size, sha256, timings)."""
 import requests, os, json, time, hashlib, sys
-# --- catalog-pipeline shim (2026-09-26, R3-4): record id / version come from the environment so `make sandpiper-refresh
+# --- microbiome_repo-pipeline shim (2026-09-26, R3-4): record id / version come from the environment so `make sandpiper-refresh
 #     ZENODO_RECORD=<id> SANDPIPER_VERSION=<x.y.z>` can fetch a NEW Zenodo version; defaults = the 2026-09 snapshot. ---
 ZENODO_RECORD = os.environ.get("SANDPIPER_ZENODO_RECORD", "20419175")
 SPVER = os.environ.get("SANDPIPER_VERSION", "2.0.0")

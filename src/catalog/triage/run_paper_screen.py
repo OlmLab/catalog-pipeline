@@ -1,6 +1,6 @@
 """Haiku batched abstract screen. Set SLICE (parquet path) and OUT_PREFIX before exec.
 Expects llm_batch_common imported and validators loaded; `host` in namespace."""
-# --- catalog-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
+# --- microbiome_repo-pipeline repo layout shim (added 2026-09-26; original ran flat from one cwd) ---
 import os as _os, sys as _sys
 _here = _os.path.dirname(_os.path.abspath(__file__)) if "__file__" in globals() else _os.getcwd()
 for _p in (_here, _os.path.join(_here, "..", "..")):
