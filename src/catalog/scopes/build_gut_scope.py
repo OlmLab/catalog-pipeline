@@ -237,6 +237,17 @@ def apply_condition_maps(det: pd.DataFrame, cond_map: pd.DataFrame | None, abx_m
     return pd.concat([det, pd.DataFrame(extra, columns=DET_COLS)], ignore_index=True) if extra else det
 
 
+def _route_of(src, sample_level: bool) -> str:
+    s = str(src or "")
+    if s.startswith(("biosample.attribute", "sample.attr")):
+        return "R1"
+    if s.startswith("paper.fulltext"):
+        return "R3"
+    if s.startswith(("paper.abstract", "ena.")):
+        return "R4"
+    return "R2" if sample_level else "R3"
+
+
 def apply_corrections(det: pd.DataFrame, path: str | None, rid: str, pv: str) -> tuple[pd.DataFrame, dict]:
     """dq_corrections.parquet columns: sample_key (may be empty = whole study), study_accession, field_name, action {retire, recode, keep},
     old_value, new_value, evidence_source, evidence_locator, evidence_quote, confidence, rationale, determined_by."""
@@ -261,7 +272,7 @@ def apply_corrections(det: pd.DataFrame, path: str | None, rid: str, pv: str) ->
     out = det[~drop]
     rec = c[(c.action == "recode") & c.new_value.notna() & (c.new_value.astype(str) != "")]
     new_rows = [_row(r.sample_key, r.field_name, r.study_accession, r.new_value, r.new_value, float(r.confidence) if pd.notna(r.confidence) else 0.7,
-                     r.evidence_source or "dq_adjudication", r.evidence_locator or "", r.evidence_quote or "", "R2" if r.sample_key else "R3",
+                     r.evidence_source or "dq_adjudication", r.evidence_locator or "", r.evidence_quote or "", _route_of(r.evidence_source, bool(r.sample_key)),
                      str(getattr(r, "determined_by", "") or "dq_adjudication_v1"), note=str(getattr(r, "rationale", "") or "")[:200],
                      scope="sample" if r.sample_key else "study_all", release_id=rid, pv=pv) for r in rec.itertuples(index=False)]
     if new_rows:
