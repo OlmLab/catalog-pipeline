@@ -1,0 +1,20 @@
+schema_version: 1
+vocabulary: diet
+note: |
+  Habitual diet pattern of the subject at sampling (gut_all scope; owner request 2026-09-30, route R1 from BioSample attributes
+  first). One code per sample; the raw text goes to diet_detail. Commit only when the source states the diet — absence is unknown.
+codes:
+  omnivore: {label: Omnivore / no restriction, match_terms: [omnivor, "no restriction", "regular diet", "normal diet", "mixed diet", "non-vegetarian"]}
+  vegetarian: {label: Vegetarian (incl. lacto-ovo), match_terms: [vegetarian, "lacto-ovo", "lacto ovo", "ovo-lacto"]}
+  vegan: {label: Vegan, match_terms: [vegan, "plant-based only", "strict vegetarian"]}
+  pescatarian: {label: Pescatarian, match_terms: [pescatarian, pescetarian, "fish but no meat"]}
+  low_carbohydrate_or_ketogenic: {label: Low-carbohydrate / ketogenic, match_terms: [ketogenic, keto, "low-carb", "low carb", atkins]}
+  gluten_free: {label: Gluten-free, match_terms: ["gluten-free", "gluten free", GFD]}
+  mediterranean: {label: Mediterranean, match_terms: [mediterranean]}
+  high_fibre_or_whole_food: {label: High-fibre / whole-food / prudent, match_terms: ["high fiber", "high-fibre", "high fibre", "whole food", prudent, "fiber-rich"]}
+  western_or_processed: {label: Western / high-fat / processed, match_terms: [western, "high-fat", "high fat", processed, "fast food"]}
+  exclusive_breast_milk: {label: Exclusive breast milk (infants), match_terms: ["exclusively breastfed", "breast milk only", "exclusive breastfeeding"]}
+  formula: {label: Formula-fed (infants), match_terms: [formula]}
+  therapeutic_or_study_diet: {label: Prescribed / intervention diet (see diet_detail), match_terms: ["diet intervention", "dietary intervention", "controlled feeding", "study diet", "elemental diet", "exclusive enteral"]}
+  other_diet: {label: Other stated diet (see diet_detail), match_terms: []}
+  unknown: {label: Unknown / not stated, match_terms: []}
