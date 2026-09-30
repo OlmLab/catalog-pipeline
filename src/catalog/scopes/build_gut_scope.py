@@ -47,8 +47,11 @@ def pack_fields(pack: dict) -> dict:
     compose = {f: s for f, s in derived.items() if isinstance(s, dict) and s.get("compose")}
     year_of = {f: s["from"] for f, s in derived.items() if isinstance(s, dict) and s.get("from")}
     vocab = {f: s["vocab"] for f, s in pack["fields"].items() if isinstance(s, dict) and s.get("type") == "vocab" and s.get("vocab")}
+    # 1.13.0: `vocab_list` fields hold ';'-joined sorted codes (medication); `int` fields carry an inclusive [lo, hi] range (stool_consistency_bristol)
+    vocab_list = {f: s["vocab"] for f, s in pack["fields"].items() if isinstance(s, dict) and s.get("type") == "vocab_list" and s.get("vocab")}
+    int_range = {f: tuple(s.get("range") or (None, None)) for f, s in pack["fields"].items() if isinstance(s, dict) and s.get("type") == "int"}
     return dict(fields=fields, infant_only=infant_only, compose=compose, year_of=year_of, core=list(pack.get("core_fields") or []),
-                key=list(pack.get("key_fields") or []), vocab=vocab)
+                key=list(pack.get("key_fields") or []), vocab=vocab, vocab_list=vocab_list, int_range=int_range)
 
 
 def _default_pack_fields():
@@ -84,14 +87,59 @@ def load_vocab_codes(cfg_dir: str, rel_path: str) -> set:
     return set((yaml.safe_load(open(p, encoding="utf-8")).get("codes") or {}).keys())
 
 
+def clean_vocab_list(value, codes: set) -> str | None:
+    """';'-joined code list → sorted, de-duplicated list of the codes that are in the vocabulary (None when none remain)."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    kept = sorted({c.strip() for c in str(value).split(";") if c.strip() in codes})
+    return ";".join(kept) if kept else None
+
+
+def clean_int(value, lo, hi) -> int | None:
+    """Integer within the inclusive [lo, hi] range (also '4.0'); anything else → None."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    try:
+        x = float(str(value).strip())
+    except ValueError:
+        return None
+    if not x.is_integer():
+        return None
+    n = int(x)
+    if (lo is not None and n < lo) or (hi is not None and n > hi):
+        return None
+    return n
+
+
 def validate_vocab_fields(det: pd.DataFrame, pf: dict, cfg_dir: str) -> tuple[pd.DataFrame, dict]:
-    """Rows of vocab-typed fields (health_condition, lifestyle) whose normalised value is not a code of the field's vocabulary are dropped;
-    the count per field is returned (infant-catalog rows are exempt: their legacy codes are in the vocab as legacy_infant)."""
+    """Rows of vocab-typed fields (health_condition, lifestyle, diet, smoking_status) whose normalised value is not a code of the field's
+    vocabulary are dropped; vocab_list fields (medication) keep the valid codes of the list and drop the row when none remain; int fields
+    (stool_consistency_bristol) must be integers within the pack range. The count per field is returned (infant-catalog rows are exempt:
+    their legacy codes are in the vocab as legacy_infant)."""
     dropped = {}
     keep = pd.Series(True, index=det.index)
+    det = det.copy()
     for f, vp in pf["vocab"].items():
         codes = load_vocab_codes(cfg_dir, vp)
         m = (det.field_name == f) & (det.src_track != "infant_catalog") & ~det.value_normalized.astype("string").isin(codes).fillna(False)
+        dropped[f] = int(m.sum())
+        keep &= ~m
+    for f, vp in (pf.get("vocab_list") or {}).items():
+        codes = load_vocab_codes(cfg_dir, vp)
+        sel = (det.field_name == f) & (det.src_track != "infant_catalog")
+        cleaned = det.loc[sel, "value_normalized"].map(lambda v: clean_vocab_list(v, codes))
+        n_codes_before = det.loc[sel, "value_normalized"].astype(str).str.count(";").add(1).where(det.loc[sel, "value_normalized"].notna(), 0).sum()
+        n_codes_after = cleaned.astype(str).str.count(";").add(1).where(cleaned.notna(), 0).sum()
+        det.loc[sel, "value_normalized"] = cleaned
+        m = sel & det.value_normalized.isna()
+        dropped[f] = int(m.sum())
+        dropped[f + "__codes"] = int(n_codes_before - n_codes_after)
+        keep &= ~m
+    for f, (lo, hi) in (pf.get("int_range") or {}).items():
+        sel = (det.field_name == f) & (det.src_track != "infant_catalog")
+        cleaned = det.loc[sel, "value_normalized"].map(lambda v: clean_int(v, lo, hi)).astype("Int64")  # None → <NA>, never the string 'nan'
+        det.loc[sel, "value_normalized"] = cleaned.map(lambda n: None if pd.isna(n) else str(int(n)))
+        m = sel & det.value_normalized.isna()
         dropped[f] = int(m.sum())
         keep &= ~m
     return det[keep], dropped
@@ -288,7 +336,8 @@ def build(a):
     samples["in_infant_catalog"] = samples.study_accession.isin(infant_acc)
 
     # ---- determinations
-    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(getattr(a, "r1_newfields", None)), load_any(a.r2_glob), load_any(a.r3_glob), load_any(a.r4_glob)]
+    parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(getattr(a, "r1_newfields", None)),
+             load_any(getattr(a, "r1_newfields_v2", None)), load_any(a.r2_glob), load_any(a.r3_glob), load_any(a.r4_glob)]
     det0 = pd.read_parquet(os.path.join(a.package, "sample_determinations.parquet"))
     det0 = det0[det0.study_accession.isin(infant_acc) & det0.field_name.isin(PACK_FIELDS + INFANT_ONLY)]
     if "release_retired" in det0.columns:
@@ -337,6 +386,9 @@ def build(a):
     for f in ("bmi", "latitude", "longitude"):
         if f in w.columns:
             w[f] = pd.to_numeric(w[f], errors="coerce")
+    for f in pf.get("int_range") or {}:  # stool_consistency_bristol: nullable integer column
+        if f in w.columns:
+            w[f] = pd.to_numeric(w[f], errors="coerce").astype("Int64")
     # derived columns (config/packs/gut.yaml derived_fields): detailed_location = compose parts; collection_year = leading YYYY
     for f, spec in pf["compose"].items():
         cols = [c for c in spec["compose"] if c in w.columns]
@@ -428,6 +480,9 @@ def build(a):
     if gut_runs is not None:
         gs["n_runs_total"] = pd.to_numeric(gs.n_runs_total, errors="coerce").fillna(0).astype(int)
         gut_runs.to_parquet(os.path.join(a.out, pack["tables"].get("runs", "gut_runs.parquet")), index=False)
+    for f in pf.get("int_range") or {}:  # keep the nullable-integer dtype through carry_release_columns
+        if f in w.columns:
+            w[f] = pd.to_numeric(w[f], errors="coerce").astype("Int64")
     det_all.to_parquet(os.path.join(a.out, pack["tables"]["determinations"]), index=False)
     w.to_parquet(os.path.join(a.out, pack["tables"]["samples_wide"]), index=False)
     gs.to_parquet(os.path.join(a.out, pack["tables"]["studies"]), index=False)
@@ -438,6 +493,9 @@ def build(a):
                    n_infant_scope=int(w.infant_scope.sum()), health_condition=w.health_condition.value_counts().head(12).to_dict(),
                    vocab_dropped=vocab_dropped, n_runs=int(len(gut_runs)) if gut_runs is not None else None,
                    lifestyle=w.lifestyle.value_counts().to_dict() if "lifestyle" in w.columns else {},
+                   diet=w.diet.value_counts().to_dict() if "diet" in w.columns else {}, smoking_status=w.smoking_status.value_counts().to_dict() if "smoking_status" in w.columns else {},
+                   medication_codes=(w.medication.dropna().str.split(";").explode().value_counts().to_dict() if "medication" in w.columns else {}),
+                   stool_consistency_bristol=({int(k): int(v) for k, v in w.stool_consistency_bristol.dropna().value_counts().sort_index().items()} if "stool_consistency_bristol" in w.columns else {}),
                    collection_year=({int(k): int(v) for k, v in w.collection_year.dropna().astype(int).value_counts().sort_index().items()} if "collection_year" in w.columns else {}))
     if a.summary:
         json.dump(summary, open(a.summary, "w"), indent=1)
@@ -452,6 +510,7 @@ def main(argv=None) -> int:
     ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"),
     ap.add_argument("--corrections", help="dq_corrections.parquet (retire / recode rows decided by the data-quality adjudication; R2026.13)"),
     ap.add_argument("--r1-newfields", help="R1 determinations of the 1.12.0 fields (collection_date, location_*, latitude/longitude, lifestyle) from catalog.scopes.newfields_r1"),
+    ap.add_argument("--r1-newfields-v2", help="R1 determinations of the 1.13.0 fields (diet, smoking_status, medication, stool_consistency_bristol) from catalog.scopes.newfields_r1_v2"),
     ap.add_argument("--registry-runs", help="registry_runs.parquet → gut_runs.parquet + study sequencing summary columns"), ap.add_argument("--registry-sandpiper", help="registry_runs_sandpiper.parquet (sandpiper_profiled per run)"), ap.add_argument("--r2-glob"), ap.add_argument("--r3-glob", help="R3 full-text study_all determinations (glob)"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
     ap.add_argument("--out", required=True), ap.add_argument("--summary"), ap.add_argument("--release-id", default="R2026.7"), ap.add_argument("--package-version", default="1.8.0")
     ap.add_argument("--previous-dir", help="previous package dir: gut_* tables there provide release_added / retirements")

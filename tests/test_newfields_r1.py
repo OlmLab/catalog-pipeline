@@ -198,7 +198,10 @@ def test_pack_fields_from_config():
     assert pf["core"] == ["age_at_collection_days", "sex", "country", "health_condition", "subject_id"]
     assert "detailed_location" in pf["key"] and "lifestyle" in pf["key"] and "collection_date" in pf["key"]
     assert set(pf["infant_only"]) >= {"delivery_mode", "feeding_mode", "nec_status"}
-    assert pf["vocab"]["health_condition"] == "config/vocab/health_conditions.yaml" and pf["vocab"]["lifestyle"] == "config/vocab/lifestyle.yaml"
+    # 1.13.0: the pack also declares diet / smoking_status (vocab), medication (vocab_list) and stool_consistency_bristol (int 1-7)
+    assert {k: pf["vocab"][k] for k in ("health_condition", "lifestyle")} == {"health_condition": "config/vocab/health_conditions.yaml", "lifestyle": "config/vocab/lifestyle.yaml"}
+    assert pf["vocab"]["diet"] == "config/vocab/diet.yaml" and pf["vocab"]["smoking_status"] == "config/vocab/smoking.yaml"
+    assert pf["vocab_list"] == {"medication": "config/vocab/medication.yaml"} and pf["int_range"] == {"stool_consistency_bristol": (1, 7)}
     assert "hunter_gatherer" in bgs.load_vocab_codes(CFG, pf["vocab"]["lifestyle"])
 
 
@@ -225,7 +228,7 @@ def test_validate_vocab_fields_drops_unknown_codes():
                         dict(field_name="health_condition", value_normalized="made_up", src_track="gut_all_v1"),
                         dict(field_name="sex", value_normalized="anything", src_track="gut_all_v1")])
     out, dropped = bgs.validate_vocab_fields(det, pf, CFG)
-    assert dropped["health_condition"] == 1 and dropped["lifestyle"] == 1
+    assert dropped["health_condition"] == 1 and dropped["lifestyle"] == 1 and sum(dropped.values()) == 2
     assert list(out.value_normalized) == ["urban_industrialized", "nec", "anything"]
 
 
