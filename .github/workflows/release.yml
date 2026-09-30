@@ -69,6 +69,19 @@ jobs:
           # never hand softprops a file above the 2 GiB asset limit — drop the SQLite instead of failing the release
           find . -maxdepth 1 -name "*.sqlite" -size +1900M -print -delete
           sha256sum *.zip *.sqlite > SHA256SUMS.txt
+      - name: Fetch large release assets (orphan branch release-assets — single commit, no history)
+        run: |
+          rm -rf assets
+          if git ls-remote --exit-code --heads origin release-assets >/dev/null 2>&1; then
+            git fetch --depth 1 origin release-assets
+            git checkout FETCH_HEAD -- assets
+            V=$(python -c "import json;print(json.load(open('package/VERSION.json'))['package_version'])")
+            if [ "$(cat assets/ASSETS_VERSION.txt 2>/dev/null)" != "$V" ]; then echo "release-assets branch is for $(cat assets/ASSETS_VERSION.txt), not $V — not attached"; rm -rf assets; fi
+            git reset -q -- assets 2>/dev/null || true
+          else
+            echo "no release-assets branch"
+          fi
+          ls -la assets 2>/dev/null || true
       - name: Attach assets to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -81,4 +94,4 @@ jobs:
             SHA256SUMS.txt
             package/VERSION.json
             assets/*
-          fail_on_unmatched_files: false   # assets/ (e.g. registry_runs_v*.parquet, ≈70 MB) exists from 1.6.0 on
+          fail_on_unmatched_files: false   # assets/ comes from the release-assets orphan branch (Sandpiper long tables, registry_runs); absent on older tags

@@ -22,6 +22,8 @@ PREV_VERSION = $(shell $(PY) -c "import json;print(json.load(open('$(PKG_SRC)/VE
 RELEASE_NOTES := $(PKG_OUT)/RELEASE_NOTES_$(RELEASE_ID).md
 APPLIED    := $(BUILD)/applied_$(VERSION)
 SITE_OUT   := $(BUILD)/site
+# staging repo for large release assets — outside the host grant (a .git cannot be created under ~/catalog); no trailing comment here (Make keeps blanks)
+ASSETS_WT  := /tmp/release_assets_$(VERSION)
 SITE_CLONE ?= $(HOME)/catalog/infant-gut-catalog
 DATA_CLONE ?= $(HOME)/catalog/infant-gut-catalog-data
 # site.yaml is parsed with PyYAML (R1-19): base_url must differ from placeholder_base_url
@@ -249,7 +251,7 @@ install-workflows: ## owner bootstrap (once) — copy verify/deploy-pages + the 
 	@test -d $(DATA_CLONE)/.git || { echo "data clone missing at $(DATA_CLONE)"; exit 1; }
 	mkdir -p $(SITE_CLONE)/.github/workflows $(SITE_CLONE)/.github/ISSUE_TEMPLATE $(DATA_CLONE)/.github/workflows
 	cp .github/workflows/verify.yml .github/workflows/deploy-pages.yml $(SITE_CLONE)/.github/workflows/
-	cp .github/ISSUE_TEMPLATE/catalog-finding.yml .github/ISSUE_TEMPLATE/catalog-contribution.yml $(SITE_CLONE)/.github/ISSUE_TEMPLATE/
+	cp .github/ISSUE_TEMPLATE/catalog-finding.yml .github/ISSUE_TEMPLATE/catalog-contribution.yml site_generator/gen/issue_templates/simple-finding.yml $(SITE_CLONE)/.github/ISSUE_TEMPLATE/
 	cp .github/workflows/release.yml $(DATA_CLONE)/.github/workflows/
 	@echo "now commit + push .github/ in both clones (owner; docs/RUNBOOK.md 'Owner bootstrap (once)')"
 
@@ -265,11 +267,18 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	cd $(DATA_CLONE) && git fetch -q origin && git checkout -q -B release/$(VERSION) origin/main
 	(rsync -a --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ || [ $$? -eq 23 ]) && mkdir -p $(DATA_CLONE)/audit && (rsync -a audit/ $(DATA_CLONE)/audit/ || [ $$? -eq 23 ])
 	@n=$$(rsync -rcn --delete $(PKG_OUT)/ $(DATA_CLONE)/package/ 2>&1 | grep -v '^rsync(' | grep -vc '^$$' || true); test "$$n" = "0" || { echo "data clone package/ differs from build in $$n paths"; exit 1; }
-	@if [ -f "$(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_genus.parquet" ]; then mkdir -p $(DATA_CLONE)/assets && rm -f $(DATA_CLONE)/assets/gut_sandpiper_sample_*_v*; for t in genus species; do $(PY) scripts/split_parquet.py $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_$$t.parquet $(DATA_CLONE)/assets/gut_sandpiper_sample_$${t}_v$(VERSION) --max-mb 90; done; echo "Sandpiper long tables staged as release assets"; fi
-	@if [ -f "$(REGISTRY_RUNS)" ]; then mkdir -p $(DATA_CLONE)/assets && cp $(REGISTRY_RUNS) $(DATA_CLONE)/assets/registry_runs_v$(VERSION).parquet && (cd $(DATA_CLONE)/assets && shasum -a 256 registry_runs_v$(VERSION).parquet > registry_runs_v$(VERSION).parquet.sha256) && rm -f $$(ls $(DATA_CLONE)/assets/registry_runs_v*.parquet* | grep -v v$(VERSION)); echo "registry_runs asset staged"; fi
+	# Large release assets (Sandpiper long tables in < 90 MB parts, registry_runs) are NOT committed on the release branch (owner
+	# 2026-09-30: no Sandpiper history in the data repo). They are staged in a throw-away git repo under /tmp and force-pushed as the
+	# single-commit orphan branch `release-assets`; release.yml checks that branch out (depth 1) and attaches assets/* to the Release.
+	rm -rf $(DATA_CLONE)/assets $(ASSETS_WT) && mkdir -p $(ASSETS_WT)/assets
+	@if [ -f "$(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_genus.parquet" ]; then for t in genus species; do $(PY) scripts/split_parquet.py $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_$$t.parquet $(ASSETS_WT)/assets/gut_sandpiper_sample_$${t}_v$(VERSION) --max-mb 90; done; echo "Sandpiper long tables staged"; fi
+	@if [ -f "$(REGISTRY_RUNS)" ]; then cp $(REGISTRY_RUNS) $(ASSETS_WT)/assets/registry_runs_v$(VERSION).parquet && (cd $(ASSETS_WT)/assets && shasum -a 256 registry_runs_v$(VERSION).parquet > registry_runs_v$(VERSION).parquet.sha256); echo "registry_runs asset staged"; fi
+	echo "$(VERSION)" > $(ASSETS_WT)/assets/ASSETS_VERSION.txt
+	cd $(ASSETS_WT) && git init -q . && git add -A && git -c user.name=release-bot -c user.email=release-bot@localhost commit -qm "release assets $(VERSION) ($(BUILD_DATE)) — orphan branch, no history" && echo "assets repo ready at $(ASSETS_WT)"
 	cd $(DATA_CLONE) && git add -A && git commit -q -m "data package $(VERSION) ($(BUILD_DATE))" && git tag -f data-v$(VERSION)
 	@echo "push with the credential helper (docs/SECURITY.md):"
 	@echo "  git -C $(SITE_CLONE) push origin release/$(VERSION) site-v$(VERSION)"
+	@echo "  git -C $(ASSETS_WT) push --force $$(git -C $(DATA_CLONE) remote get-url origin) HEAD:refs/heads/release-assets   # BEFORE the data tag"
 	@echo "  git -C $(DATA_CLONE) push origin release/$(VERSION) data-v$(VERSION)"
 
 # ---------------------------------------------------------------- curated scope gut_all (config/packs/gut.yaml; R2026.7)

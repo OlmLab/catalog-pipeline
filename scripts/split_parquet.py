@@ -10,17 +10,20 @@ import pyarrow as pa, pyarrow.parquet as pq
 ap = argparse.ArgumentParser(); ap.add_argument("src"); ap.add_argument("prefix"); ap.add_argument("--max-mb", type=float, default=90)
 a = ap.parse_args()
 pf = pq.ParquetFile(a.src)
-n_parts = max(1, int(os.path.getsize(a.src) / (a.max_mb * 1e6)) + 1)
-rows_per = -(-pf.metadata.num_rows // n_parts)
+budget = a.max_mb * 1e6
 for old in glob.glob(a.prefix + "_part*.parquet"):
     os.remove(old)
-writer, part, in_part, written = None, 0, 0, []
-for batch in pf.iter_batches(batch_size=1_000_000):
+# byte-adaptive: roll to a new part when the bytes written so far (+ one batch's worth) would exceed the budget
+writer, part, written, part_bytes_est, batch_bytes = None, 0, [], 0, None
+for batch in pf.iter_batches(batch_size=200_000):
     if writer is None:
-        path = f"{a.prefix}_part{part}.parquet"; writer = pq.ParquetWriter(path, pf.schema_arrow, compression="zstd"); written.append(path)
-    writer.write_table(pa.Table.from_batches([batch])); in_part += batch.num_rows
-    if in_part >= rows_per:
-        writer.close(); writer = None; part += 1; in_part = 0
+        path = f"{a.prefix}_part{part}.parquet"; writer = pq.ParquetWriter(path, pf.schema_arrow, compression="zstd"); written.append(path); part_bytes_est = 0
+    writer.write_table(pa.Table.from_batches([batch]))
+    writer_size = os.path.getsize(path) if os.path.exists(path) else 0
+    # zstd row groups are flushed per write_table call, so the on-disk size tracks what has been written
+    part_bytes_est = writer_size
+    if part_bytes_est >= budget * 0.92:
+        writer.close(); writer = None; part += 1
 if writer is not None:
     writer.close()
 with open(a.prefix + ".sha256", "w") as f:
