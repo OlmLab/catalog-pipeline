@@ -848,14 +848,14 @@ def main():
     TLABEL = cspec.get('contribution_type_labels', cspec['contribution_types'])
     wl_rows = []
     for r in cs.itertuples(index=False):
-        n = int(r.n_samples_curated or 0)
+        n = int(0 if pd.isna(r.n_samples_curated) else r.n_samples_curated)
         if n < CONTRIB_MIN_SAMPLES:
             continue
         cov_of = {f: float(getattr(r, f'cov_{f}', 0) or 0) for f in CONTRIB_FIELDS}   # gut_studies.cov_<field>; a field without a cov_ column counts as 0 coverage
         missing = [f for f in CONTRIB_FIELDS if cov_of[f] < thr]
         if len(missing) < CONTRIB_MIN_MISSING:
             continue
-        n_pap = int(r.n_linked_papers or 0)
+        n_pap = int(0 if pd.isna(r.n_linked_papers) else r.n_linked_papers)
         ctype = 'per_sample_table' if n_pap else 'paper_pointer'
         blocker = ('no_linked_paper' if not n_pap else ('partial_coverage' if (r.curated_depth or '') and 'R2' in str(r.curated_depth) else 'no_supplement_found'))
         wl_rows.append(dict(acc=r.study_accession, title=(r.study_title or '')[:140], n=n, missing=missing, n_missing=len(missing), coverage=cov_of,
