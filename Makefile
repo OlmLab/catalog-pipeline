@@ -266,13 +266,15 @@ publish-branch:  ## stage 7 — copy site + package into the clones, commit on r
 	# single-commit orphan branch `release-assets`; release.yml checks that branch out (depth 1) and attaches assets/* to the Release.
 	rm -rf $(DATA_CLONE)/assets $(ASSETS_WT) && mkdir -p $(ASSETS_WT)/assets
 	@if [ -f "$(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_genus.parquet" ]; then for t in genus species; do $(PY) scripts/split_parquet.py $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_$$t.parquet $(ASSETS_WT)/assets/gut_sandpiper_sample_$${t}_v$(VERSION) --max-mb 90; done; echo "Sandpiper long tables staged"; fi
-	@if [ -f "$(REGISTRY_RUNS)" ]; then cp $(REGISTRY_RUNS) $(ASSETS_WT)/assets/registry_runs_v$(VERSION).parquet && (cd $(ASSETS_WT)/assets && shasum -a 256 registry_runs_v$(VERSION).parquet > registry_runs_v$(VERSION).parquet.sha256); echo "registry_runs asset staged"; fi
+	# registry_runs is re-written with zstd (snappy copy passed 100 MB at R2026.13: 128 MB → 75 MB) so it stays one file below GitHub's hard limit
+	@if [ -f "$(REGISTRY_RUNS)" ]; then $(PY) -c "import pyarrow.parquet as pq,sys; pq.write_table(pq.read_table(sys.argv[1]), sys.argv[2], compression='zstd', compression_level=9, row_group_size=200000)" $(REGISTRY_RUNS) $(ASSETS_WT)/assets/registry_runs_v$(VERSION).parquet && (cd $(ASSETS_WT)/assets && shasum -a 256 registry_runs_v$(VERSION).parquet > registry_runs_v$(VERSION).parquet.sha256); echo "registry_runs asset staged"; fi
 	echo "$(VERSION)" > $(ASSETS_WT)/assets/ASSETS_VERSION.txt
-	cd $(ASSETS_WT) && git init -q . && git add -A && git -c user.name=release-bot -c user.email=release-bot@localhost commit -qm "release assets $(VERSION) ($(BUILD_DATE)) — orphan branch, no history" && echo "assets repo ready at $(ASSETS_WT)"
+	# the sandbox refuses to create a `.git` directory, so the git dir lives beside the work tree (GIT_DIR); the push command below must set the same two variables
+	rm -rf $(ASSETS_WT).gitdir && cd $(ASSETS_WT) && export GIT_DIR=$(ASSETS_WT).gitdir GIT_WORK_TREE=$(ASSETS_WT) && git init -q && git add -A && git -c user.name=release-bot -c user.email=release-bot@localhost commit -qm "release assets $(VERSION) ($(BUILD_DATE)) — orphan branch, no history" && echo "assets repo ready at $(ASSETS_WT) (git dir $(ASSETS_WT).gitdir)"
 	cd $(DATA_CLONE) && git add -A && git commit -q -m "data package $(VERSION) ($(BUILD_DATE))" && git tag -f data-v$(VERSION)
 	@echo "push with the credential helper (docs/SECURITY.md):"
 	@echo "  git -C $(SITE_CLONE) push origin release/$(VERSION) site-v$(VERSION)"
-	@echo "  git -C $(ASSETS_WT) push --force $$(git -C $(DATA_CLONE) remote get-url origin) HEAD:refs/heads/release-assets   # BEFORE the data tag"
+	@echo "  GIT_DIR=$(ASSETS_WT).gitdir GIT_WORK_TREE=$(ASSETS_WT) git push --force $$(git -C $(DATA_CLONE) remote get-url origin) HEAD:refs/heads/release-assets   # BEFORE the data tag"
 	@echo "  git -C $(DATA_CLONE) push origin release/$(VERSION) data-v$(VERSION)"
 
 # ---------------------------------------------------------------- curated scope gut_all (config/packs/gut.yaml; R2026.7)
