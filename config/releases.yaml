@@ -156,6 +156,15 @@ releases:
     site_tag: site-v1.12.0
     label: "owner site review: new key fields collection_date, detailed_location (site / locality / region), latitude / longitude, lifestyle (routes R1 archive attributes, R3b full text, R4b abstracts); core fields = age, sex, country, health condition, subject; gut_runs table + study sequencing summaries; Sandpiper community profiles for the whole catalog (339,626 samples) with a genus-level PCA; site restructure (About, Collections, Atlas with taxon maps / PCA / observations, merged Downloads & releases, simple issue form)"
 
+  - release_id: R2026.13
+    package_version: '1.13.0'
+    previous_package_version: '1.12.0'
+    previous_release_id: R2026.12
+    notes_file: RELEASE_NOTES_R2026.13.md
+    data_tag: data-v1.13.0
+    site_tag: site-v1.13.0
+    label: "cleanup release: repositories renamed to microbiome_repo (new site URL); diet / smoking / medication / stool-consistency fields (R1); R3 shard 09 retried, R3b/R4b completion passes (incl. infant-extension full texts); registry gap fill (blank-taxon ENA slice + landmark cohorts); data-quality adjudication corrections; Atlas rebuilt on the official UNDP HDI table with lifestyle cards; large release assets moved to the history-free release-assets branch"
+
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
   release_added: release_added        # str; release id (numbered) or historical package semver
