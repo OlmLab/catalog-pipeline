@@ -76,13 +76,7 @@ unpack:          ## unzip PKG_ZIP into $(PKG_SRC), flattening a single top-level
 	@test -f $(PKG_SRC)/sample_metadata_wide.parquet && echo "unpacked → $(PKG_SRC)"
 
 inputs-json:     ## recompute sha256_repo for every code entry in config/inputs.json (after an intentional edit)
-	$(PY) - <<-'EOF'
-	import hashlib, json
-	c = json.load(open("config/inputs.json"))
-	for e in c["inputs"]["code"]:
-	    e["sha256_repo"] = hashlib.sha256(open(e["repo_path"], "rb").read()).hexdigest()
-	json.dump(c, open("config/inputs.json", "w"), indent=1)
-	EOF
+	$(PY) scripts/inputs_json.py
 
 sync-skills:     ## (Claude session only) re-vendor skills/ from host.skills.read — see RUNBOOK §0
 	@echo "run in the repl tool: for f in ('SKILL.md','kernel.py'): open('skills/infant-curation-rules/'+f,'w').write(host.skills.read('infant-curation-rules', path=f)['content'])"

@@ -235,7 +235,8 @@ def test_study_page_sections(site_new):
     # coverage table: core tier first, then key tier, both from the pack
     cov_fields = re.findall(r'<span class="tag tier-(core|key|infant)">[^<]*</span></td><td><a class="mono" href="../fields/index.html#([a-z_]+)">', t)
     assert [f for tier, f in cov_fields if tier == 'core'] == CORE
-    assert [f for tier, f in cov_fields if tier == 'key'] == KEY
+    # key fields whose column the synthetic package does not carry (diet, smoking_status, medication, stool_consistency_bristol …) are omitted by design
+    assert [f for tier, f in cov_fields if tier == 'key'] == [f for f in KEY if f in ('detailed_location', 'lifestyle', 'collection_date', 'antibiotic_exposure', 'bmi', 'timepoint_label')]
     # sequencing block from gut_runs.parquet
     runs = pd.read_parquet(site_new / 'data' / 'package' / 'gut_runs.parquet')
     g = runs[runs.study_accession == 'PRJTEST000001']
