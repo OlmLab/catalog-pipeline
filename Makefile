@@ -294,6 +294,8 @@ GUT_COND_MAP ?= $(GUT_DIR)/gut_health_condition_map.parquet
 GUT_ABX_MAP  ?= $(GUT_DIR)/gut_antibiotic_map.parquet
 # 1.12.0 (R2026.12): route R1 for the new pack fields (collection_date, location_*, latitude/longitude, lifestyle) — output of gut-newfields-r1
 GUT_R1_NEWFIELDS ?= $(GUT_DIR)/gut_r1_newfields_determinations.parquet
+# data-quality corrections (retire / recode) from the adjudication leaf — optional
+GUT_CORRECTIONS ?= $(GUT_DIR)/dq_corrections.parquet
 # harvested BioSample attribute rows of the catalog studies (artifact; bootstrap materialises it) — input of gut-newfields-r1
 GUT_ATTRIBUTES   ?= $(GUT_DIR)/gut_biosample_attributes.parquet
 GUT_OUT      ?= $(BUILD)/gut
@@ -305,7 +307,7 @@ ATLAS_DATA   ?= $(GUT_DIR)/atlas
 gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations / gut_runs from registry_biosamples + registry_runs + R1/R2/R3/R4 leaf outputs + the infant tables
 	mkdir -p $(GUT_OUT) $(BUILD)/gut
 	$(PY) -m catalog.scopes.build_gut_scope --studies $(GUT_STUDIES) --registry-studies $(PKG_OUT)/registry_studies.parquet --biosamples $(PKG_OUT)/registry_biosamples.parquet \
-	  --package $(PKG_OUT) --r1 $(GUT_R1) --r1-extra "$(GUT_R1_EXTRA)" --r1-newfields "$(GUT_R1_NEWFIELDS)" --r2-glob "$(GUT_R2_GLOB)" --r3-glob "$(GUT_R3_GLOB)" --r4-glob "$(GUT_R4_GLOB)" --condition-map $(GUT_COND_MAP) --antibiotic-map $(GUT_ABX_MAP) \
+	  --package $(PKG_OUT) --r1 $(GUT_R1) --r1-extra "$(GUT_R1_EXTRA)" --r1-newfields "$(GUT_R1_NEWFIELDS)" --corrections "$(GUT_CORRECTIONS)" --r2-glob "$(GUT_R2_GLOB)" --r3-glob "$(GUT_R3_GLOB)" --r4-glob "$(GUT_R4_GLOB)" --condition-map $(GUT_COND_MAP) --antibiotic-map $(GUT_ABX_MAP) \
 	  --registry-runs $(REGISTRY_RUNS) --registry-sandpiper $(REGISTRY_SANDPIPER) \
 	  --out $(GUT_OUT) --summary $(BUILD)/gut/gut_scope_summary.json --release-id $(RELEASE_ID) --package-version $(VERSION) --previous-dir $(PKG_SRC)
 

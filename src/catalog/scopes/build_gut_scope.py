@@ -176,6 +176,38 @@ def apply_condition_maps(det: pd.DataFrame, cond_map: pd.DataFrame | None, abx_m
     return pd.concat([det, pd.DataFrame(extra, columns=DET_COLS)], ignore_index=True) if extra else det
 
 
+def apply_corrections(det: pd.DataFrame, path: str | None, rid: str, pv: str) -> tuple[pd.DataFrame, dict]:
+    """dq_corrections.parquet columns: sample_key (may be empty = whole study), study_accession, field_name, action {retire, recode, keep},
+    old_value, new_value, evidence_source, evidence_locator, evidence_quote, confidence, rationale, determined_by."""
+    if not path or not os.path.exists(path):
+        return det, {"n_rows": 0}
+    c = pd.read_parquet(path)
+    c = c[c.action.isin(["retire", "recode"])].copy()
+    if not len(c):
+        return det, {"n_rows": 0}
+    c["sample_key"] = c.get("sample_key", pd.Series([""] * len(c))).fillna("").astype(str)
+    c["old_value"] = c.old_value.fillna("").astype(str)
+    dv = det.value_normalized.astype("string").fillna("").astype(str)
+    drop = pd.Series(False, index=det.index)
+    for r in c.itertuples(index=False):
+        m = (det.field_name == r.field_name) & (det.study_accession == r.study_accession)
+        if r.sample_key:
+            m &= det.sample_key.astype(str) == r.sample_key
+        if r.old_value:
+            m &= dv == r.old_value
+        drop |= m
+    n_dropped = int(drop.sum())
+    out = det[~drop]
+    rec = c[(c.action == "recode") & c.new_value.notna() & (c.new_value.astype(str) != "")]
+    new_rows = [_row(r.sample_key, r.field_name, r.study_accession, r.new_value, r.new_value, float(r.confidence) if pd.notna(r.confidence) else 0.7,
+                     r.evidence_source or "dq_adjudication", r.evidence_locator or "", r.evidence_quote or "", "R2" if r.sample_key else "R3",
+                     str(getattr(r, "determined_by", "") or "dq_adjudication_v1"), note=str(getattr(r, "rationale", "") or "")[:200],
+                     scope="sample" if r.sample_key else "study_all", release_id=rid, pv=pv) for r in rec.itertuples(index=False)]
+    if new_rows:
+        out = pd.concat([out, pd.DataFrame(new_rows, columns=DET_COLS)], ignore_index=True)
+    return out, {"n_rows": int(len(c)), "n_dropped": n_dropped, "n_recoded": len(new_rows)}
+
+
 def resolve(det: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """One current row per (sample, field): precedence infant catalog > R1 > R2 > R3 > R4, then confidence. Losers whose normalised
     value differs from the winner are returned as conflicts."""
@@ -263,6 +295,9 @@ def build(a):
     allowed = {f: set(v.get("routes", ["R1", "R2", "R3", "R4"])) for f, v in pack["fields"].items()}
     ok_route = [(r in allowed.get(f, {"R1", "R2", "R3", "R4"})) or (t == "infant_catalog") for f, r, t in zip(det.field_name, det.route, det.src_track)]
     det = det[pd.Series(ok_route, index=det.index)]
+    # data-quality corrections (dq_corrections.parquet from the adjudication leaf; R2026.13): action retire = drop the matching rows
+    # (sample_key or whole study × field × old_value), recode = drop them and add a row with the new value and the adjudication evidence
+    det, n_corr = apply_corrections(det, getattr(a, "corrections", None), rid, pv)
     det_study = det[det.scope == "study_all"]
     det_sample = det[det.scope != "study_all"]
     det_sample = det_sample[det_sample.sample_key.isin(set(samples.sample_key))]
@@ -377,7 +412,7 @@ def build(a):
     w.to_parquet(os.path.join(a.out, pack["tables"]["samples_wide"]), index=False)
     gs.to_parquet(os.path.join(a.out, pack["tables"]["studies"]), index=False)
     conflicts.to_parquet(os.path.join(a.out, "gut_sample_determinations_conflicts.parquet"), index=False)
-    summary = dict(n_studies=int(len(gs)), n_samples=int(len(w)), n_determinations=int(len(det_all)), n_conflicts=int(len(conflicts)),
+    summary = dict(n_studies=int(len(gs)), n_samples=int(len(w)), n_determinations=int(len(det_all)), n_conflicts=int(len(conflicts)), corrections=n_corr,
                    by_source=w.curated_source.value_counts().to_dict(), age_category=w.age_category.value_counts().to_dict(),
                    coverage={f: round(float(w[f].notna().mean()), 4) for f in PACK_FIELDS}, routes=det_all.route.value_counts().to_dict(),
                    n_infant_scope=int(w.infant_scope.sum()), health_condition=w.health_condition.value_counts().head(12).to_dict(),
@@ -395,6 +430,7 @@ def main(argv=None) -> int:
     ap.add_argument("--studies", required=True, help="gut study list (registry columns + in_infant_catalog)")
     ap.add_argument("--registry-studies"), ap.add_argument("--biosamples", required=True), ap.add_argument("--package", required=True, help="previous package dir (infant curated tables)")
     ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"),
+    ap.add_argument("--corrections", help="dq_corrections.parquet (retire / recode rows decided by the data-quality adjudication; R2026.13)"),
     ap.add_argument("--r1-newfields", help="R1 determinations of the 1.12.0 fields (collection_date, location_*, latitude/longitude, lifestyle) from catalog.scopes.newfields_r1"),
     ap.add_argument("--registry-runs", help="registry_runs.parquet → gut_runs.parquet + study sequencing summary columns"), ap.add_argument("--registry-sandpiper", help="registry_runs_sandpiper.parquet (sandpiper_profiled per run)"), ap.add_argument("--r2-glob"), ap.add_argument("--r3-glob", help="R3 full-text study_all determinations (glob)"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
     ap.add_argument("--out", required=True), ap.add_argument("--summary"), ap.add_argument("--release-id", default="R2026.7"), ap.add_argument("--package-version", default="1.8.0")
