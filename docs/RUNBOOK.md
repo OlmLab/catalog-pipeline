@@ -304,6 +304,26 @@ git -C ~/catalog/infant-gut-catalog      -c credential.helper='!f(){ echo "usern
 git -C ~/catalog/infant-gut-catalog-data -c credential.helper='!f(){ echo "username=x-access-token"; echo "password=$GITHUB_TOKEN"; }; f' push origin release/<semver> data-v<semver>
 ```
 (declare `credentials=["GitHub"]` on the cell; `GITHUB_TOKEN` is read from the environment, never printed.)
+
+**Large release assets (R2026.13, owner 2026-09-30: no Sandpiper history in the data repo).** `publish-branch` no longer commits
+`assets/` on the release branch. It stages the Sandpiper long tables (`scripts/split_parquet.py`, byte-adaptive parts < 90 MB) and
+`registry_runs_v<v>.parquet` (re-written with zstd — the snappy copy passed GitHub's 100 MB hard limit at R2026.13) in
+`/tmp/release_assets_<v>/assets/` and commits them in a throw-away repo whose git dir is `/tmp/release_assets_<v>.gitdir`
+(the sandbox refuses to create any `.git` directory, so `GIT_DIR`/`GIT_WORK_TREE` are set explicitly). Push it **before** the data tag,
+because `release.yml` fetches the branch at depth 1 and checks `assets/ASSETS_VERSION.txt` against `VERSION.json`:
+```
+GIT_DIR=/tmp/release_assets_<v>.gitdir GIT_WORK_TREE=/tmp/release_assets_<v> git -c credential.helper='!f(){ echo "username=x-access-token"; echo "password=$GITHUB_TOKEN"; }; f' \
+  push --force https://github.com/OlmLab/microbiome_repo-data.git HEAD:refs/heads/release-assets
+```
+The branch is overwritten every release (single commit, no history). `release.yml` skips `gut_sample_determinations` / `gut_runs`
+in the SQLite and drops the SQLite when it exceeds 1.9 GB (GitHub asset limit 2 GiB; 1.12.0's Release stayed a draft for that reason).
+
+**Repository names (2026-09-30).** `infant-gut-catalog` → `microbiome_repo` (site, Pages), `infant-gut-catalog-data` → `microbiome_repo-data`,
+`catalog-pipeline` → `microbiome_repo-pipeline`. GitHub redirects the old names for git and web (not for Pages: the site moved to
+https://olmlab.github.io/microbiome_repo/ and `config/site.yaml` `base_url` changed with it). The local clones keep their old directory
+names (`~/catalog/{catalog-pipeline,infant-gut-catalog-data,infant-gut-catalog}`) and their remotes still point at the old URLs because
+`.git/config` is read-only under the host grant — pushes follow the redirect. `deploy-pages.yml` runs on `site-v*` tags only
+(a push to `main` on 2026-09-30 deployed a stale 1.2.1 build; `main` in the site repo now holds only `.github/` + README).
 Then: `verify.yml` runs on the branch/tag → `deploy-pages.yml` deploys the `site-v*` tag to
 https://olmlab.github.io/microbiome_repo/ → `release.yml` builds `data_package_v<semver>.zip` +
 `infant_catalog_v<semver>.sqlite` and attaches them to the `data-v<semver>` Release (Zenodo mints the DOI).
