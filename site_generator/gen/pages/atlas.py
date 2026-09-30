@@ -1,4 +1,4 @@
-"""Atlas pages (R2026.12): taxon world map + data-driven observations.
+"""Atlas pages (R2026.12, HDI source replaced in R2026.13): taxon world map + data-driven observations.
 
 Two entry points:
 
@@ -36,18 +36,24 @@ MIN_COUNTRY_SAMPLES = 30
 # countries that the 110 m Natural Earth base map does not carry as their own polygon -> drawn as dots
 POINT_COUNTRIES = {'HK': (114.17, 22.32), 'SG': (103.82, 1.35), 'BB': (-59.54, 13.19), 'GF': (-53.1, 3.9), 'IO': (72.4, -7.3), 'TC': (-71.8, 21.7)}
 
-# UNDP Human Development Report 2023/24 (HDI for 2022), TRANSCRIBED FROM MEMORY, rounded to 2 decimals, UNVERIFIED -
-# hdr.undp.org was not reachable from the build sandbox.  Replace with the official CSV when available.
-HDI_2022 = dict(AE=0.94, AR=0.85, AT=0.93, AU=0.95, BB=0.81, BD=0.67, BE=0.94, BF=0.44, BG=0.80, BR=0.76, BS=0.82, BW=0.71, CA=0.94, CD=0.48,
-                CF=0.39, CG=0.65, CH=0.97, CL=0.86, CM=0.59, CN=0.79, CO=0.76, CY=0.91, CZ=0.90, DE=0.95, DK=0.95, EC=0.77, EE=0.90, EG=0.73,
-                ES=0.91, ET=0.49, FI=0.94, FJ=0.73, FR=0.91, GA=0.69, GB=0.94, GH=0.60, GR=0.89, GW=0.48, HK=0.96, HN=0.62, HR=0.88, HT=0.55,
-                HU=0.85, ID=0.71, IE=0.95, IL=0.92, IN=0.64, IR=0.78, IS=0.96, IT=0.91, JP=0.92, KE=0.60, KH=0.60, KR=0.93, KZ=0.80, LA=0.62,
-                LR=0.49, LU=0.93, MG=0.49, ML=0.41, MM=0.61, MN=0.74, MW=0.51, MX=0.78, MY=0.81, MZ=0.46, NE=0.39, NG=0.55, NI=0.67, NL=0.95,
-                NO=0.97, NP=0.60, NZ=0.94, PA=0.82, PE=0.76, PL=0.88, PT=0.87, RO=0.83, RS=0.81, RU=0.82, SA=0.88, SE=0.95, SG=0.95, SI=0.93,
-                SK=0.86, TH=0.80, TN=0.73, TR=0.86, TZ=0.53, UG=0.55, US=0.93, VE=0.70, VN=0.73, ZA=0.72, ZM=0.57, ZW=0.55)
-HDI_SOURCE = ('UNDP Human Development Report 2023/24 (HDI 2022 values), transcribed from memory, rounded to 2 decimals, UNVERIFIED '
-              '(hdr.undp.org unreachable from the build sandbox); band: high >= 0.80, middle 0.70-0.79, low < 0.70; '
-              'PR, TW, GF, IO, TC have no UNDP value')
+# Official UNDP Human Development Report 2025, Statistical Annex Table 1 (HDI 2023): 193 countries, shipped with the site
+# generator as data/undp_hdr2025_hdi_2023.csv (iso2, country_name, hdi_2023, hdi_rank, source; owner-supplied 2026-09-30).
+# Replaces the from-memory HDI 2022 table of R2026.12.  Countries without a UNDP value (PR, TW, GF, IO, TC) have no band.
+HDI_FILE = HERE.parent / 'data' / 'undp_hdr2025_hdi_2023.csv'
+HDI_SOURCE = ('UNDP Human Development Report 2025, Statistical Annex Table 1 (HDI 2023); band: high >= 0.80, middle 0.70-0.79, low < 0.70; '
+              'countries without a UNDP value (e.g. PR, TW, GF, IO, TC) have no band')
+HDI_YEAR = 2023
+
+
+def load_hdi(path=None) -> dict:
+    """iso2 -> HDI (float) from the official UNDP csv (columns iso2, hdi_2023); values are kept at the published 3 decimals."""
+    df = pd.read_csv(path or HDI_FILE, keep_default_na=False, na_values=[''])   # keep_default_na: Namibia is iso2 'NA'
+    col = 'hdi_2023' if 'hdi_2023' in df.columns else [c for c in df.columns if c.startswith('hdi')][0]
+    df = df.dropna(subset=['iso2', col])
+    return {str(k).upper(): float(v) for k, v in zip(df.iso2, df[col])}
+
+
+HDI_2023 = load_hdi()
 SAMPLE_FILTER = ('body_site_class == primary; not qc_non_metagenome / qc_synthetic / qc_rna / qc_predicted_ecological / '
                  'qc_low_depth / qc_no_genus_assigned')
 QC_FLAGS = ('qc_non_metagenome', 'qc_synthetic', 'qc_rna', 'qc_predicted_ecological', 'qc_low_depth', 'qc_no_genus_assigned')
@@ -99,7 +105,7 @@ def precompute(genus_long: pd.DataFrame, species_long: pd.DataFrame, summary: pd
     wide: package gut_sample_metadata_wide (sample_key, country, ...).
     """
     out_dir = Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
-    hdi = HDI_2022 if hdi is None else hdi
+    hdi = HDI_2023 if hdi is None else hdi
     S = analysis_samples(summary).merge(wide[['sample_key', 'country']].drop_duplicates('sample_key'), on='sample_key', how='left').reset_index(drop=True)
     S['sidx'] = np.arange(len(S), dtype=np.int32)
     N = len(S)
@@ -190,12 +196,12 @@ def precompute(genus_long: pd.DataFrame, species_long: pd.DataFrame, summary: pd
         sj.append(d)
     meta = dict(n_samples=N, n_studies=len(studies), n_countries=len(countries), n_samples_with_country=int((S.cidx >= 0).sum()),
                 presence_threshold=presence, species_threshold=species_presence, min_country_samples=MIN_COUNTRY_SAMPLES, ranks=RANKS,
-                age_categories=AGE_CATS, taxonomy='GTDB R232 (Sandpiper 2.0.0, Zenodo 20419175)', n_taxa=len(taxa), ranks_n=ranks_n,
+                age_categories=AGE_CATS, taxonomy='GTDB R232 (Sandpiper 2.0.0, Zenodo 20419175)', hdi_year=HDI_YEAR, hdi_n_countries_with_value=int(sum(1 for d in cn if d['hdi'] is not None)), n_taxa=len(taxa), ranks_n=ranks_n,
                 payload_bytes=int(sum(sizes.values())), format=__doc__.split('Payload format')[1].strip(), hdi_source=HDI_SOURCE, sample_filter=SAMPLE_FILTER)
     (out_dir / 'taxa.json').write_text(json.dumps(dict(meta=meta, taxa=taxa), separators=(',', ':')))
     (out_dir / 'countries.json').write_text(json.dumps(cn, separators=(',', ':')))
     (out_dir / 'studies.json').write_text(json.dumps(sj, separators=(',', ':'), ensure_ascii=False))
-    pd.DataFrame([dict(iso2=d['iso2'], country=d['name'], hdi_2022=d['hdi'], band=d['band'], n_samples=d['n'], n_studies=d['nstud']) for d in cn]).to_csv(out_dir / 'country_hdi.csv', index=False)
+    pd.DataFrame([dict(iso2=d['iso2'], country=d['name'], hdi_2023=d['hdi'], band=d['band'], n_samples=d['n'], n_studies=d['nstud']) for d in cn]).to_csv(out_dir / 'country_hdi.csv', index=False)
     meta['payload_bytes_total'] = int(sum(p.stat().st_size for p in out_dir.iterdir() if p.is_file()))
     (out_dir / 'taxa.json').write_text(json.dumps(dict(meta=meta, taxa=taxa), separators=(',', ':')))
     return meta

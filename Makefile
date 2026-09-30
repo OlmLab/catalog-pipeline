@@ -298,6 +298,12 @@ GUT_SANDPIPER_DIR ?= $(GUT_DIR)/sandpiper
 # precomputed Atlas payload (taxa.json, matrix_*.bin, observations.json, obs/) — pages/atlas.py precompute + scripts/atlas_observations.py
 ATLAS_DATA   ?= $(GUT_DIR)/atlas
 
+atlas-observations: ## recompute the Atlas observation cards (obs/*.png + obs/*.csv + observations.json) from the Sandpiper tables + the released wide table → $(ATLAS_DATA); HDI = site_generator/gen/data/undp_hdr2025_hdi_2023.csv
+	@test -f "$(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_genus.parquet" || { echo "Sandpiper genus table missing: $(GUT_SANDPIPER_DIR)"; exit 1; }
+	$(PY) scripts/atlas_observations.py --genus $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_genus.parquet --species $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_species.parquet \
+	  --summary $(GUT_SANDPIPER_DIR)/gut_sandpiper_sample_summary.parquet --pca $(GUT_SANDPIPER_DIR)/gut_sandpiper_pca_scores.parquet \
+	  --wide $(PKG_SRC)/gut_sample_metadata_wide.parquet --out $(ATLAS_DATA) --generated-from "package $(VERSION) wide table + Sandpiper genus/species tables"
+
 gut-build:       ## curated scope gut_all — gut_studies / gut_sample_metadata_wide / gut_sample_determinations / gut_runs from registry_biosamples + registry_runs + R1/R2/R3/R4 leaf outputs + the infant tables
 	mkdir -p $(GUT_OUT) $(BUILD)/gut
 	$(PY) -m catalog.scopes.build_gut_scope --studies $(GUT_STUDIES) --registry-studies $(PKG_OUT)/registry_studies.parquet --biosamples $(PKG_OUT)/registry_biosamples.parquet \

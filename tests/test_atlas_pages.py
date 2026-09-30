@@ -1,4 +1,5 @@
-"""R2026.12 atlas: precompute the payload from a synthetic 300-sample input and build atlas/index.html + atlas/observations.html.
+"""R2026.12 atlas (R2026.13: official HDI + observations script): precompute the payload from a synthetic 300-sample input, run
+scripts/atlas_observations.py on it and build atlas/index.html + atlas/observations.html.
 
 Runs without the real package or network: synthetic Sandpiper long tables, a synthetic wide table and a two-card
 observations.json (with 1x1 PNG figures) are generated in tmp_path.
@@ -103,8 +104,12 @@ def test_precompute_payload_shape(built):
     countries = json.loads((d / 'countries.json').read_text())
     assert [c['iso2'] for c in countries] == sorted(COUNTRIES)
     hk = next(c for c in countries if c['iso2'] == 'HK'); assert hk['ll'] and hk['in_map'] is False
-    us = next(c for c in countries if c['iso2'] == 'US'); assert us['num'] == '840' and us['hdi'] == 0.93 and us['band'] == 'high'
+    us = next(c for c in countries if c['iso2'] == 'US'); assert us['num'] == '840' and us['hdi'] == 0.938 and us['band'] == 'high'   # official UNDP HDR 2025 value (HDI 2023)
     ne = next(c for c in countries if c['iso2'] == 'NE'); assert ne['band'] == 'low'
+    hk = next(c for c in countries if c['iso2'] == 'HK'); assert hk['hdi'] is not None and hk['band'] == 'high'   # HK is in the official table
+    assert 'Report 2025' in tj['meta']['hdi_source'] and 'memory' not in tj['meta']['hdi_source'] and tj['meta']['hdi_year'] == 2023
+    assert tj['meta']['hdi_n_countries_with_value'] == 6
+    hdi_csv = pd.read_csv(d / 'country_hdi.csv'); assert 'hdi_2023' in hdi_csv.columns and 'hdi_2022' not in hdi_csv.columns and len(hdi_csv) == 6
     studies = json.loads((d / 'studies.json').read_text())
     assert len(studies) == 10 and all(len(s['ages']) == len(atlas.AGE_CATS) for s in studies) and studies[0]['title'] == 'Study 0'
     assert sum(s['n'] for s in studies) == 289
@@ -162,3 +167,35 @@ def test_build_without_observations(tmp_path):
         (out / path).parent.mkdir(parents=True, exist_ok=True); (out / path).write_text(env.get_template(tpl).render(root=root, page_path=path, **ctx))
     atlas.build(env, render, dict(atlas_data_dir=data_dir), out)
     assert 'No observation cards' in (out / 'atlas' / 'observations.html').read_text()
+
+
+def test_official_hdi_table():
+    """The shipped UNDP table is the HDR 2025 Statistical Annex Table 1 (HDI 2023): 193 countries, values in (0, 1], no from-memory fallback left."""
+    hdi = atlas.load_hdi()
+    assert len(hdi) == 193 and all(0 < v <= 1 for v in hdi.values()) and hdi['NO'] == 0.970 and hdi['US'] == 0.938 and hdi['NE'] < 0.70
+    assert not hasattr(atlas, 'HDI_2022') and atlas.hdi_band(hdi['TH']) == 'middle' and atlas.hdi_band(hdi['GA']) == 'middle'
+    assert atlas.hdi_band(None) is None and atlas.hdi_band(float('nan')) is None and atlas.hdi_band(0.80) == 'high' and atlas.hdi_band(0.699) == 'low'
+
+
+def test_observations_script_on_synthetic(tmp_path):
+    """scripts/atlas_observations.py recomputes the observation cards from a synthetic 300-sample input and yields >= 1 card with figure + CSV."""
+    sys.path.insert(0, str(REPO / 'scripts'))
+    import atlas_observations as ao
+    genus_long, species_long, summary, wide, _ = synthetic()
+    wide = wide.assign(health_condition=['healthy_control' if i % 3 else 'crohns_disease' for i in range(len(wide))], collection_year=[2015 + (i % 6) for i in range(len(wide))])
+    meta, cards = ao.run(genus_long, species_long, summary, wide, None, None, tmp_path)
+    assert meta['n_samples'] == 289 and meta['n_studies'] == 10 and 'Report 2025' in meta['hdi_source'] and meta['hdi_countries_with_value'] == 6
+    assert len(cards) >= 1 and meta['n_cards'] == len(cards)
+    obs = json.loads((tmp_path / 'observations.json').read_text()); assert [c['id'] for c in obs['cards']] == [c['id'] for c in cards]
+    for c in cards:
+        assert {'id', 'title', 'figure', 'csv', 'description', 'definition', 'confounder', 'n_samples', 'n_studies', 'numbers'} <= set(c)
+        assert (tmp_path / 'obs' / c['figure']).read_bytes()[:4] == b'\x89PNG' and len(pd.read_csv(tmp_path / 'obs' / c['csv'])) >= 1
+        assert c['n_samples'] <= 289 and 1 <= c['n_studies'] <= 10
+    ids = {c['id'] for c in cards}
+    assert {'a_age_trajectories', 'g_depth_vs_richness', 'i_dominant_genus_by_age'} <= ids   # computable from the synthetic fixture
+    assert all(s['card'] not in ids for s in meta['skipped'])   # skipped cards are declared, not silently dropped
+    # the within-study helper: identical groups give a zero median effect
+    S = ao.Data(genus_long, species_long, summary, wide).S
+    a = (np.arange(len(S)) % 2 == 0); b = ~a
+    c, per = ao.within_study(S, a, b, np.zeros(len(S)))
+    assert c['n_studies'] == 0 or c['median_effect'] == 0.0
