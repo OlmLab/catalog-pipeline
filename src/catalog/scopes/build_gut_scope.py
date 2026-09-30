@@ -343,7 +343,14 @@ def build(a):
         w[f] = [compose_detailed_location(vals) for vals in zip(*[w[c] for c in cols])] if cols else None
     for f, src in pf["year_of"].items():
         w[f] = w[src].map(collection_year) if src in w.columns else None
-    st_stage = reg.set_index("study_accession").life_stage_primary if "life_stage_primary" in reg.columns else pd.Series(dtype=str)
+    # study-level fallback only for SINGLE-stage studies (R2026.13, data-quality item 3: PRJNA1306521 "long-living adults (>= 85) and
+    # young children (3-5)" had life_stage_primary = child and every sample became `child`); multi-stage studies stay unknown here
+    if "life_stage_primary" in reg.columns:
+        ri = reg.set_index("study_accession")
+        multi = ri.life_stages.fillna("").astype(str).str.replace("unknown_age", "").str.strip(";").str.contains(";") if "life_stages" in ri.columns else pd.Series(False, index=ri.index)
+        st_stage = ri.life_stage_primary.where(~multi)
+    else:
+        st_stage = pd.Series(dtype=str)
     cat_age = w.age_at_collection_days.map(lambda d: age_category(d, pack))
     cat_stage = w.sample_life_stage.map(STAGE_TO_CAT)
     ls_rows = det_study[det_study.field_name == "life_stage"].assign(_rank=lambda d: d.route.map(ROUTE_RANK).fillna(9)).sort_values(["_rank", "confidence"], ascending=[True, False]).drop_duplicates("study_accession").set_index("study_accession")
