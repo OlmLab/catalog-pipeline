@@ -3,7 +3,8 @@
 #
 # Flow: the agent pushes the built site to a `release/<package_version>` branch and tags `site-v<package_version>`
 #       → verify (link check, parquet read, Playwright smoke) must pass → deploy.
-#       Pushes to `main` also deploy (owner-driven path / fallback while no PAT exists).
+#       Pushes to `main` NO LONGER deploy (2026-09-30: main holds only workflows/templates + the 1.2.1-era HTML; a push to main
+#       re-deployed that old site over 1.12.0). Deploy only from site-v* tags or workflow_dispatch.
 # Rollback: Actions → "deploy-pages" → "Run workflow" → choose the previous `site-v*` tag (workflow_dispatch below),
 #           or `git push origin site-v1.1.0 --force-with-lease`-free re-tag is NOT needed — re-running the old tag's
 #           workflow run also works ("Re-run all jobs").
@@ -11,7 +12,6 @@ name: deploy-pages
 
 on:
   push:
-    branches: ["main"]
     tags: ["site-v*"]
   workflow_dispatch:
     inputs:
