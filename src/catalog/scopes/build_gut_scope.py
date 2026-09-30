@@ -27,8 +27,7 @@ DET_COLS = ["sample_key", "field_name", "study_accession", "field_value", "value
             "release_added", "release_retired", "package_added"]
 # Field lists come from config/packs/gut.yaml (pack_fields(); 1.12.0) — the module-level names are kept for callers/tests and are
 # refreshed from the pack when build() runs.
-PACK_FIELDS = ["age_at_collection_days", "sex", "bmi", "country", "health_condition", "health_condition_detail", "antibiotic_exposure", "subject_id", "timepoint_label",
-               "collection_date", "location_region", "location_locality", "location_site", "latitude", "longitude", "lifestyle", "lifestyle_detail"]
+PACK_FIELDS: list = []  # filled after pack_fields() is defined (see _default_pack_fields)
 INFANT_ONLY = ["delivery_mode", "feeding_mode", "preterm_status", "gestational_age_weeks", "birth_weight_grams", "maternal_antibiotics", "probiotic_exposure", "hmo_supplementation", "nec_status"]
 ROUTE_RANK = {"R1": 1, "R2": 2, "R3": 3, "R4": 4}
 SRC = "gut_all_v1"
@@ -50,6 +49,20 @@ def pack_fields(pack: dict) -> dict:
     vocab = {f: s["vocab"] for f, s in pack["fields"].items() if isinstance(s, dict) and s.get("type") == "vocab" and s.get("vocab")}
     return dict(fields=fields, infant_only=infant_only, compose=compose, year_of=year_of, core=list(pack.get("core_fields") or []),
                 key=list(pack.get("key_fields") or []), vocab=vocab)
+
+
+def _default_pack_fields():
+    """Field order from config/packs/gut.yaml (CATALOG_CONFIG_DIR or the repo config); falls back to the 1.12.0 list when unreadable."""
+    fallback = ["age_at_collection_days", "sex", "bmi", "country", "health_condition", "health_condition_detail", "antibiotic_exposure", "subject_id", "timepoint_label",
+                "collection_date", "location_region", "location_locality", "location_site", "latitude", "longitude", "lifestyle", "lifestyle_detail"]
+    try:
+        cfg = os.environ.get("CATALOG_CONFIG_DIR") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "config")
+        return pack_fields(_load_pack(cfg))["fields"]
+    except Exception:
+        return fallback
+
+
+PACK_FIELDS = _default_pack_fields()
 
 
 def compose_detailed_location(parts) -> str | None:

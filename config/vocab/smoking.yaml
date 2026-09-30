@@ -1,6 +1,8 @@
 schema_version: 1
 vocabulary: smoking_status
-note: Tobacco smoking status at sampling. never | former | current | unknown. "Non-smoker" without history → never; "quit / ex-smoker" → former; pack-years or "smoker: yes" → current. Passive smoke exposure is not smoking.
+note: |
+  Tobacco smoking status at sampling: never | former | current | unknown. "Non-smoker" without history → never; "quit / ex-smoker"
+  → former; pack-years > 0 or "smoker = yes" → current. Passive smoke exposure is not smoking.
 codes:
   never: {label: Never smoked, match_terms: [never, "non-smoker", nonsmoker, "non smoker", "no"]}
   former: {label: Former smoker, match_terms: [former, "ex-smoker", "ex smoker", quit, past]}
