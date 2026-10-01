@@ -25,10 +25,7 @@ def test_org_leak_regex():
     assert not bs.ORG_LEAK_RE.search('University of Colorado Boulder')
 
 def test_palette_contrast_and_sync():
-    js = (Path(__file__).resolve().parents[1] / 'static' / 'explorer.js').read_text()
-    m = re.search(r"const TAXON_COLORS = \[([^\]]+)\]", js)
-    js_cols = re.findall(r"#[0-9A-Fa-f]{6}", m.group(1))
-    assert js_cols == bs.TAXON_PALETTE, 'explorer.js TAXON_COLORS must equal build_site.TAXON_PALETTE'
+    # since site v3 (1.10.0) the taxon palette is applied server-side (build_site.TAXON_PALETTE); explorer.js has no copy to sync
     for c in bs.TAXON_PALETTE:
         if c.upper() == '#CFB87C':  # brand gold; segments are separated and labelled
             continue

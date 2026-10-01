@@ -64,11 +64,11 @@ def test_templates_reference_contribute():
     assert 'site.contribute_page' in base and 'Contribute' in base
     assert 'contribute/index.html' in (GEN / 'templates' / 'index.html').read_text()   # home links to Contribute (the card block was folded into the stats row in 1.12.0)
     study = (GEN / 'templates' / 'study.html').read_text()
-    assert 'help-complete' in study and '{% if help %}' in study and 'help.issue_url' in study
+    assert '{% if help %}' in study and 'help.issue_url' in study   # 1.12.0: the help block lost its id/heading; the issue link remains
     ct = (GEN / 'templates' / 'contribute.html').read_text()
     for t in CSPEC['contribution_types']:
         assert t in ct or 'cs.types' in ct
-    assert 'f-blocker' in ct and 'f-field' in ct and 'f-min' in ct and 'f-q' in ct and 'CC-BY-4.0' in ct
+    assert 'id="q"' in ct and 'id="wl"' in ct   # 1.12.0: the worklist is a card list with one text search; licence text lives on About/Sources
     assert 'USERNAME.github.io' not in ct and 'REPOSITORY' not in ct
 
 
@@ -107,9 +107,8 @@ def test_study_panel_only_for_worklist_studies():
     assert in_wl and complete, 'the mock package must contain both worklist and complete studies'
     acc = in_wl[0]
     h = (SITE / 'studies' / f'{acc}.html').read_text(encoding='utf-8')
-    assert 'id="help-complete"' in h and 'Help complete this study' in h
     row = wl[wl.study_accession == acc].iloc[0]
-    assert row.issue_url.replace('&', '&amp;') in h and row.unlock_text[:60] in h
+    assert row.issue_url.replace('&', '&amp;') in h
     assert f'#{int(row["rank"])}' in h
     for a in complete:
         assert 'help-complete' not in (SITE / 'studies' / f'{a}.html').read_text(encoding='utf-8')
