@@ -318,6 +318,13 @@ GIT_DIR=/tmp/release_assets_<v>.gitdir GIT_WORK_TREE=/tmp/release_assets_<v> git
 The branch is overwritten every release (single commit, no history). `release.yml` skips `gut_sample_determinations` / `gut_runs`
 in the SQLite and drops the SQLite when it exceeds 1.9 GB (GitHub asset limit 2 GiB; 1.12.0's Release stayed a draft for that reason).
 
+**Registry owner overrides (R2026.14).** Study-level owner decisions that must beat every classification stage go into
+`config/registry_overrides.yaml` (study_accession + any of host_human / assay / body_sites / body_site_primary / life_stages /
+life_stage_primary, a ≤ 12-word evidence quote, a free-text note). `build_registry.apply_owner_overrides` applies them last and
+sets `classification_stage = owner_decision`; `build_gut_scope` then re-checks the leaf-built study list against the pack
+`study_rule` on the current registry, so an override that removes `gut_stool` retires the study's catalog rows in the same
+release (first use: PRJNA50637 ileal-pouch cohort → `other_site`). Append entries, never delete them.
+
 **Repository names (2026-09-30).** `infant-gut-catalog` → `microbiome_repo` (site, Pages), `infant-gut-catalog-data` → `microbiome_repo-data`,
 `catalog-pipeline` → `microbiome_repo-pipeline`. GitHub redirects the old names for git and web (not for Pages: the site moved to
 https://olmlab.github.io/microbiome_repo/ and `config/site.yaml` `base_url` changed with it). The local clones keep their old directory
