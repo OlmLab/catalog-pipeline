@@ -377,6 +377,11 @@ def read_github_repo(cfg_path, key):
     return f"{g.get('org')}/{g.get('repos', {}).get(key)}"
 
 
+def read_concept_doi(cfg_path):
+    g = (yaml.safe_load(open(cfg_path)) or {}).get('github') or {}
+    return g.get('zenodo_concept_doi') or ''
+
+
 def read_data_repo_id(cfg_path):
     g = yaml.safe_load(Path(cfg_path).read_text(encoding='utf-8')).get('github', {})
     return g.get('data_repo_id')
@@ -602,6 +607,7 @@ def main():
     )
     gen_sha = vj.get('generator_git_sha', 'nogit')
     doi = cur_rel.get('doi') or ''
+    concept_doi = read_concept_doi(a.config)
     names = read_site_names(a.config)
     cspec = read_contribute_spec(a.contribute_config)
     about = read_about(a.config)
@@ -613,7 +619,7 @@ def main():
     site = dict(title=names['title'], short_title=names['short_title'], tagline=names['tagline'], version=version, release_tag=vj['release_tag'], build_date=build_date,
                 sha8=gen_sha[:8], base_url=base_url, issue_repo=issue_repo, issue_template=issue_template, issue_label=issue_label, about=about, nav=NAV,
                 core_fields=CORE_FIELDS, key_fields=KEY_FIELDS, has_collections=bool(collections),
-                release_id=release_id, previous_release_id=vj.get('previous_release_id'), release_date=cur_rel['release_date'], doi=doi,
+                release_id=release_id, previous_release_id=vj.get('previous_release_id'), release_date=cur_rel['release_date'], doi=doi, concept_doi=concept_doi,
                 data_release_url=rspec['site_pages']['data_release_url'].format(data_tag=cur_rel['data_tag']) if cur_rel['data_tag'] else None,
                 zenodo_badge=f'https://zenodo.org/badge/{data_repo_id}.svg', zenodo_latest=f'https://zenodo.org/badge/latestdoi/{data_repo_id}', data_repo_id=data_repo_id,
                 releases_page=rspec['site_pages']['releases_index'], changes_page=rspec['site_pages']['changes_index'],

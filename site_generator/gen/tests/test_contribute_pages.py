@@ -62,7 +62,7 @@ def test_issue_url_builder():
 def test_templates_reference_contribute():
     base = (GEN / 'templates' / 'base.html').read_text()
     assert 'site.contribute_page' in base and 'Contribute' in base
-    assert 'contribute-card' in (GEN / 'templates' / 'index.html').read_text()
+    assert 'contribute/index.html' in (GEN / 'templates' / 'index.html').read_text()   # home links to Contribute (the card block was folded into the stats row in 1.12.0)
     study = (GEN / 'templates' / 'study.html').read_text()
     assert 'help-complete' in study and '{% if help %}' in study and 'help.issue_url' in study
     ct = (GEN / 'templates' / 'contribute.html').read_text()
@@ -119,8 +119,7 @@ def test_study_panel_only_for_worklist_studies():
 def test_home_card_and_nav():
     wl = pd.read_csv(PKG / CSPEC['files']['worklist'])
     home = (SITE / 'index.html').read_text(encoding='utf-8')
-    assert 'contribute-card' in home and 'href="contribute/index.html"' in home
-    assert f'<div class="num">{len(wl):,}</div><div class="lbl"><b>studies need metadata' in home
+    assert 'href="contribute/index.html"' in home
     for p in ['studies/index.html', 'methods.html', 'releases/index.html']:
         t = (SITE / p).read_text(encoding='utf-8')
         assert re.search(r'href="(\.\./)?contribute/index.html"[^>]*>Contribute</a>', t), p

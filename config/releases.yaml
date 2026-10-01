@@ -172,6 +172,7 @@ releases:
     notes_file: RELEASE_NOTES_R2026.14.md
     data_tag: data-v1.13.1
     site_tag: site-v1.13.1
+    doi: 10.5281/zenodo.23087713
     label: "owner decisions on the R2026.13 questions: PRJNA50637 ileal-pouch cohort moved out of the gut scope (registry owner override, body site other_site); collection-date floor lowered to 1980 (602 archived-cohort dates admitted); LifeLines-DEEP recorded as a controlled-access reference collection; Hutterite note (16S only); same-country institute coordinates kept"
 
 # Bitemporal columns appended (in this order) at the END of every fact table.
