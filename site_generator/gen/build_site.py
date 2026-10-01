@@ -1135,7 +1135,7 @@ def main():
         return dict(column=col, rows=rows_, labels=labels or {})
     stage_labels = {'deterministic_prior': 'prior carried over from an earlier triage (reason code / body-site call) or deterministic term match',
                     'deterministic_rule': 'ENA-field rule (host taxon 9606, library fields, numeric age with unit)', 'sonnet_x2': 'two replicate model classifications in agreement',
-                    'opus_adjudicated': 'replicate disagreement adjudicated by the stronger model', 'pending': 'not yet classified'}
+                    'opus_adjudicated': 'replicate disagreement adjudicated by the stronger model', 'pending': 'not yet classified', 'owner_decision': 'study-level decision by the catalog owner (config/registry_overrides.yaml)'}
     host_counts = {k: int((rg.host_human == k).sum()) for k in sspec['host_human_values']}
     n_pending = int((rg.classification_stage == 'pending').sum())
     _sp = rg['n_runs_sandpiper'].fillna(0) if 'n_runs_sandpiper' in rg.columns else pd.Series(0, index=rg.index)

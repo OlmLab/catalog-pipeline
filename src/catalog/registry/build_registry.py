@@ -19,6 +19,7 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 from collections import Counter
 
 import pandas as pd
@@ -239,6 +240,41 @@ def apply_curated_precedence(out: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+OVERRIDES_PATH = Path(__file__).resolve().parents[3] / "config" / "registry_overrides.yaml"
+OVERRIDE_COLUMNS = ("host_human", "assay", "body_sites", "body_site_primary", "life_stages", "life_stage_primary")
+
+
+def apply_owner_overrides(out: pd.DataFrame, path: Path = OVERRIDES_PATH) -> pd.DataFrame:
+    """Owner decisions (config/registry_overrides.yaml) > every classification stage. Each entry names a study and the
+    columns it sets (OVERRIDE_COLUMNS); *_evidence lists are replaced by the decision record; classification_stage becomes
+    owner_decision. Unknown studies are ignored (the decision stays on file for when the study enters the universe)."""
+    if not path.exists():
+        return out
+    import yaml
+    spec = yaml.safe_load(path.read_text()) or {}
+    entries = spec.get("overrides") or []
+    if not entries:
+        return out
+    out = out.copy()
+    idx = out.set_index("study_accession").index
+    n = 0
+    for e in entries:
+        acc = e["study_accession"]
+        if acc not in idx:
+            continue
+        m = out["study_accession"] == acc
+        for c in OVERRIDE_COLUMNS:
+            if c in e:
+                out.loc[m, c] = e[c]
+        for c in ("host_evidence", "body_site_evidence", "life_stage_evidence"):
+            if c in e:
+                out.loc[m, c] = json.dumps(e[c])
+        out.loc[m, "classification_stage"] = "owner_decision"
+        n += int(m.sum())
+    out.attrs["owner_overrides_applied"] = n
+    return out
+
+
 def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | None, release_id: str, package_version: str,
              sandpiper_runs: pd.DataFrame | None = None) -> pd.DataFrame:
     universe = carry_infant_universe(universe, infant)
@@ -322,6 +358,7 @@ def assemble(universe: pd.DataFrame, infant: pd.DataFrame, llm: pd.DataFrame | N
         "universe_slice": col("universe_slice"),
     })
     out = apply_curated_precedence(out)
+    out = apply_owner_overrides(out)
     out["scope_memberships"] = [";".join(derive_scope_memberships(h, b.split(";") if b else [], l.split(";") if l else [], a, i))
                                 for h, b, l, a, i in zip(out.host_human, out.body_sites, out.life_stages, out.assay, out.in_infant_catalog)]
     # sample-tier roll-up columns (R2026.5, filled by catalog.registry.build_biosamples); defaults = "not harvested"

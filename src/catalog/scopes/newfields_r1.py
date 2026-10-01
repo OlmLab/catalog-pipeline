@@ -30,7 +30,7 @@ DET_COLS = ["sample_key", "field_name", "study_accession", "field_value", "value
             "release_added", "release_retired", "package_added"]
 DETERMINED_BY = "gut_newfields_r1_v1"
 SRC_TRACK = "gut_all_v1"
-MIN_YEAR = 1990
+MIN_YEAR = 1980  # owner 2026-10-01: archived 1980s cohorts (pre-HIV MACS stool, early CRC biobanks) are real collection dates
 
 # ----------------------------------------------------------------------------------------------------------------------- placeholders
 PLACEHOLDER_EXACT = {"", "-", "--", "na", "n/a", "n.a.", "nan", "none", "null", "unknown", "unk", "missing", "not collected", "not applicable",
@@ -127,7 +127,7 @@ def parse_collection_date(value, max_year: int | None = None, order_hint: str | 
 
     Returns {"value": ISO partial string, "confidence": float, "fmt": str, "note": str} on success or
     {"reject": reason, "fmt": str} when the value is a placeholder, unparseable, impossible or out of range
-    (year < 1990 or > max_year — the run's first_public year; default = today's year). Intervals 'A/B' (YYYY/YYYY,
+    (year < 1980 or > max_year — the run's first_public year; default = today's year). Intervals 'A/B' (YYYY/YYYY,
     YYYY-MM/YYYY-MM, YYYY-MM-DD/YYYY-MM-DD) keep both ends; start must not be after end.
     """
     if is_placeholder(value):

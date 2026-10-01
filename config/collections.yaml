@@ -229,7 +229,21 @@ collections:
   - label: Rural Honduras villages (PRJNA999635)
     url: https://doi.org/10.1016/j.celrep.2024.114442
   notes: Pasolli 2019 Ethiopian and Tanzanian cohorts were not found under their own BioProjects in the 1.11.0 catalog.
-    Tsimane (Bolivia) and Hutterite shotgun deposits were searched for and not found (see COLLECTIONS_REPORT.md).
+    Tsimane (Bolivia, PRJNA574920) and Hutterite deposits are 16S amplicon only (Davenport 2014 and later; owner 2026-10-01), so neither
+    population can appear in a shotgun catalog (see COLLECTIONS_REPORT.md).
+- id: controlled-access-population-cohorts
+  title: Controlled-access population cohorts (reference only)
+  kind: population
+  blurb: 'Large general-population gut metagenome cohorts whose raw reads are deposited under controlled access and
+    therefore cannot be curated here: LifeLines-DEEP (Netherlands, Zhernakova et al. 2016) has only its metagenome-assembled
+    genomes in the public archive (PRJEB76860, 0 read runs). Listed so the gap is explicit; the collection carries no samples.'
+  studies:
+  - PRJEB76860
+  references:
+  - label: Zhernakova et al. 2016, Science (LifeLines-DEEP)
+    url: https://doi.org/10.1126/science.aad3369
+  notes: Owner decision 2026-10-01 (option A) — record LifeLines-DEEP as a controlled-access reference cohort rather than omit it.
+    PRJEB76860 is in the registry (assemblies only) and outside the catalog.
 - id: highland-and-plateau
   title: High-altitude and plateau populations
   kind: lifestyle

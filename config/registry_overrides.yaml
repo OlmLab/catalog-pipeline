@@ -1,0 +1,13 @@
+# config/registry_overrides.yaml — study-level OWNER decisions that override the registry classification.
+# Applied last in catalog.registry.build_registry.assemble (after the curated-infant precedence rule); the overridden study gets
+# classification_stage = owner_decision and the evidence list is replaced by the decision record. Codes must exist in
+# config/vocab/body_sites.yaml / life_stages.yaml. One entry per study; append, never delete (history lives in git).
+schema_version: 1
+overrides:
+  - study_accession: PRJNA50637
+    date: 2026-10-01
+    body_sites: other_site
+    body_site_primary: other_site
+    body_site_evidence:
+      - {source: owner_decision, quote: "ileal-pouch aspirates and brushes after colectomy; outside the gut scope"}
+    note: "102 luminal aspirates / brushes of a post-colectomy ileal pouch (PMC5111406); owner 2026-10-01 option B: the pouch is not stool or intestinal mucosa in situ; removed from gut_all by this override (study_rule needs gut_stool in body_sites)"

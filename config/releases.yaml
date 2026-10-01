@@ -165,6 +165,15 @@ releases:
     site_tag: site-v1.13.0
     label: "cleanup release: repositories renamed to microbiome_repo (new site URL); diet / smoking / medication / stool-consistency fields (R1); R3 shard 09 retried, R3b/R4b completion passes (incl. infant-extension full texts); registry gap fill (blank-taxon ENA slice + landmark cohorts); data-quality adjudication corrections; Atlas rebuilt on the official UNDP HDI table with lifestyle cards; large release assets moved to the history-free release-assets branch"
 
+  - release_id: R2026.14
+    package_version: '1.13.1'
+    previous_package_version: '1.13.0'
+    previous_release_id: R2026.13
+    notes_file: RELEASE_NOTES_R2026.14.md
+    data_tag: data-v1.13.1
+    site_tag: site-v1.13.1
+    label: "owner decisions on the R2026.13 questions: PRJNA50637 ileal-pouch cohort moved out of the gut scope (registry owner override, body site other_site); collection-date floor lowered to 1980 (602 archived-cohort dates admitted); LifeLines-DEEP recorded as a controlled-access reference collection; Hutterite note (16S only); same-country institute coordinates kept"
+
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
   release_added: release_added        # str; release id (numbered) or historical package semver

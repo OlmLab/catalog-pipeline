@@ -28,7 +28,7 @@ fields:                    # field_name → vocabulary / type; routes R1 (archiv
   subject_id: {type: text, routes: [R1, R2]}
   timepoint_label: {type: text, routes: [R1, R2]}
   # added 2026-09-29 (owner request): collection date, detailed location, lifestyle — release R2026.12 / package 1.12.0
-  collection_date: {type: iso8601_partial, routes: [R1, R2, R3, R4], note: "as specific as the source gives it: YYYY, YYYY-MM, YYYY-MM-DD, or an ISO interval YYYY[-MM[-DD]]/YYYY[-MM[-DD]] for a stated sampling period; never a placeholder (missing / not collected / restricted access stay unknown); dates before 1990 or after the run's first_public year are rejected"}
+  collection_date: {type: iso8601_partial, routes: [R1, R2, R3, R4], note: "as specific as the source gives it: YYYY, YYYY-MM, YYYY-MM-DD, or an ISO interval YYYY[-MM[-DD]]/YYYY[-MM[-DD]] for a stated sampling period; never a placeholder (missing / not collected / restricted access stay unknown); dates before 1980 or after the run's first_public year are rejected"}
   location_region: {type: text, max_len: 80, routes: [R1, R2, R3, R4], note: "first-level administrative region below the country (state, province, prefecture, canton, county for the UK/Ireland); English exonym, no country name"}
   location_locality: {type: text, max_len: 80, routes: [R1, R2, R3, R4], note: "city, town, village or district where subjects were recruited (not where the lab is); English exonym"}
   location_site: {type: text, max_len: 120, routes: [R1, R2, R3, R4], note: "named recruitment site: hospital, clinic, university health centre, school, cohort field station, tribe/community name; the source's own name"}

@@ -16,3 +16,13 @@ Everything else flagged in R2026.11–12 was adjudicated and applied (docs/DQ_HE
 - Coordinates: latitude/longitude (and regions reverse-geocoded from them) retired for 66 studies whose study-wide coordinate lies in another country than the samples (Copenhagen for Chinese MetaHIT-era cohorts, the UCSD 32.50/−117.25 point for US cohorts, sign-flipped Korean/Swedish coordinates …; 16,836 samples).
 - New-field conflicts (203): where two attribute keys disagree, the key that varies per sample within the study wins (15 recodes); the rest keep the higher-confidence value.
 - Registry gap fill: 50 new human gut shotgun studies enter the catalog (single rubric pass, stage `pending`); the 9,909 other newly enumerated ENA studies enter the registry as non-gut / unknown.
+
+## Answers (owner, 2026-10-01) and what was done (release R2026.14 / 1.13.1)
+
+| # | answer | implementation |
+|---|---|---|
+| 1 | **B** — leave the ileal-pouch samples outside the gut scope | `config/registry_overrides.yaml` (new; owner decisions > classification): PRJNA50637 body site `other_site`, stage `owner_decision`; study leaves `gut_all`, stays in the registry. No new body-site code was needed. |
+| 2 | Davenport 2014 is 16S-only | Hutterite stays absent; industrialization-gradients note updated (Tsimane + Hutterite = amplicon only). |
+| 3 | **A** — record LifeLines-DEEP as controlled-access | new collection `controlled-access-population-cohorts` (PRJEB76860, reference only, 0 samples). |
+| 4 | **A** — keep same-country institute coordinates | no change; the 66 cross-country retirements stand. |
+| 5 | **A** — floor 1980 | `newfields_r1.MIN_YEAR = 1980`, pack note updated; 602 collection dates admitted (1981–1988; 5 studies). |

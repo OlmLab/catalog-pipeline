@@ -324,6 +324,18 @@ def build(a):
     rid, pv = a.release_id, a.package_version
     studies = pd.read_parquet(a.studies)
     reg = pd.read_parquet(a.registry_studies) if a.registry_studies else studies
+    # the leaf-built study list is re-checked against the CURRENT registry build with the pack's study_rule, so a registry
+    # owner override (config/registry_overrides.yaml, e.g. PRJNA50637 → other_site at R2026.14) removes a study from the scope
+    if a.registry_studies:
+        rr = reg[reg.study_accession.isin(studies.study_accession)]
+        if "release_retired" in rr.columns:
+            rr = rr[rr.release_retired.isna()]
+        ok = (rr.host_human.isin(["yes", "mixed"]) & rr.assay.isin(["shotgun_dna", "mixed"])
+              & rr.body_sites.fillna("").str.contains(r"(?:^|;)gut_stool(?:;|$)")) | (rr.in_infant_catalog == "include")
+        dropped = sorted(set(studies.study_accession) - set(rr.loc[ok, "study_accession"]))
+        if dropped:
+            print(f"study_rule: {len(dropped)} leaf-listed studies fail the pack study_rule on the current registry and are dropped: {dropped[:20]}", file=sys.stderr)
+            studies = studies[~studies.study_accession.isin(dropped)].copy()
     gut_acc = set(studies.study_accession)
     infant_acc = set(studies.loc[studies.in_infant_catalog == "include", "study_accession"]) if "in_infant_catalog" in studies.columns else set()
 

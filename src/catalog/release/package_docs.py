@@ -350,7 +350,7 @@ def update_docs_registry(pkg: str, package_version: str, release_id: str, counts
          "any age, classified at STUDY level from ENA study/sample/run metadata (no paper reading). Enumeration slices: S1 `library_source=METAGENOMIC` ×",
          "`WGS|WXS`; S2 misfiled `GENOMIC` on verified human-metagenome taxa; S3 `OTHER|Targeted-Capture|WGA` adjudication (per-slice completeness in",
          "`registry_universe_audit.csv`). Classification stages: `deterministic_prior` (infant-universe verdict carried over), `deterministic_rule`,",
-         "`sonnet_x2` (two rubric replicates agree), `opus_adjudicated` (replicates disagreed → adjudication), `pending`. Vocabularies: the pipeline's",
+         "`sonnet_x2` (two rubric replicates agree), `opus_adjudicated` (replicates disagreed → adjudication), `owner_decision` (study-level owner override, config/registry_overrides.yaml), `pending`. Vocabularies: the pipeline's",
          "`config/vocab/{body_sites,life_stages,assay,population_flags}.yaml`; scope rules: `config/scope.yaml`. The curated infant catalog is the scope",
          "`infant_gut` inside this registry (`in_infant_catalog` mirrors `universe_studies_all.triage_verdict`). The run-level table `registry_runs.parquet`",
          "(all runs of the universe, 46 ENA fields + `found_by`) is attached to the GitHub Release of the data repository as `registry_runs_v<version>.parquet`",

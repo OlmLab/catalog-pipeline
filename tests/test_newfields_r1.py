@@ -29,9 +29,9 @@ DATE_OK = [
 ]
 DATE_REJECT = [
     "missing", "not collected", "not applicable", "restricted access", "NA", "N/A", "unknown", "0", "1900-01-01", "missing: data agreement established pre-2023",
-    "missing: control sample", "not provided", "-", "", None, "1985", "1984/1985", "1905-07-13", "2225", "2019-02-30", "2021-13", "2019-13-01", "2020-04-01/2020-01-22",
+    "missing: control sample", "not provided", "-", "", None, "1975", "1974/1975", "1905-07-13", "2225", "2019-02-30", "2021-13", "2019-13-01", "2020-04-01/2020-01-22",
     "2022-11-18/2021-06-01", "stock", "22", "abc", "13/13/2019", "2019-00-01", "2019-01-00", "1975-07-20/1975-10-20", "0000", "none", "Not Applicable",
-    "not determined", "unk", "n/a", "1989", "1900", "NaN", "2027",
+    "not determined", "unk", "n/a", "1979", "1900", "NaN", "2027",
 ]
 
 

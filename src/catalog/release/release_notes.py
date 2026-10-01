@@ -102,8 +102,22 @@ def build(prev: str, new: str, cfg: dict | None = None, cycle_log: str | None = 
 
     # ---- studies / samples
     def keys(pkg, f, k):
+        """Current keys of a fact table: rows with release_retired set (bitemporal carry, 1.3.0+) are not members any more."""
         p = os.path.join(pkg, f)
-        return set(pd.read_parquet(p, columns=[k])[k].astype(str)) if os.path.exists(p) else set()
+        if not os.path.exists(p):
+            return set()
+        cols = pq.ParquetFile(p).schema.names
+        d = pd.read_parquet(p, columns=[k] + (["release_retired"] if "release_retired" in cols else []))
+        if "release_retired" in d.columns:
+            d = d[d.release_retired.isna()]
+        return set(d[k].astype(str))
+
+    def _current(p, cols):
+        have = set(pq.ParquetFile(p).schema.names)
+        d = pd.read_parquet(p, columns=[c for c in cols if c in have] + (["release_retired"] if "release_retired" in have else []))
+        if "release_retired" in d.columns:
+            d = d[d.release_retired.isna()].drop(columns=["release_retired"])
+        return d
 
     # ---- catalog (gut_*, all ages) and registry — first when the tables exist (1.8.0+)
     # coverage rows: the pack's core + key fields (config/packs/gut.yaml; 1.12.0) — a field absent from the previous package counts 0 there
@@ -119,8 +133,8 @@ def build(prev: str, new: str, cfg: dict | None = None, cycle_log: str | None = 
         new_cols = set(pq.ParquetFile(gn).schema.names)
         CORE = [f for f in CORE if f in new_cols]
         prev_cols = set(pq.ParquetFile(gp).schema.names) if os.path.exists(gp) else set()
-        gwp = pd.read_parquet(gp, columns=["sample_key"] + [f for f in CORE if f in prev_cols]).reindex(columns=["sample_key"] + CORE) if os.path.exists(gp) else pd.DataFrame(columns=["sample_key"] + CORE)
-        gwn = pd.read_parquet(gn, columns=["sample_key"] + CORE)
+        gwp = _current(gp, ["sample_key"] + CORE).reindex(columns=["sample_key"] + CORE) if os.path.exists(gp) else pd.DataFrame(columns=["sample_key"] + CORE)
+        gwn = _current(gn, ["sample_key"] + CORE)
         grp, grn = os.path.join(prev, "gut_runs.parquet"), os.path.join(new, "gut_runs.parquet")
         n_runs_prev = pq.ParquetFile(grp).metadata.num_rows if os.path.exists(grp) else 0
         n_runs_new = pq.ParquetFile(grn).metadata.num_rows if os.path.exists(grn) else 0
