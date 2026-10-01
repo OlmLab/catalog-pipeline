@@ -40,7 +40,9 @@ async function init() {
     }
     conn = await db.connect();
     await conn.query(`CREATE VIEW s AS SELECT * FROM read_parquet('samples.parquet')`);
-    await conn.query(`CREATE VIEW st AS SELECT study_accession, study_title FROM read_parquet('studies.parquet')`);
+    // R2026.15: study-level interventions (gut_studies.interventions, ';'-joined codes) join the explorer through `st`
+    const stCols = new Set((await conn.query(`DESCRIBE SELECT * FROM read_parquet('studies.parquet')`)).toArray().map(r => r.toJSON().column_name));
+    await conn.query(`CREATE VIEW st AS SELECT study_accession, study_title${stCols.has('interventions') ? ', interventions AS study_interventions' : ", NULL::VARCHAR AS study_interventions"} FROM read_parquet('studies.parquet')`);
     COLS = new Set((await conn.query(`DESCRIBE s`)).toArray().map(r => r.toJSON().column_name));
     for (const el of document.querySelectorAll('[data-field], [data-text], [data-year]')) {   // filters for columns this package does not carry are hidden
       const col = el.dataset.field || el.dataset.text || (el.dataset.year ? 'collection_date' : null);
@@ -77,6 +79,12 @@ function whereClause() {
     if (y0) w.push(`TRY_CAST(substr(s.collection_date, 1, 4) AS INTEGER) >= ${parseInt(y0)}`);
     if (y1) w.push(`TRY_CAST(substr(s.collection_date, 1, 4) AS INTEGER) <= ${parseInt(y1)}`);
   }
+  const iv = $('f-study_intervention') ? $('f-study_intervention').value : '';
+  if (iv === '__none__') w.push(`coalesce(st.study_interventions, '') = ''`);
+  else if (iv === '__any__') w.push(`coalesce(st.study_interventions, '') <> ''`);
+  else if (iv) w.push(`list_contains(string_split(coalesce(st.study_interventions, ''), ';'), '${esc(iv)}')`);
+  const sv = $('f-sample_intervention') ? $('f-sample_intervention').value : '';
+  if (sv && COLS.has('intervention')) w.push(sv === '__null__' ? `s.intervention IS NULL` : `list_contains(string_split(coalesce(s.intervention, ''), ';'), '${esc(sv)}')`);
   if ($('f-infant').checked) w.push(`s.infant_scope`);
   if ($('f-has_age').checked) w.push(`s.age_at_collection_days IS NOT NULL`);
   if ($('f-has_subject').checked) w.push(`s.subject_id IS NOT NULL`);
@@ -115,7 +123,7 @@ const FROM = 'FROM s LEFT JOIN st USING (study_accession)';
 function writeUrl() {
   const p = new URLSearchParams();
   if ($('f-q').value.trim()) p.set('q', $('f-q').value.trim());
-  for (const sel of document.querySelectorAll('select[data-field], input[data-text], input[data-year]')) if (sel.value && !sel.disabled) p.set(sel.id.replace(/^f-/, ''), sel.value);
+  for (const sel of document.querySelectorAll('select[data-field], select[data-url], input[data-text], input[data-year]')) if (sel.value && !sel.disabled) p.set(sel.id.replace(/^f-/, ''), sel.value);
   if ($('f-infant').checked) p.set('infant', '1'); if ($('f-has_age').checked) p.set('has_age', '1'); if ($('f-has_subject').checked) p.set('has_subject', '1');
   if ($('f-min_fields').value !== '') p.set('min_fields', $('f-min_fields').value);
   if (page) p.set('page', page + 1);
@@ -128,7 +136,7 @@ function readUrl() {
   const p = new URLSearchParams(location.search);
   if (p.get('q')) $('f-q').value = p.get('q');
   if (p.get('study')) $('f-q').value = p.get('study');
-  for (const sel of document.querySelectorAll('select[data-field], input[data-text], input[data-year]')) { const v = p.get(sel.id.replace(/^f-/, '')); if (v) sel.value = v; }
+  for (const sel of document.querySelectorAll('select[data-field], select[data-url], input[data-text], input[data-year]')) { const v = p.get(sel.id.replace(/^f-/, '')); if (v) sel.value = v; }
   if (p.get('infant')) $('f-infant').checked = true; if (p.get('has_age')) $('f-has_age').checked = true; if (p.get('has_subject')) $('f-has_subject').checked = true;
   if (p.get('min_fields')) $('f-min_fields').value = p.get('min_fields');
   if (p.get('page')) page = Math.max(0, parseInt(p.get('page')) - 1);

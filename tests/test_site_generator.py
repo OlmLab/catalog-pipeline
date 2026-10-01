@@ -148,10 +148,12 @@ def _all_html(site):
 def test_nav_order_and_about(site_new):
     html = _html(site_new, 'index.html')
     nav = html[html.index('<nav class="topnav">'):html.index('</nav>')]
-    labels = [m.group(2) for m in re.finditer(r'<a ([^>]*)>([^<]+)</a>', nav) if 'class="brand"' not in m.group(1)]
-    assert labels == ['Home', 'Studies', 'Samples', 'Cohorts', 'Collections', 'Atlas', 'Authors', 'Registry', 'Downloads', 'Contribute', 'About']
-    for bad in ('Scope', 'Methods', 'Sources', 'Releases', 'Fields'):
-        assert f'>{bad}</a>' not in nav
+    # R2026.15: grouped drop-down navigation (owner review 2026-10-01)
+    top = re.findall(r'(?:<a href="[^"]*" [^>]*>([^<]+)</a>|<button type="button" class="navbtn"[^>]*>([^<]+?) <span)', nav)
+    assert [a or b for a, b in top] == ['Home', 'Browse', 'Insights', 'Registry', 'Data', 'About']
+    items = re.findall(r'role="menuitem" href="([^"]+)"', nav)
+    for page in ('studies/index.html', 'samples/index.html', 'atlas/index.html', 'atlas/pca.html', 'downloads/index.html', 'contribute/index.html', 'about/methods.html', 'fields/index.html'):
+        assert page in items, page
     about = _html(site_new, 'about/index.html')
     lead = htmlmod.unescape(about[about.index('<p class="lead">'):about.index('</p>', about.index('<p class="lead">'))])
     a = SITE_CFG['about']
@@ -236,7 +238,7 @@ def test_study_page_sections(site_new):
     cov_fields = re.findall(r'<span class="tag tier-(core|key|infant)">[^<]*</span></td><td><a class="mono" href="../fields/index.html#([a-z_]+)">', t)
     assert [f for tier, f in cov_fields if tier == 'core'] == CORE
     # key fields whose column the synthetic package does not carry (diet, smoking_status, medication, stool_consistency_bristol …) are omitted by design
-    assert [f for tier, f in cov_fields if tier == 'key'] == [f for f in KEY if f in ('detailed_location', 'lifestyle', 'collection_date', 'antibiotic_exposure', 'bmi', 'timepoint_label')]
+    assert [f for tier, f in cov_fields if tier == 'key'] == [f for f in KEY if f in ('age_at_collection_days', 'sex', 'detailed_location', 'lifestyle', 'collection_date', 'antibiotic_exposure', 'bmi', 'timepoint_label')]
     # sequencing block from gut_runs.parquet
     runs = pd.read_parquet(site_new / 'data' / 'package' / 'gut_runs.parquet')
     g = runs[runs.study_accession == 'PRJTEST000001']
@@ -263,7 +265,7 @@ def test_archive_url_helper():
 def test_contribute_worklist_uses_pack_core_fields(site_new):
     wl = json.loads((site_new / 'data' / 'contribute_worklist.json').read_text())
     assert [r['acc'] for r in wl] == ['PRJTEST000001']
-    assert set(wl[0]['missing']) == {'age_at_collection_days', 'country', 'health_condition'} and set(wl[0]['missing']) <= set(CORE)
+    assert set(wl[0]['missing']) <= set(CORE) and 'country' in wl[0]['missing'] and 'health_condition' in wl[0]['missing']   # R2026.15: core = age_category, country, health_condition, subject_id
     assert set(wl[0]['coverage']) == set(CORE)
     page = _html(site_new, 'contribute/index.html')
     assert f'of the {len(CORE)} core fields' in page and all(f'<span class="mono">{f}</span>' in page for f in CORE)
@@ -317,7 +319,7 @@ def test_links_resolve_and_explorer_contract(site_new, site_old):
     authors = _html(site_new, 'authors/index.html')
     assert 'Most-linked' not in authors and 'studies_index.json' in authors and 'scard' in authors
     sidx = json.loads((site_new / 'data' / 'studies_index.json').read_text())
-    assert {'a', 't', 'n', 'co', 'hc', 'y', 'gb', 'nr'} <= set(sidx[0])
+    assert {'a', 't', 'n', 'co', 'hc', 'y', 'gs', 'iv'} <= set(sidx[0]) and not ({'d', 'ca', 'ch', 'cc', 'nr', 'gb'} & set(sidx[0]))   # R2026.15 narrow table
 
 
 def test_issue_template_and_config():

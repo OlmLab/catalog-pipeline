@@ -5,8 +5,10 @@
 const DUCKDB_URL = 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
 const CFG = window.REGISTRY_CFG;
 const PAGE = 50;
-const SHOW_COLS = ['study_accession', 'study_title', 'n_runs', 'n_samples', 'body_sites', 'life_stages', 'assay', 'classification_stage', 'ena'];
-const SORTABLE = new Set(['study_accession', 'study_title', 'n_runs', 'n_samples', 'assay', 'classification_stage', 'body_site_primary', 'life_stage_primary', 'first_public_min']);
+// owner review 2026-10-01: the first column says whether a study is in the curated catalog; samples only (no run counts)
+const SHOW_COLS = ['in_catalog', 'study_accession', 'study_title', 'n_samples', 'body_sites', 'life_stages', 'assay', 'classification_stage'];
+const COL_LABELS = {in_catalog: 'Catalog', study_accession: 'study', study_title: 'title', n_samples: 'samples', body_sites: 'body sites', life_stages: 'life stages', classification_stage: 'classified by'};
+const SORTABLE = new Set(['study_accession', 'study_title', 'n_samples', 'assay', 'classification_stage', 'body_site_primary', 'life_stage_primary', 'first_public_min']);
 const LIST_COLS = ['body_sites', 'life_stages', 'scope_memberships', 'population_flags'];
 const EVIDENCE_COLS = [['host_evidence', 'host_human'], ['body_site_evidence', 'body_sites'], ['life_stage_evidence', 'life_stages']];
 const $ = id => document.getElementById(id);
@@ -70,8 +72,10 @@ function whereClause() {
   }
   const hosts = hostValues();   // item 2: default = human studies (yes + mixed); checkboxes add unknown / no
   if (hosts.length && hosts.length < HOST_ALL.length) w.push(`host_human IN (${hosts.map(x => `'${esc(x)}'`).join(', ')})`);
-  const mr = $('f-min_runs').value; if (mr !== '') w.push(`n_runs >= ${parseInt(mr)}`);
-  if ($('f-catalog') && $('f-catalog').checked) w.push(`study_accession IN (SELECT study_accession FROM catalog_studies)`);
+  const ms = $('f-min_samples').value; if (ms !== '') w.push(`n_samples >= ${parseInt(ms)}`);
+  const cv = $('f-catalog') ? $('f-catalog').value : '';
+  if (cv === 'in') w.push(`study_accession IN (SELECT study_accession FROM catalog_studies)`);
+  if (cv === 'out') w.push(`study_accession NOT IN (SELECT study_accession FROM catalog_studies)`);
   return w.length ? 'WHERE ' + w.join(' AND ') : '';
 }
 
@@ -84,8 +88,8 @@ function writeUrl() {
   const hv = hostValues(); if (hv.join(',') !== HOST_DEFAULT.join(',')) p.set('host', hv.join(','));
   if ($('f-q').value.trim()) p.set('q', $('f-q').value.trim());
   for (const sel of document.querySelectorAll('select[data-list], select[data-field]')) if (sel.value) p.set(sel.id.replace(/^f-/, ''), sel.value);
-  if ($('f-min_runs').value !== '') p.set('min_runs', $('f-min_runs').value);
-  if ($('f-catalog') && $('f-catalog').checked) p.set('catalog', '1');
+  if ($('f-min_samples').value !== '') p.set('min_samples', $('f-min_samples').value);
+  if ($('f-catalog') && $('f-catalog').value) p.set('catalog', $('f-catalog').value);
   if (page) p.set('page', page + 1);
   if (sortCol !== 'n_samples' || sortDir !== 'DESC') p.set('sort', sortCol + ':' + sortDir);
   const keep = new URLSearchParams(location.search).get('study'); if (keep && $('detail').classList.contains('open')) p.set('study', keep);
@@ -95,10 +99,10 @@ function readUrl() {
   const p = new URLSearchParams(location.search);
   if (p.get('q')) $('f-q').value = p.get('q');
   for (const sel of document.querySelectorAll('select[data-list], select[data-field]')) { const v = p.get(sel.id.replace(/^f-/, '')); if (v) sel.value = v; }
-  if (p.get('min_runs')) $('f-min_runs').value = p.get('min_runs');
+  if (p.get('min_samples')) $('f-min_samples').value = p.get('min_samples');
   if (p.get('host')) setHost(p.get('host').split(',').filter(v => HOST_ALL.includes(v)));
   else if (p.get('host_human') && HOST_ALL.includes(p.get('host_human'))) setHost([p.get('host_human')]);   // old links with the former select
-  if (p.get('catalog') && $('f-catalog')) $('f-catalog').checked = true;
+  if (p.get('catalog') && $('f-catalog')) $('f-catalog').value = (p.get('catalog') === '1' ? 'in' : p.get('catalog'));   // catalog=1 (≤ 1.13) = in
   if (p.get('page')) page = Math.max(0, parseInt(p.get('page')) - 1);
   if (p.get('sort')) { const [c, d] = p.get('sort').split(':'); if (SORTABLE.has(c)) { sortCol = c; sortDir = d === 'ASC' ? 'ASC' : 'DESC'; } }
 }
@@ -112,21 +116,21 @@ function accLink(acc, verdict) {
 async function run() {
   const where = whereClause();
   $('count').textContent = 'counting…';
-  const c = await conn.query(`SELECT COUNT(*) AS n, COALESCE(SUM(n_runs),0) AS r FROM registry ${where}`);
+  const c = await conn.query(`SELECT COUNT(*) AS n, COALESCE(SUM(n_samples),0) AS r, COUNT(*) FILTER (WHERE study_accession IN (SELECT study_accession FROM catalog_studies)) AS nc FROM registry ${where}`);
   const c0 = c.toArray()[0].toJSON(); total = Number(c0.n);
   const maxPage = Math.max(0, Math.ceil(total / PAGE) - 1); if (page > maxPage) page = maxPage;
-  const r = await conn.query(`SELECT study_accession, study_title, n_runs, n_samples, body_sites, life_stages, assay, classification_stage, in_infant_catalog FROM registry ${where} ORDER BY "${sortCol}" ${sortDir} NULLS LAST, study_accession LIMIT ${PAGE} OFFSET ${page * PAGE}`);
+  const r = await conn.query(`SELECT study_accession, study_title, n_samples, body_sites, life_stages, assay, classification_stage, in_infant_catalog FROM registry ${where} ORDER BY "${sortCol}" ${sortDir} NULLS LAST, study_accession LIMIT ${PAGE} OFFSET ${page * PAGE}`);
   const rows = r.toArray().map(x => x.toJSON());
   const thead = $('result-table').querySelector('thead'), tbody = $('result-table').querySelector('tbody');
   thead.innerHTML = '<tr>' + SHOW_COLS.map(col => SORTABLE.has(col)
     ? `<th data-col="${col}" tabindex="0" role="columnheader button" aria-sort="${col === sortCol ? (sortDir === 'ASC' ? 'ascending' : 'descending') : 'none'}" title="sort by ${col}" style="cursor:pointer">${col}${col === sortCol ? (sortDir === 'ASC' ? ' ▲' : ' ▼') : ''}</th>`
-    : `<th>${col === 'ena' ? 'link' : col}</th>`).join('') + '</tr>';
+    : `<th>${COL_LABELS[col] || col}</th>`).join('') + '</tr>';
   tbody.innerHTML = rows.map(row => `<tr data-key="${h(row.study_accession)}" tabindex="0" role="button" aria-label="open details for ${h(row.study_accession)}">` +
-    `<td>${accLink(row.study_accession, row.in_infant_catalog)}</td><td>${h(row.study_title)}</td><td class="num">${fmtV(row.n_runs)}</td><td class="num">${fmtV(row.n_samples)}</td>` +
-    `<td class="small">${h(row.body_sites)}</td><td class="small">${h(row.life_stages)}</td><td class="mono small">${h(row.assay)}</td><td>${stageBadge(row.classification_stage)}</td>` +
-    `<td><a class="small" href="${CFG.enaUrl}${h(row.study_accession)}">ENA</a></td></tr>`).join('');
+    `<td>${INCLUDED.has(row.study_accession) ? '<span class="tag incat" title="in the curated catalog (human gut, all ages) — study page with per-sample metadata">✓ in catalog</span>' : '<span class="small muted" title="registry only: classified, not curated">registry only</span>'}</td>` +
+    `<td>${accLink(row.study_accession, row.in_infant_catalog)}</td><td><span class="small clip" title="${h(row.study_title)}">${h(row.study_title)}</span></td><td class="num">${fmtV(row.n_samples)}</td>` +
+    `<td class="small">${h(row.body_sites)}</td><td class="small">${h(row.life_stages)}</td><td class="mono small">${h(row.assay)}</td><td>${stageBadge(row.classification_stage)}</td></tr>`).join('');
   const hv = hostValues(); const hostNote = hv.length && hv.length < HOST_ALL.length ? ` (host human: ${hv.join(', ')})` : '';
-  $('count').textContent = `${total.toLocaleString()} studies · ${Number(c0.r).toLocaleString()} runs match${hostNote}`;
+  $('count').textContent = `${total.toLocaleString()} studies (${Number(c0.nc).toLocaleString()} in the catalog) · ${Number(c0.r).toLocaleString()} samples match${hostNote}`;
   $('pageinfo').textContent = total ? `page ${page + 1} / ${maxPage + 1}` : '';
   $('prev').disabled = page <= 0; $('next').disabled = page >= maxPage;
   writeUrl();

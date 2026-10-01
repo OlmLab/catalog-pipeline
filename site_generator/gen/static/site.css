@@ -143,3 +143,20 @@ a.card.contribute-card{text-decoration:none;color:var(--ink);border-left-color:v
 .scards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.5rem;margin:.3rem 0 .8rem}
 a.card.scard{display:block;text-decoration:none;color:var(--ink);padding:.5rem .7rem}a.card.scard:hover{border-color:var(--cu-black)}
 @media (max-width:820px){.facet a.hbar{grid-template-columns:120px 1fr 56px}}
+
+/* R2026.15 grouped navigation: drop-down menus (hover, keyboard focus, or click/tap via site.js) */
+.topnav .navdd{position:relative}
+.topnav .navbtn{background:none;border:0;color:#fff;opacity:.92;font:inherit;padding:.25rem .3rem;border-radius:4px;cursor:pointer}
+.topnav .navbtn:hover,.topnav .navdd:focus-within .navbtn{opacity:1;background:rgba(207,184,124,.25)}
+.topnav .navdd.active>.navbtn{background:var(--cu-gold);color:var(--cu-black);opacity:1}
+.topnav .navmenu{display:none;position:absolute;left:0;top:100%;min-width:15rem;background:var(--cu-black);border:1px solid #333;border-top:3px solid var(--cu-gold);border-radius:0 0 6px 6px;padding:.3rem 0;z-index:30;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.topnav .navmenu a{display:block;padding:.35rem .8rem;border-radius:0;white-space:nowrap}
+.topnav .navmenu a.active{background:rgba(207,184,124,.35);color:#fff}
+.topnav .navdd:hover .navmenu,.topnav .navdd:focus-within .navmenu,.topnav .navdd.open .navmenu{display:block}
+@media (max-width:700px){.topnav .navmenu{position:static;box-shadow:none;border:0;min-width:0}}
+
+/* Studies / registry tables: clipped titles (full title on hover) */
+.clip{display:inline-block;max-width:26rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+@media (max-width:1100px){.clip{max-width:16rem}}
+.tag.incat{background:var(--cu-gold);color:var(--cu-black);font-weight:600;white-space:nowrap}
+.muted{color:var(--muted)}

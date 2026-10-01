@@ -296,6 +296,50 @@ def resolve(det: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     return keep.drop(columns=["_rank"]), conflicts
 
 
+IV_STUDY_COLS = ["interventions", "interventions_unreplicated", "intervention_design", "intervention_detail", "population_condition",
+                 "intervention_evidence_source", "intervention_evidence_quote", "intervention_confidence", "intervention_route", "intervention_determined_by"]
+
+
+def load_intervention_studies(pattern):
+    """Study-level intervention classification (R2026.15 leaves, gut_intervention_studies_shard_*.parquet): one row per study with
+    interventions (';'-joined sorted codes, '' = none administered), design, detail, population_condition and one evidence quote."""
+    if not pattern:
+        return None
+    files = sorted(glob.glob(pattern))
+    if not files:
+        return None
+    d = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True).drop_duplicates("study_accession", keep="last")
+    d = d.rename(columns={"evidence_source": "intervention_evidence_source", "evidence_quote": "intervention_evidence_quote", "confidence": "intervention_confidence",
+                          "route": "intervention_route", "determined_by": "intervention_determined_by"})
+    for c in IV_STUDY_COLS:
+        if c not in d.columns:
+            d[c] = None
+    d["interventions"] = d["interventions"].fillna("").astype(str)
+    # no evidence quote is shown for a study with nothing administered
+    none = d["interventions"] == ""
+    d.loc[none, ["intervention_evidence_quote", "intervention_evidence_source"]] = None
+    return d[["study_accession"] + IV_STUDY_COLS]
+
+
+def recode_intervention_cohort(det, iv, rid, pv):
+    """health_condition = intervention_cohort was a placeholder for 'trial population'; with the study-level intervention table the
+    population's underlying condition is known (e.g. ulcerative_colitis for a UC FMT trial, healthy_control for healthy volunteers).
+    All rows of such a study are recoded to population_condition (per-sample arm information lives in the `intervention` field)."""
+    if iv is None or det.empty:
+        return det, 0
+    pc = iv.set_index("study_accession").population_condition.dropna()
+    pc = pc[~pc.isin(["unknown", "intervention_cohort", ""])]
+    # every route: intervention_cohort is not a condition (R1 values came from arm / treatment-group attributes, which now feed the
+    # `intervention` field); studies whose population condition is unknown keep the legacy code
+    m = (det.field_name == "health_condition") & (det.value_normalized == "intervention_cohort") & det.study_accession.isin(pc.index)
+    if not m.any():
+        return det, 0
+    det = det.copy()
+    det.loc[m, "value_normalized"] = det.loc[m, "study_accession"].map(pc)
+    det.loc[m, "parse_note"] = (det.loc[m, "parse_note"].fillna("").astype(str) + "; recoded from intervention_cohort to the trial population's condition (gut_intervention_r4_v1)").str.lstrip("; ")
+    return det, int(m.sum())
+
+
 def expand_study_all(det_sample: pd.DataFrame, det_study: pd.DataFrame, samples: pd.DataFrame) -> pd.DataFrame:
     """study_all statements → one row per study sample lacking a sample-level value for that field."""
     if det_study.empty:
@@ -360,7 +404,7 @@ def build(a):
 
     # ---- determinations
     parts = [pd.DataFrame(rows_from_registry_biosamples(bio, rid, pv), columns=DET_COLS), load_any(a.r1), load_any(a.r1_extra), load_any(getattr(a, "r1_newfields", None)),
-             load_any(getattr(a, "r1_newfields_v2", None)), load_any(a.r2_glob), load_any(a.r3_glob), load_any(a.r4_glob)]
+             load_any(getattr(a, "r1_newfields_v2", None)), load_any(getattr(a, "r1_interventions", None)), load_any(a.r2_glob), load_any(a.r3_glob), load_any(a.r4_glob)]
     det0 = pd.read_parquet(os.path.join(a.package, "sample_determinations.parquet"))
     det0 = det0[det0.study_accession.isin(infant_acc) & det0.field_name.isin(PACK_FIELDS + INFANT_ONLY)]
     if "release_retired" in det0.columns:
@@ -382,7 +426,10 @@ def build(a):
     det = det[pd.Series(ok_route, index=det.index)]
     # data-quality corrections (dq_corrections.parquet from the adjudication leaf; R2026.13): action retire = drop the matching rows
     # (sample_key or whole study × field × old_value), recode = drop them and add a row with the new value and the adjudication evidence
+    iv_study = load_intervention_studies(getattr(a, "interventions_study", None))
+    det, n_iv_recode = recode_intervention_cohort(det, iv_study, rid, pv)
     det, n_corr = apply_corrections(det, getattr(a, "corrections", None), rid, pv)
+    n_corr["intervention_cohort_recoded"] = n_iv_recode
     det_study = det[det.scope == "study_all"]
     det_sample = det[det.scope != "study_all"]
     det_sample = det_sample[det_sample.sample_key.isin(set(samples.sample_key))]
@@ -460,19 +507,27 @@ def build(a):
     w["infant_scope"] = is_inf & inf_scope0 & w.body_site_class.isin(["primary", "unknown"])
     # n_fields_with_value counts the CORE + KEY fields (owner tiers, 2026-09-29); detailed_location counts through its derived column
     tier_cols = [f for f in pf["core"] + pf["key"] if f in w.columns]
-    w["n_fields_with_value"] = w[tier_cols].notna().sum(axis=1)
+    # age_category is never null ('unknown' = not covered), so it is masked before counting (R2026.15: core age = life stage)
+    _tc = w[tier_cols].copy()
+    if "age_category" in _tc.columns:
+        _tc["age_category"] = _tc["age_category"].where(_tc["age_category"].fillna("unknown") != "unknown")
+    w["n_fields_with_value"] = _tc.notna().sum(axis=1)
     w["release_added"], w["release_retired"], w["package_added"] = rid, None, pv
     w = w.reset_index()
 
     # ---- studies
     g = w.groupby("study_accession")
     cov = pd.DataFrame({f"cov_{f}": g[f].apply(lambda s: round(float(s.notna().mean()), 3)) for f in PACK_FIELDS})
+    cov["cov_age_category"] = g.age_category.apply(lambda s: round(float((s.fillna("unknown") != "unknown").mean()), 3))   # core age (life stage)
     gs = studies.set_index("study_accession").join(cov, how="left")
     gs["n_samples_curated"] = g.size()
     gs["age_categories"] = g.age_category.apply(lambda s: json.dumps(s.value_counts().to_dict()))
     gs["health_conditions"] = g.health_condition.apply(lambda s: json.dumps(s.dropna().value_counts().head(6).to_dict()))
     gs["curated_depth"] = det_all.groupby("study_accession").route.apply(lambda s: ";".join(sorted(set(s))))
     gs["curated_source"] = ["infant_catalog" if x in infant_acc else SRC for x in gs.index]
+    if iv_study is not None:
+        gs = gs.join(iv_study.set_index("study_accession")[IV_STUDY_COLS], how="left")
+        gs["interventions"] = gs["interventions"].fillna("")
     # ---- runs (gut_runs.parquet, 1.12.0) + study sequencing summary
     gut_runs = None
     if getattr(a, "registry_runs", None) and os.path.exists(a.registry_runs):
@@ -533,6 +588,8 @@ def main(argv=None) -> int:
     ap.add_argument("--r1"), ap.add_argument("--r1-extra", help="additional R1 determination files (glob), e.g. the condition/antibiotic expansion"),
     ap.add_argument("--corrections", help="dq_corrections.parquet (retire / recode rows decided by the data-quality adjudication; R2026.13)"),
     ap.add_argument("--r1-newfields", help="R1 determinations of the 1.12.0 fields (collection_date, location_*, latitude/longitude, lifestyle) from catalog.scopes.newfields_r1"),
+    ap.add_argument("--r1-interventions", help="R1 per-sample intervention arms (gut_r1_intervention_determinations.parquet, R2026.15)")
+    ap.add_argument("--interventions-study", help="glob of study-level intervention classification shards (gut_intervention_studies_shard_*.parquet, R2026.15)")
     ap.add_argument("--r1-newfields-v2", help="R1 determinations of the 1.13.0 fields (diet, smoking_status, medication, stool_consistency_bristol) from catalog.scopes.newfields_r1_v2"),
     ap.add_argument("--registry-runs", help="registry_runs.parquet → gut_runs.parquet + study sequencing summary columns"), ap.add_argument("--registry-sandpiper", help="registry_runs_sandpiper.parquet (sandpiper_profiled per run)"), ap.add_argument("--r2-glob"), ap.add_argument("--r3-glob", help="R3 full-text study_all determinations (glob)"), ap.add_argument("--r4-glob"), ap.add_argument("--condition-map"), ap.add_argument("--antibiotic-map")
     ap.add_argument("--out", required=True), ap.add_argument("--summary"), ap.add_argument("--release-id", default="R2026.7"), ap.add_argument("--package-version", default="1.8.0")

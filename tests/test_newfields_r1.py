@@ -195,13 +195,13 @@ def test_pack_fields_from_config():
         assert f in pf["fields"]
     assert "detailed_location" in pf["compose"] and pf["compose"]["detailed_location"]["compose"] == ["location_site", "location_locality", "location_region"]
     assert pf["year_of"] == {"collection_year": "collection_date"}
-    assert pf["core"] == ["age_at_collection_days", "sex", "country", "health_condition", "subject_id"]
+    assert pf["core"] == ["age_category", "country", "health_condition", "subject_id"]   # R2026.15: core age = life stage
     assert "detailed_location" in pf["key"] and "lifestyle" in pf["key"] and "collection_date" in pf["key"]
     assert set(pf["infant_only"]) >= {"delivery_mode", "feeding_mode", "nec_status"}
     # 1.13.0: the pack also declares diet / smoking_status (vocab), medication (vocab_list) and stool_consistency_bristol (int 1-7)
     assert {k: pf["vocab"][k] for k in ("health_condition", "lifestyle")} == {"health_condition": "config/vocab/health_conditions.yaml", "lifestyle": "config/vocab/lifestyle.yaml"}
     assert pf["vocab"]["diet"] == "config/vocab/diet.yaml" and pf["vocab"]["smoking_status"] == "config/vocab/smoking.yaml"
-    assert pf["vocab_list"] == {"medication": "config/vocab/medication.yaml"} and pf["int_range"] == {"stool_consistency_bristol": (1, 7)}
+    assert pf["vocab_list"] == {"medication": "config/vocab/medication.yaml", "intervention": "config/vocab/interventions.yaml"} and pf["int_range"] == {"stool_consistency_bristol": (1, 7)}
     assert "hunter_gatherer" in bgs.load_vocab_codes(CFG, pf["vocab"]["lifestyle"])
 
 

@@ -135,6 +135,9 @@ def build(prev: str, new: str, cfg: dict | None = None, cycle_log: str | None = 
         prev_cols = set(pq.ParquetFile(gp).schema.names) if os.path.exists(gp) else set()
         gwp = _current(gp, ["sample_key"] + CORE).reindex(columns=["sample_key"] + CORE) if os.path.exists(gp) else pd.DataFrame(columns=["sample_key"] + CORE)
         gwn = _current(gn, ["sample_key"] + CORE)
+        for _d in (gwp, gwn):   # age_category: 'unknown' = not covered
+            if "age_category" in _d.columns:
+                _d["age_category"] = _d["age_category"].where(_d["age_category"].fillna("unknown") != "unknown")
         grp, grn = os.path.join(prev, "gut_runs.parquet"), os.path.join(new, "gut_runs.parquet")
         n_runs_prev = pq.ParquetFile(grp).metadata.num_rows if os.path.exists(grp) else 0
         n_runs_new = pq.ParquetFile(grn).metadata.num_rows if os.path.exists(grn) else 0

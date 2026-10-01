@@ -19,8 +19,8 @@
   <span class="lbl">Host human <span class="small">(default: human studies = yes + mixed)</span></span>
   <div><label class="chk"><input type="checkbox" id="f-host_yes" checked> yes</label><label class="chk"><input type="checkbox" id="f-host_mixed" checked> mixed</label><label class="chk"><input type="checkbox" id="f-host_unknown"> include unknown</label><label class="chk"><input type="checkbox" id="f-host_no"> include no (non-human)</label></div>
   <label for="f-classification_stage">Classification stage</label><select id="f-classification_stage" data-field="classification_stage"><option value="">(any)</option>{% for v in vocab.classification_stage %}<option>{{ v }}</option>{% endfor %}</select>
-  <label><input type="checkbox" id="f-catalog"> catalog studies only <span class="small">(human gut, all ages)</span></label>
-  <label for="f-min_runs">Minimum runs</label><input id="f-min_runs" type="number" min="0" placeholder="e.g. 50">
+  <label for="f-catalog">Catalog</label><select id="f-catalog"><option value="">all registry studies</option><option value="in">in the catalog (human gut, curated)</option><option value="out">registry only (not curated)</option></select>
+  <label for="f-min_samples">Minimum samples</label><input id="f-min_samples" type="number" min="0" placeholder="e.g. 50">
   <div class="btns"><button class="btn" id="apply">Apply</button><button class="btn sec" id="reset">Reset</button></div>
 </aside>
 <section>

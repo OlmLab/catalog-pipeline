@@ -5,8 +5,8 @@ Tiers on the site: the REGISTRY (registry_studies.parquet: every ENA shotgun-met
 BioProjects from ENA / NCBI SRA / DDBJ — classified for human host, body site, life stage, assay, access; the headline number is
 the HUMAN count, host_human in {yes, mixed}) and the CATALOG = the curated gut_all scope (gut_studies / gut_sample_metadata_wide /
 gut_sample_determinations: every human gut shotgun study, all ages, per-sample evidence-linked metadata). Navigation (NAV):
-Home · Studies · Samples · Cohorts · Collections · Atlas · Authors · Registry · Downloads · Contribute · About; Scope, Methods
-and Sources live under about/, Downloads and Releases are one page, old URLs redirect (REDIRECTS). Field tiers (core / key /
+Home · Browse ▾ (Studies, Samples, Cohorts, Collections, Authors) · Insights ▾ (Atlas) · Registry · Data ▾ (Downloads, Contribute) ·
+About ▾ (Overview, Scope, Methods, Fields, Sources); Scope, Methods and Sources live under about/, Downloads and Releases are one page, old URLs redirect (REDIRECTS). Field tiers (core / key /
 infant extension) come from config/packs/gut.yaml; columns the package does not carry yet are omitted, never shown as 0 %.
 The former infant-only tables remain in the package as the infant extension and surface only as fields.
 
@@ -28,7 +28,7 @@ import yaml
 HERE = Path(__file__).resolve().parent
 ROUTES = ['R1', 'R2', 'R3', 'R4']
 ROUTE_LABELS = {'R1': 'archive attribute', 'R2': 'supplementary table', 'R3': 'paper full text', 'R4': 'abstract / description'}
-LABELS = {'age_at_collection_days': 'Age at collection (days)', 'sex': 'Sex', 'bmi': 'BMI', 'country': 'Country', 'health_condition': 'Health condition',
+LABELS = {'age_category': 'Age (exact or life stage)', 'age_at_collection_days': 'Age at collection (days, exact)', 'intervention': 'Intervention (sample arm)', 'interventions': 'Interventions (study)', 'sex': 'Sex', 'bmi': 'BMI', 'country': 'Country', 'health_condition': 'Health condition',
           'health_condition_detail': 'Health condition (detail)', 'antibiotic_exposure': 'Antibiotic exposure', 'subject_id': 'Subject id', 'timepoint_label': 'Timepoint label',
           'delivery_mode': 'Delivery mode', 'feeding_mode': 'Feeding mode', 'preterm_status': 'Preterm status', 'gestational_age_weeks': 'Gestational age (weeks)',
           'birth_weight_grams': 'Birth weight (g)', 'maternal_antibiotics': 'Maternal antibiotics', 'probiotic_exposure': 'Probiotic exposure',
@@ -111,10 +111,20 @@ FRAME_TOKEN_RE = re.compile(r'\s*\((?:frame|session)\s+[0-9a-f]{6,}[^)]*\)|\b(?:
 ORG_LEAK_RE = re.compile(r'SUB\d{6,}|@')
 # Field tiers are NOT hard-coded: config/packs/gut.yaml core_fields / key_fields / derived_fields (read_field_tiers). A study enters the
 # contribute worklist when >= CONTRIB_MIN_MISSING of the CORE fields are below the coverage threshold.
-CONTRIB_MIN_SAMPLES, CONTRIB_MIN_MISSING = 50, 3
-NAV = [('home', 'Home', 'index.html'), ('studies', 'Studies', 'studies/index.html'), ('samples', 'Samples', 'samples/index.html'), ('cohorts', 'Cohorts', 'cohorts/index.html'),
-       ('collections', 'Collections', 'collections/index.html'), ('atlas', 'Atlas', 'atlas/index.html'), ('authors', 'Authors', 'authors/index.html'),
-       ('registry', 'Registry', 'registry/index.html'), ('downloads', 'Downloads', 'downloads/index.html'), ('contribute', 'Contribute', 'contribute/index.html'), ('about', 'About', 'about/index.html')]
+CONTRIB_MIN_SAMPLES, CONTRIB_MIN_MISSING = 50, 2   # 2 of the 4 core fields (R2026.15: core age = life stage, sex is a key field; was 3 of 5)
+# Top navigation (owner review 2026-10-01: fewer tabs): (key, label, href, children). A group has href None and a list of
+# (key, label, href) children rendered as a drop-down; a page passes nav=<child key> and the parent group is highlighted.
+# Insights is the home of analysis pages (Atlas today; more later).
+NAV = [('home', 'Home', 'index.html', None),
+       ('browse', 'Browse', None, [('studies', 'Studies', 'studies/index.html'), ('samples', 'Samples', 'samples/index.html'),
+                                   ('cohorts', 'Cohorts', 'cohorts/index.html'), ('collections', 'Collections', 'collections/index.html'),
+                                   ('authors', 'Authors', 'authors/index.html')]),
+       ('insights', 'Insights', None, [('atlas', 'Atlas: taxon map', 'atlas/index.html'), ('atlas', 'Atlas: PCA of community profiles', 'atlas/pca.html'),
+                                       ('atlas', 'Atlas: observations', 'atlas/observations.html')]),
+       ('registry', 'Registry', 'registry/index.html', None),
+       ('data', 'Data', None, [('downloads', 'Downloads & releases', 'downloads/index.html'), ('contribute', 'Contribute metadata', 'contribute/index.html')]),
+       ('about', 'About', None, [('about', 'Overview', 'about/index.html'), ('about', 'Scope', 'about/scope.html'), ('about', 'Methods', 'about/methods.html'),
+                                 ('about', 'Fields & vocabularies', 'fields/index.html'), ('about', 'Sources & acknowledgements', 'about/sources.html')])]
 # Old URLs → new homes (item 5/6): every entry is written as a redirect stub so bookmarks keep working.
 REDIRECTS = {'scope.html': 'about/scope.html', 'methods.html': 'about/methods.html', 'sources.html': 'about/sources.html', 'downloads.html': 'downloads/index.html',
              'releases/index.html': '../downloads/index.html#releases', 'gut/index.html': '../samples/index.html', 'universe.html': 'about/scope.html'}
@@ -144,9 +154,11 @@ def read_field_tiers(pack):
 
 def field_series(df, f, derived):
     """Column f of the wide table, or the composed derived field (detailed_location = site, locality, region); None when absent."""
-    if f in df.columns:
-        return df[f]
     spec = derived.get(f) or {}
+    if f in df.columns:
+        if spec.get('life_stage'):   # age_category: 'unknown' means not covered
+            return df[f].where(df[f].fillna('unknown') != 'unknown', None)
+        return df[f]
     parts = [p for p in (spec.get('compose') or []) if p in df.columns]
     if parts:
         sep = spec.get('sep', ', ')
@@ -220,6 +232,31 @@ def ev_rows(v, limit=6):
     return [dict(source=str(x.get('source', '')), quote=str(x.get('quote', ''))) for x in (lst if isinstance(lst, list) else [])[:limit] if isinstance(x, dict)]
 
 
+def _top_key(v):
+    """top_country is stored as a JSON count map ({"United Kingdom": 12353}); the table shows the most frequent name (+N more)."""
+    if isnull(v) or v == '':
+        return ''
+    t = str(v)
+    if t.startswith('{'):
+        try:
+            d = json.loads(t)
+        except ValueError:
+            return t
+        if not d:
+            return ''
+        top = sorted(d.items(), key=lambda kv: (-kv[1], kv[0]))
+        return top[0][0] + (f' +{len(top) - 1}' if len(top) > 1 else '')
+    return t
+
+
+def _gbp_per_sample(g):
+    """Median Gbp per SAMPLE (bases summed over a sample's runs; lane / re-sequencing splits make per-run depth misleading)."""
+    if 'sample_key' not in g.columns:
+        return None
+    per = g.dropna(subset=['gbp']).groupby(g['sample_key'].fillna(g['run_accession']))['gbp'].sum()
+    return float(per.median()) if len(per) else None
+
+
 def gbp_stats(runs):
     """Item 11: per-study sequencing summary from gut_runs.parquet (base_count / 1e9 per run)."""
     r = runs.copy()
@@ -230,6 +267,7 @@ def gbp_stats(runs):
         gb = g['gbp'].dropna()
         out[acc] = dict(n_runs=int(len(g)), n_samples=int(g['sample_key'].nunique()) if 'sample_key' in g.columns else None,
                         gbp_mean=float(gb.mean()) if len(gb) else None, gbp_median=float(gb.median()) if len(gb) else None, gbp_total=float(gb.sum()) if len(gb) else None,
+                        gbp_per_sample=_gbp_per_sample(g),
                         n_with_bases=int(len(gb)), layouts=counts_sorted(g['library_layout'].dropna()), platforms=counts_sorted(g['instrument_platform'].dropna()),
                         models=counts_sorted(g['instrument_model'].dropna())[:6], sandpiper_share=float(g['sp'].mean()) if len(g) else None,
                         first_public=(str(g['first_public'].dropna().min())[:10] if g['first_public'].notna().any() else None, str(g['first_public'].dropna().max())[:10] if g['first_public'].notna().any() else None))
@@ -515,6 +553,7 @@ def main():
     age_cats = list(pack['age_categories'].keys()) + ['unknown']
     CORE_FIELDS, KEY_FIELDS, DERIVED, infant_fields = read_field_tiers(pack)
     CONTRIB_FIELDS = CORE_FIELDS
+    iv_voc = (yaml.safe_load((repo_root / 'config' / 'vocab' / 'interventions.yaml').read_text()) or {}).get('codes', {}) if (repo_root / 'config' / 'vocab' / 'interventions.yaml').exists() else {}
     all_fields = [f for f in list(pack['fields'].keys()) + [d for d in DERIVED if d not in pack['fields']] if f not in infant_fields] + infant_fields
     ls_path = repo_root / 'config' / 'vocab' / 'lifestyle.yaml'
     ls_labels = {k: (v.get('label', '') if isinstance(v, dict) else '') for k, v in (yaml.safe_load(ls_path.read_text(encoding='utf-8'))['codes'].items() if ls_path.exists() else {})}
@@ -892,11 +931,12 @@ def main():
         d['first_author'] = next((x['name'] for x in authors_by_study.get(d['study_accession'], []) if x['first']), (authors_by_study.get(d['study_accession']) or [{}])[0].get('name', '') if authors_by_study.get(d['study_accession']) else '')
         return d
     studies = [study_row(r) for r in cs.to_dict('records')]
-    sidx_rows = [dict(a=s['study_accession'], t=(s['study_title'] or '')[:160], n=int(s['n_samples_curated'] or 0), ag=s['ages_short'], hc=s['top_condition'], co=s.get('top_country') or '',
-                      d=s['curated_depth'] or '', ca=int(round(100 * float(s.get('cov_age_at_collection_days') or 0))), ch=int(round(100 * float(s.get('cov_health_condition') or 0))),
-                      cc=int(round(100 * float(s.get('cov_country') or 0))), ls=s.get('life_stage_primary') or '', src=s['curated_source'], fa=s['first_author'], p=s['n_papers'], y=(s.get('first_public_min') or '')[:4],
-                      gb=(round(seq_by_study[s['study_accession']]['gbp_mean'], 2) if seq_by_study.get(s['study_accession'], {}).get('gbp_mean') is not None else None),
-                      nr=(seq_by_study.get(s['study_accession'], {}).get('n_runs'))) for s in studies]
+    # Studies table (owner review 2026-10-01): narrow — no depth / per-field coverage columns, samples only, Gbp per sample
+    sidx_rows = [dict(a=s['study_accession'], t=(s['study_title'] or '')[:160], n=int(s['n_samples_curated'] or 0), ag=s['ages_short'], hc=s['top_condition'],
+                      iv=(s.get('interventions') or '') if not isnull(s.get('interventions')) else '', co=_top_key(s.get('top_country')), ls=s.get('life_stage_primary') or '',
+                      src=s['curated_source'], fa=s['first_author'], p=s['n_papers'], y=(s.get('first_public_min') or '')[:4],
+                      gs=(round(seq_by_study[s['study_accession']]['gbp_per_sample'], 2) if seq_by_study.get(s['study_accession'], {}).get('gbp_per_sample') is not None else None))
+                 for s in studies]
     (out / 'data' / 'studies_index.json').write_text(dumps(sidx_rows), encoding='utf-8')
     render('studies_index.html', 'studies/index.html', '../', nav='studies', use_datatables=True, stats=stats, n_rows=len(studies), has_seq=bool(seq_by_study),
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Studies')])
@@ -933,7 +973,7 @@ def main():
             x['archive_url'] = archive_url(x.get('biosample_accession') or x.get('sample_key'))
         render('study.html', f'studies/{acc}.html', '../', nav='studies', use_datatables=True, s=s, rg=rgr, rg_summary=rg_summary, rg_evidence=rg_evidence, seq=seq_by_study.get(acc),
                papers=papers_by_study.get(acc, []), study_authors=authors_by_study.get(acc, []), cov=cov, ages=ages, sites=sites, conds=conds, countries=countries, sexes=sexes,
-               group_stmts=group_stmts, ev_rows=ev_rows_study, n_det=int(len(dg)), panel=panel_by_study.get(acc), help=help_by_study.get(acc), flag_url=flag, n_core=len(CORE_FIELDS),
+               group_stmts=group_stmts, iv_labels={c: (v or {}).get('label', c) for c, v in iv_voc.items()}, ev_rows=ev_rows_study, n_det=int(len(dg)), panel=panel_by_study.get(acc), help=help_by_study.get(acc), flag_url=flag, n_core=len(CORE_FIELDS),
                samples=srows, sample_cols=SAMPLE_COLS, thr_pct=int(round(100 * thr)), n_total=n_total, n_shown=len(shown), dl=study_dl[acc], hc_labels=hc_labels,
                site_labels=vocabs['body_site'], stage_labels=vocabs['life_stage'],
                crumbs=[dict(label='Home', href='../index.html'), dict(label='Studies', href='index.html'), dict(label=acc)])
@@ -964,7 +1004,18 @@ def main():
     hc_rows = cw.dropna(subset=['health_condition']).groupby('health_condition').agg(ns=('sample_key', 'size'), nst=('study_accession', 'nunique')).sort_values(['ns'], ascending=False)
     ls_codes = [(k, ls_labels.get(k, '')) for k, _n in counts_sorted(cw['lifestyle'].dropna())] if has_col.get('lifestyle') else []
     years = sorted({int(y) for y in field_series(cw, 'collection_year', DERIVED).dropna().astype(str).str[:4] if y.isdigit()}) if has_col.get('collection_year') else []
-    render('explorer.html', 'samples/index.html', '../', nav='samples', stats=stats, age_cats=[c for c in age_cats if (cw.age_category == c).any()],
+    # intervention filters (R2026.15): study-level list from gut_studies.interventions, sample arms from the wide `intervention` column
+    iv_counts = {}
+    if 'interventions' in cs.columns:
+        for v in cs.interventions.dropna():
+            for c in [x for x in str(v).split(';') if x]:
+                iv_counts[c] = iv_counts.get(c, 0) + 1
+    iv_codes = [(c, (iv_voc.get(c) or {}).get('label', c), iv_counts[c]) for c in iv_voc if c in iv_counts] + [(c, c, n) for c, n in sorted(iv_counts.items()) if c not in iv_voc]
+    iv_sample_codes = []
+    if 'intervention' in cw.columns and cw.intervention.notna().any():
+        present = set(c for v in cw.intervention.dropna() for c in str(v).split(';') if c)
+        iv_sample_codes = [(c, (iv_voc.get(c) or {}).get('label', c)) for c in iv_voc if c in present]
+    render('explorer.html', 'samples/index.html', '../', nav='samples', stats=stats, age_cats=[c for c in age_cats if (cw.age_category == c).any()], iv_codes=iv_codes, iv_sample_codes=iv_sample_codes,
            hc_codes=list(hc_rows.index), countries=sorted(cw.country.dropna().unique().tolist()), n_cols=int(cw.shape[1]), has_col=has_col, ls_codes=ls_codes,
            year_min=(years[0] if years else None), year_max=(years[-1] if years else None), n_fields_max=len(CORE_FIELDS) + len(KEY_FIELDS),
            parquet_size=human((pkg / 'gut_sample_metadata_wide.parquet').stat().st_size), det_size=human((pkg / 'gut_sample_determinations.parquet').stat().st_size),
@@ -1004,6 +1055,12 @@ def main():
             continue
         has = ser.notna()
         nR = {r: int(route_by_field.get((f, r), 0)) for r in ROUTES}
+        if f == 'age_category' and 'age_category_basis' in cw.columns:   # derived: route of the basis (exact age → its own route)
+            bas = cw.loc[has, 'age_category_basis']
+            age_r = cw.loc[has & (bas == 'age_at_collection_days'), 'age_at_collection_days__route'] if 'age_at_collection_days__route' in cw.columns else pd.Series(dtype=str)
+            nR = {r: int((age_r == r).sum()) for r in ROUTES}
+            nR['R1'] += int(bas.isin(['sample_life_stage', 'infant_catalog_age_scope']).sum()); nR['R3'] += int((bas == 'r3_fulltext_life_stage').sum())
+            nR['R4'] += int(bas.isin(['r4_abstract_life_stage', 'study_life_stage']).sum())
         tot = max(1, sum(nR.values()))
         left, segs = 0.0, []
         for r in ROUTES:
@@ -1020,6 +1077,8 @@ def main():
             vocab_txt = ', '.join(map(str, spec['values']))
         elif spec.get('compose'):
             vocab_txt = 'derived: ' + ', '.join(spec['compose'])
+        elif spec.get('life_stage'):
+            vocab_txt = ', '.join(spec.get('values') or [])
         by_cat = {c: (float(has[cw.age_category == c].mean()) if (cw.age_category == c).any() else None) for c in age_cats}
         tier = 'core' if f in CORE_FIELDS else 'key' if f in KEY_FIELDS else 'infant' if f in infant_fields else 'other'
         fields.append(dict(name=f, label=LABELS.get(f, f), type=spec.get('type', 'derived' if spec.get('compose') or spec.get('from') else ''), infant=tier == 'infant', tier=tier,
@@ -1035,7 +1094,7 @@ def main():
     for r in ROUTES:
         m_ = cd[cd.route == r]
         conf_rows.append(dict(route=r, label=ROUTE_LABELS[r], n=len(m_), bins=[int(((m_.confidence >= lo) & (m_.confidence < hi)).sum()) for lo, hi, _ in cbins], n_group=int((m_.scope == 'study_all').sum())))
-    render('fields.html', 'fields/index.html', '../', nav='about', fields=fields, field_groups=field_groups, age_cats=age_cats, conf_rows=conf_rows, cbins=[b[2] for b in cbins], stats=stats,
+    render('fields.html', 'fields/index.html', '../', nav='about', contrib_min_missing=CONTRIB_MIN_MISSING, fields=fields, field_groups=field_groups, age_cats=age_cats, conf_rows=conf_rows, cbins=[b[2] for b in cbins], stats=stats,
            dictionary_html=md_to_html(dictionary), hc_rows=[(k, hc_labels.get(k, ''), int(v.ns), int(v.nst)) for k, v in hc_rows.iterrows()],
            crumbs=[dict(label='Home', href='../index.html'), dict(label='Fields')])
 
@@ -1282,6 +1341,14 @@ def main():
         if not (out / sec / 'index.html').exists():
             (out / sec).mkdir(parents=True, exist_ok=True)
             render('placeholder.html', f'{sec}/index.html', '../', nav=sec, heading=lab, text=txt, crumbs=[dict(label='Home', href='../index.html'), dict(label=lab)])
+    # R2026.15: every drop-down entry must resolve — sub-pages a build does not produce (e.g. atlas/pca.html without Sandpiper PCA
+    # tables) get a short placeholder instead of a dead menu link
+    for _k, _lab, _href, _children in NAV:
+        for _ck, _cl, _ch in (_children or []):
+            if not (out / _ch).exists():
+                (out / _ch).parent.mkdir(parents=True, exist_ok=True)
+                _root = '../' * _ch.count('/')
+                render('placeholder.html', _ch, _root, nav=_ck, heading=_cl, text='This page is not part of this build.', crumbs=[dict(label='Home', href=_root + 'index.html'), dict(label=_cl)])
     # items 5/6: old URLs keep working as redirects to their new homes
     for old_, new_ in REDIRECTS.items():
         (out / old_).parent.mkdir(parents=True, exist_ok=True)

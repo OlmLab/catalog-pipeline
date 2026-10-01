@@ -175,6 +175,15 @@ releases:
     doi: 10.5281/zenodo.23087713
     label: "owner decisions on the R2026.13 questions: PRJNA50637 ileal-pouch cohort moved out of the gut scope (registry owner override, body site other_site); collection-date floor lowered to 1980 (602 archived-cohort dates admitted); LifeLines-DEEP recorded as a controlled-access reference collection; Hutterite note (16S only); same-country institute coordinates kept"
 
+  - release_id: R2026.15
+    package_version: '1.14.0'
+    previous_package_version: '1.13.1'
+    previous_release_id: R2026.14
+    notes_file: RELEASE_NOTES_R2026.15.md
+    data_tag: data-v1.14.0
+    site_tag: site-v1.14.0
+    label: "owner review 2026-10-01: interventions (study-level list of administered interventions for every catalog study from abstracts / descriptions, per-sample intervention arms from archive attributes, intervention_cohort recoded to the trial population's condition); core age = life stage (age_category), sex and exact age moved to key fields; grouped drop-down navigation with an Insights section; narrower Studies table (samples, Gbp per sample, interventions); registry table marks catalog studies; Zenodo DOI shown"
+
 # Bitemporal columns appended (in this order) at the END of every fact table.
 columns:
   release_added: release_added        # str; release id (numbered) or historical package semver

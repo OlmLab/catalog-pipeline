@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ s.study_accession }} — {{ (s.study_title or '')[:80] }} — {{ site.title }}{% endblock %}
-{% block desc %}{{ s.study_accession }}: {{ (s.study_title or '')[:120] }} — {{ n_total|fmt }} curated gut samples with age, sex, BMI, country, health condition and antibiotic exposure where recoverable; papers, authors, evidence and downloads.{% endblock %}
+{% block desc %}{{ s.study_accession }}: {{ (s.study_title or '')[:120] }} — {{ n_total|fmt }} curated gut samples with age (exact or life stage), country, health condition and antibiotic exposure where recoverable; papers, authors, evidence and downloads.{% endblock %}
 {% block content %}
 <h1><span class="mono">{{ s.study_accession }}</span>{% if s.secondary_study_accession %} <span class="small mono">{{ s.secondary_study_accession }}</span>{% endif %}</h1>
 <p class="lead">{{ s.study_title or '(no title in the archive record)' }}</p>
@@ -28,6 +28,13 @@
 {% if rg_evidence %}<ul class="small evlist">{% for e in rg_evidence %}<li><span class="tag">{{ e.kind }}</span> <span class="mono">{{ e.source }}</span> · “{{ e.quote }}”</li>{% endfor %}</ul>{% else %}<p class="small">No evidence row (classification pending or deterministic rule without a quote).</p>{% endif %}
 {% else %}<p class="small">No registry row for this study.</p>{% endif %}
 
+{% if s.interventions or s.intervention_design %}<h2 id="interventions">Interventions</h2>
+<p>{% if s.interventions %}This study administered: {% for c in s.interventions.split(';') if c %}<span class="tag incat">{{ iv_labels.get(c, c) }}</span> {% endfor %}{% else %}No administered intervention stated.{% endif %}
+{% if s.intervention_design and s.intervention_design not in ('none', 'unknown') %} Design: <span class="mono">{{ s.intervention_design }}</span>.{% endif %}
+{% if s.intervention_detail %} <span class="small">{{ s.intervention_detail }}</span>{% endif %}
+{% if s.population_condition and s.population_condition not in ('unknown',) and s.interventions %} Trial population: <span class="mono">{{ s.population_condition }}</span>.{% endif %}</p>
+{% if s.intervention_evidence_quote %}<p class="small">Evidence ({{ s.intervention_evidence_source }}, route R4, confidence {{ s.intervention_confidence }}): <span class="quote">“{{ s.intervention_evidence_quote }}”</span>. Study-level: it says what the study gave, not which samples received it — per-sample arms appear as the <span class="mono">intervention</span> field when the archive records them.</p>{% endif %}
+{% endif %}
 <h2>Samples: what the curated values say</h2>
 <div class="sections" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
 <div class="card"><b>Age category</b><table class="tbl small compact">{% for k, n in ages %}<tr><td class="mono">{{ k }}</td><td class="num">{{ n|fmt }}</td></tr>{% endfor %}</table></div>

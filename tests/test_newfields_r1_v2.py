@@ -243,7 +243,7 @@ def test_term_in_and_negation():
 # ------------------------------------------------------------------------------------------------------------------ build_gut_scope: vocab_list + int
 def test_pack_fields_types():
     pf = bgs.pack_fields(bgs._load_pack(CFG))
-    assert pf["vocab_list"] == {"medication": "config/vocab/medication.yaml"}
+    assert pf["vocab_list"] == {"medication": "config/vocab/medication.yaml", "intervention": "config/vocab/interventions.yaml"}
     assert pf["int_range"] == {"stool_consistency_bristol": (1, 7)}
     assert {"diet", "smoking_status", "lifestyle", "health_condition"} <= set(pf["vocab"])
     assert {"diet", "diet_detail", "smoking_status", "medication", "medication_detail", "stool_consistency_bristol"} <= set(pf["fields"])

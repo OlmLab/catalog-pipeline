@@ -42,11 +42,16 @@ fields:                    # field_name → vocabulary / type; routes R1 (archiv
   smoking_status: {type: vocab, vocab: config/vocab/smoking.yaml, routes: [R1, R2, R3, R4], note: "never | former | current"}
   medication: {type: vocab_list, vocab: config/vocab/medication.yaml, routes: [R1, R2, R3, R4], detail_field: medication_detail, note: "';'-joined sorted codes; antibiotics are antibiotic_exposure, not here"}
   medication_detail: {type: text, max_len: 160, routes: [R1, R2, R3, R4]}
+  intervention: {type: vocab_list, vocab: config/vocab/interventions.yaml, routes: [R1, R2, R3, R4], detail_field: intervention_detail, note: "what this sample's subject had received IN THE STUDY at or before sampling (';'-joined sorted codes; placebo / no_intervention for control arms and pre-intervention baselines). Per-sample from archive attributes (R1); the study-level list of administered interventions is gut_studies.interventions (R4, abstracts) and is not copied onto samples — controls of an FMT trial are not FMT samples."}
+  intervention_detail: {type: text, max_len: 160, routes: [R1, R2, R3, R4]}
   stool_consistency_bristol: {type: int, range: [1, 7], routes: [R1, R2], note: "Bristol stool form scale 1–7 as stated; textual forms (hard / normal / loose / watery) are mapped 2 / 4 / 6 / 7 with confidence 0.7"}
 # Field tiers for the site and the contribute worklist (owner decision 2026-09-29): five CORE fields, then the KEY fields.
-core_fields: [age_at_collection_days, sex, country, health_condition, subject_id]
-key_fields: [detailed_location, lifestyle, collection_date, antibiotic_exposure, bmi, timepoint_label, diet, smoking_status, medication, stool_consistency_bristol]
+# owner review 2026-10-01: age is core at the level of LIFE STAGE (age_category — an exact age is not required as long as the source
+# establishes e.g. that the subjects are adults); the exact age moves to key fields together with sex.
+core_fields: [age_category, country, health_condition, subject_id]
+key_fields: [age_at_collection_days, sex, detailed_location, lifestyle, collection_date, intervention, antibiotic_exposure, bmi, timepoint_label, diet, smoking_status, medication, stool_consistency_bristol]
 derived_fields:
+  age_category: {life_stage: true, values: [neonate, infant, child, adolescent, adult, elderly], note: "age at collection at the level of a life stage: from the exact age when known (age_at_collection_days, bins above), else the sample's own life-stage attribute, else a cohort statement in the paper (R3) or abstract (R4), else the study's single registry life stage; the basis is recorded per sample in age_category_basis. 'unknown' = not covered."}
   detailed_location: {compose: [location_site, location_locality, location_region], sep: ", ", note: "most specific place below the country: 'site, locality, region' with empty parts dropped; not a determination itself — its parts are"}
   collection_year: {from: collection_date, note: "leading YYYY of collection_date (start of an interval)"}
   # infant-only fields carried verbatim from the curated infant tables (never minted for non-infant samples):

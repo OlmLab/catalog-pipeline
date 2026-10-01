@@ -76,7 +76,7 @@ def built(tmp_path_factory):
     env = Environment(loader=FileSystemLoader(GEN / 'templates'), autoescape=select_autoescape(['html']))
     env.filters.update(fmt=lambda v: v, pct=lambda v: v, pct1=lambda v: v, num2=lambda v: v, numint=lambda v: f'{int(v):,}')
     sri = json.loads((GEN / 'static' / 'vendor' / 'SRI.json').read_text())
-    env.globals.update(site=dict(nav=[('home','Home','index.html'),('atlas','Atlas','atlas/index.html')], issue_template='', issue_label='', about=dict(lab_name='Lab', lab_url='https://example.org/lab', funder_name='Funder', funder_url='https://example.org/f'), title='T', short_title='T', tagline='', version='1.12.0-test', release_tag='data-v1.12.0', build_date='2026-10-01', sha8='deadbeef', base_url='https://example.org/',
+    env.globals.update(site=dict(nav=[('home','Home','index.html',None),('atlas','Atlas','atlas/index.html',None)], issue_template='', issue_label='', about=dict(lab_name='Lab', lab_url='https://example.org/lab', funder_name='Funder', funder_url='https://example.org/f'), title='T', short_title='T', tagline='', version='1.12.0-test', release_tag='data-v1.12.0', build_date='2026-10-01', sha8='deadbeef', base_url='https://example.org/',
                                  issue_repo='OlmLab/microbiome_repo', release_id='R2026.12', previous_release_id='R2026.11', release_date='2026-10-01', doi='', data_release_url=None,
                                  zenodo_badge='', zenodo_latest='', data_repo_id='0', releases_page='releases/index.html', changes_page='changes/index.html', description='', citation='',
                                  sri=sri, has_contribute=True, contribute_page='contribute/index.html', has_registry=True, registry_page='registry/index.html', data_repo='OlmLab/x'))
@@ -160,7 +160,7 @@ def test_build_without_observations(tmp_path):
     data_dir = tmp_path / 'payload'; atlas.precompute(genus_long, species_long, summary, wide, data_dir, n_species=2)
     env = Environment(loader=FileSystemLoader(GEN / 'templates'), autoescape=select_autoescape(['html']))
     env.filters.update(fmt=lambda v: v, pct=lambda v: v, pct1=lambda v: v, num2=lambda v: v, numint=lambda v: f'{int(v):,}')
-    env.globals.update(site=dict(nav=[('home','Home','index.html'),('atlas','Atlas','atlas/index.html')], issue_template='', issue_label='', contribute_page='', about=dict(lab_name='Lab', lab_url='https://example.org/lab', funder_name='Funder', funder_url='https://example.org/f'), title='T', short_title='T', version='x', release_tag='x', build_date='x', sha8='x', base_url='', issue_repo='', release_id='x', release_date='x', doi='',
+    env.globals.update(site=dict(nav=[('home','Home','index.html',None),('atlas','Atlas','atlas/index.html',None)], issue_template='', issue_label='', contribute_page='', about=dict(lab_name='Lab', lab_url='https://example.org/lab', funder_name='Funder', funder_url='https://example.org/f'), title='T', short_title='T', version='x', release_tag='x', build_date='x', sha8='x', base_url='', issue_repo='', release_id='x', release_date='x', doi='',
                                  sri={}, has_contribute=False, has_registry=False, citation='', description=''))
     out = tmp_path / 'site'; out.mkdir()
     def render(tpl, path, root, **ctx):
